@@ -8,28 +8,32 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
+type ISCSISpec struct {
+	TargetIP       string   `json:"targetIP"`
+	TargetPort     int32    `json:"targetPort"`
+	Iqn            string   `json:"iqn"`
+	Lun            int32    `json:"lun"`
+	TargetPortals  []string `json:"targetPortal"`
+	ISCSIInterface string   `json:"iscsiInterface"`
+}
+
 // JivaVolumeSpec defines the desired state of JivaVolume
 // +k8s:openapi-gen=true
 type JivaVolumeSpec struct {
 	// ReplicaSC represents the storage class used for
 	// creating the pvc for the replicas (provisioned by localpv provisioner)
-	ReplicaSC       string                  `json:"replicaSC"`
-	PV              string                  `json:"pv"`
-	Capacity        int64                   `json:"capacity"`
-	ReplicaResource v1.ResourceRequirements `json:"replicaResource"`
-	TargetResource  v1.ResourceRequirements `json:"targetResource"`
+	ReplicaSC string `json:"replicaSC"`
+	PV        string `json:"pv"`
+	Capacity  int64  `json:"capacity"`
 	// ReplicationFactor represents the actual replica count for the underlying
 	// jiva volume
-	ReplicationFactor string   `json:"replicationFactor"`
-	TargetIP          string   `json:"targetIP"`
-	TargetPort        int32    `json:"targetPort"`
-	Iqn               string   `json:"iqn"`
-	Lun               int32    `json:"lun"`
-	TargetPortals     []string `json:"targetPortal"`
-	MountPath         string   `json:"mountPath"`
-	FSType            string   `json:"fsType"`
-	ISCSIInterface    string   `json:"iscsiInterface"`
-	DevicePath        string   `json:"devicePath"`
+	ReplicationFactor string                  `json:"replicationFactor"`
+	MountPath         string                  `json:"mountPath"`
+	FSType            string                  `json:"fsType"`
+	DevicePath        string                  `json:"devicePath"`
+	ISCSISpec         ISCSISpec               `json:"iscsiSpec"`
+	ReplicaResource   v1.ResourceRequirements `json:"replicaResource"`
+	TargetResource    v1.ResourceRequirements `json:"targetResource"`
 }
 
 // JivaVolumeStatus defines the observed state of JivaVolume

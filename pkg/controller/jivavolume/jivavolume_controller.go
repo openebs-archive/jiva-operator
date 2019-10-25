@@ -19,6 +19,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
+	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -37,6 +38,16 @@ import (
 var (
 	log           = logf.Log.WithName("controller_jivavolume")
 	svcNameFormat = "%s-jiva-ctrl-svc.%s.svc.cluster.local"
+)
+
+var (
+	installFuncs = []func(r *ReconcileJivaVolume, cr *jv.JivaVolume,
+		reqLog logr.Logger) error{
+		createControllerService,
+		createControllerDeployment,
+		createReplicaStatefulSet,
+		createReplicaPodDisruptionBudget,
+	}
 )
 
 /**
@@ -166,48 +177,80 @@ func (r *ReconcileJivaVolume) bootstrapJiva(cr *jv.JivaVolume, reqLog logr.Logge
 		}
 	}()
 
-	err = r.createControllerService(cr, reqLog)
+	for _, f := range installFuncs {
+		if err = f(r, cr, reqLog); err != nil {
+			return err
+		}
+	}
+
+	err = updateJivaVolumeWithServiceInfo(r, cr, jv.JivaVolumePhasePending)
 	if err != nil {
 		return err
 	}
+	return nil
+}
 
-	err = r.updateJivaVolumeWithServiceInfo(cr, jv.JivaVolumePhasePending)
+// TODO: add logic to create disruption budget for replicas
+func createReplicaPodDisruptionBudget(r *ReconcileJivaVolume, cr *jv.JivaVolume, reqLog logr.Logger) error {
+	min, err := strconv.Atoi(cr.Spec.ReplicationFactor)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to convert to int, err: %v", err)
+	}
+	pdbObj := &policyv1beta1.PodDisruptionBudget{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "PodDisruptionBudget",
+			APIVersion: "policyv1beta1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      cr.Name + "-pdb",
+			Namespace: cr.Namespace,
+		},
+		Spec: policyv1beta1.PodDisruptionBudgetSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: defaultReplicaLabels(cr.Spec.PV),
+			},
+			MinAvailable: &intstr.IntOrString{
+				Type:   intstr.Int,
+				IntVal: int32(min/2 + 1),
+			},
+		},
 	}
 
-	err = r.createControllerDeployment(cr, reqLog)
-	if err != nil {
-		return err
-	}
+	found := &policyv1beta1.PodDisruptionBudget{}
+	err = r.client.Get(context.TODO(), types.NamespacedName{Name: pdbObj.Name, Namespace: pdbObj.Namespace}, found)
+	if err != nil && errors.IsNotFound(err) {
+		// Set JivaVolume instance as the owner and controller
+		if err := controllerutil.SetControllerReference(cr, pdbObj, r.scheme); err != nil {
+			return operr.Wrapf(err, "failed to set JivaVolume: %v as owner for pdb: %v", cr.Name, pdbObj.Name)
+		}
 
-	err = r.createReplicaStatefulSet(cr, reqLog)
-	if err != nil {
-		return err
+		reqLog.Info("Creating a new pod disruption budget", "Pdb.Namespace", pdbObj.Namespace, "Pdb.Name", pdbObj.Name)
+		err = r.client.Create(context.TODO(), pdbObj)
+		if err != nil {
+			return operr.Wrapf(err, "failed to create pdb: %v", pdbObj.Name)
+		}
+		// Statefulset created successfully - don't requeue
+		return nil
+	} else if err != nil {
+		return operr.Wrapf(err, "failed to get the pod disruption budget details: %v", pdbObj.Name)
 	}
 
 	return nil
 }
 
 // TODO: Add code to configure resource limits, nodeAffinity etc.
-func (r *ReconcileJivaVolume) createControllerDeployment(cr *jv.JivaVolume,
+func createControllerDeployment(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 	reqLog logr.Logger) error {
-	labels := map[string]string{
-		"openebs.io/cas-type":          "jiva",
-		"openebs.io/component":         "jiva-controller",
-		"openebs.io/persistent-volume": cr.Spec.PV,
-	}
-
 	reps := int32(1)
 	dep, err := deploy.NewBuilder().WithName(cr.Name + "-jiva-ctrl").
 		WithNamespace(cr.Namespace).
-		WithLabels(labels).
+		WithLabels(defaultControllerLabels(cr.Spec.PV)).
 		WithReplicas(&reps).
 		WithStrategyType(appsv1.RecreateDeploymentStrategyType).
 		WithSelectorMatchLabelsNew(defaultControllerLabels(cr.Spec.PV)).
 		WithPodTemplateSpecBuilder(
 			pts.NewBuilder().
-				WithLabels(labels).
+				WithLabels(defaultControllerLabels(cr.Spec.PV)).
 				WithAnnotations(map[string]string{
 					"prometheus.io/path":  "/metrics",
 					"prometheus.io/port":  "9500",
@@ -318,7 +361,7 @@ func defaultControllerLabels(pv string) map[string]string {
 }
 
 // TODO: Add code to configure resource limits, nodeAffinity etc.
-func (r *ReconcileJivaVolume) createReplicaStatefulSet(cr *jv.JivaVolume,
+func createReplicaStatefulSet(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 	reqLog logr.Logger) error {
 
 	var (
@@ -341,6 +384,7 @@ func (r *ReconcileJivaVolume) createReplicaStatefulSet(cr *jv.JivaVolume,
 		WithLabelsNew(defaultReplicaLabels(cr.Spec.PV)).
 		WithNamespace(cr.Namespace).
 		WithServiceName("jiva-replica-svc").
+		WithPodManagementPolicy(appsv1.ParallelPodManagement).
 		WithStrategyType(appsv1.RollingUpdateStatefulSetStrategyType).
 		WithReplicas(&replicaCount).
 		WithSelectorMatchLabels(defaultReplicaLabels(cr.Spec.PV)).
@@ -435,7 +479,7 @@ func (r *ReconcileJivaVolume) createReplicaStatefulSet(cr *jv.JivaVolume,
 	return nil
 }
 
-func (r *ReconcileJivaVolume) updateJivaVolumeWithServiceInfo(cr *jv.JivaVolume, phase jv.JivaVolumePhase) error {
+func updateJivaVolumeWithServiceInfo(r *ReconcileJivaVolume, cr *jv.JivaVolume, phase jv.JivaVolumePhase) error {
 	ctrlSVC := &v1.Service{}
 	if err := r.client.Get(context.TODO(),
 		types.NamespacedName{
@@ -444,13 +488,13 @@ func (r *ReconcileJivaVolume) updateJivaVolumeWithServiceInfo(cr *jv.JivaVolume,
 		}, ctrlSVC); err != nil {
 		return operr.Wrapf(err, "failed to get service: {%v}", cr.Name+"-ctrl-svc")
 	}
-	cr.Spec.TargetIP = ctrlSVC.Spec.ClusterIP
+	cr.Spec.ISCSISpec.TargetIP = ctrlSVC.Spec.ClusterIP
 	var found bool
 	for _, port := range ctrlSVC.Spec.Ports {
 		if port.Name == "iscsi" {
 			found = true
-			cr.Spec.TargetPort = port.Port
-			cr.Spec.TargetPortals = []string{ctrlSVC.Spec.ClusterIP + fmt.Sprintf(":%v", port.Port)}
+			cr.Spec.ISCSISpec.TargetPort = port.Port
+			cr.Spec.ISCSISpec.TargetPortals = []string{ctrlSVC.Spec.ClusterIP + fmt.Sprintf(":%v", port.Port)}
 		}
 	}
 
@@ -473,7 +517,7 @@ func (r *ReconcileJivaVolume) updateJivaVolumeWithPhase(cr *jv.JivaVolume, phase
 	return nil
 }
 
-func (r *ReconcileJivaVolume) createControllerService(cr *jv.JivaVolume,
+func createControllerService(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 	reqLog logr.Logger) error {
 	labels := map[string]string{
 		"openebs.io/cas-type":          "jiva",
@@ -491,7 +535,8 @@ func (r *ReconcileJivaVolume) createControllerService(cr *jv.JivaVolume,
 		}).
 		WithPorts([]corev1.ServicePort{
 			{
-				Name:       "iscsi",
+				Name: "iscsi",
+
 				Port:       3260,
 				Protocol:   "TCP",
 				TargetPort: intstr.IntOrString{IntVal: 3260},

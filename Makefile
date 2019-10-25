@@ -1,9 +1,10 @@
 # Output registry and image names for operator image
+# Set env to override this value
 REGISTRY ?= openebs
 
-# Output plugin name and its image name and tag
+# Output operator name and its image name and tag
 OPERATOR_NAME=jiva-operator
-OPERATOR_TAG=dev
+OPERATOR_TAG=ci
 
 GIT_BRANCH = $(shell git rev-parse --abbrev-ref HEAD | sed -e "s/.*\\///")
 GIT_TAG = $(shell git describe --tags)
@@ -11,15 +12,15 @@ GIT_TAG = $(shell git describe --tags)
 # use git branch as default version if not set by env variable, if HEAD is detached that use the most recent tag
 VERSION ?= $(if $(subst HEAD,,${GIT_BRANCH}),$(GIT_BRANCH),$(GIT_TAG))
 COMMIT ?= $(shell git rev-parse HEAD | cut -c 1-7)
+ifeq ($(GIT_TAG),)
+	GIT_TAG := $(COMMIT)
+endif
 DATETIME ?= $(shell date +'%F_%T')
 LDFLAGS ?= \
         -extldflags "-static" \
 	-X github.com/openebs/jiva-operator/version/version.Version=${VERSION} \
 	-X github.com/openebs/jiva-operator/version/version.Commit=${COMMIT} \
 	-X github.com/openebs/jiva-operator/version/version.DateTime=${DATETIME}
-
-IMAGE_TAG ?= dev
-REGISTRY_PATH=${REGISTRY}/${PLUGIN_NAME}:${PLUGIN_TAG}
 
 .PHONY: all
 all:
@@ -61,7 +62,14 @@ generate:
 operator:
 	env GO111MODULE=on operator-sdk build $(REGISTRY)/$(OPERATOR_NAME):$(OPERATOR_TAG) --verbose
 
-push: container-operator
+push: image
 	docker push $(REGISTRY)/$(OPERATOR_NAME):$(OPERATOR_TAG)
 
-clean: .get
+tag:
+	docker tag $(REGISTRY)/$(OPERATOR_NAME):$(OPERATOR_TAG) $(REGISTRY)/$(OPERATOR_NAME):$(GIT_TAG)
+
+push-tag: tag
+	docker push $(REGISTRY)/$(OPERATOR_NAME):$(GIT_TAG)
+
+clean:
+	rm -rf ./build/_output/bin/

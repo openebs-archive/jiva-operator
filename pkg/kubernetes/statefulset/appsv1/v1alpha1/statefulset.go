@@ -112,6 +112,20 @@ func (b *Builder) WithServiceName(name string) *Builder {
 	return b
 }
 
+// WithPodManagementPolicy sets the PodManagementPolicy field of sts with
+// provided value
+func (b *Builder) WithPodManagementPolicy(policy appsv1.PodManagementPolicyType) *Builder {
+	if len(policy) == 0 {
+		b.errors = append(
+			b.errors,
+			errors.New("failed to build deployment: missing pod management policy"),
+		)
+		return b
+	}
+	b.sts.object.Spec.PodManagementPolicy = policy
+	return b
+}
+
 // WithAnnotations merges existing annotations if any
 // with the ones that are provided here
 func (b *Builder) WithAnnotations(annotations map[string]string) *Builder {

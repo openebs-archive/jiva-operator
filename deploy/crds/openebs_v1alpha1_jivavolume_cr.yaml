@@ -8,6 +8,6 @@ metadata:
 spec:
   capacity: 1073741824
   replicationFactor: "2"
-  pv: "demo-jiva-pvc"
+  pv: "example-jivavolume"
   replicaSC: "openebs-hostpath"
 

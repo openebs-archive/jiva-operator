@@ -55,6 +55,12 @@ rules:
   verbs:
   - get
 - apiGroups:
+  - policy
+  resources:
+  - poddisruptionbudgets
+  verbs:
+  - '*'
+- apiGroups:
   - openebs.io
   resources:
   - '*'
