@@ -494,6 +494,9 @@ func updateJivaVolumeWithServiceInfo(r *ReconcileJivaVolume, cr *jv.JivaVolume, 
 		if port.Name == "iscsi" {
 			found = true
 			cr.Spec.ISCSISpec.TargetPort = port.Port
+			cr.Spec.ISCSISpec.Iqn = "iqn.2016-09.com.openebs.jiva" + ":" + cr.Spec.PV
+			cr.Spec.ISCSISpec.ISCSIInterface = "default"
+			cr.Spec.ISCSISpec.Lun = 0
 			cr.Spec.ISCSISpec.TargetPortals = []string{ctrlSVC.Spec.ClusterIP + fmt.Sprintf(":%v", port.Port)}
 		}
 	}
