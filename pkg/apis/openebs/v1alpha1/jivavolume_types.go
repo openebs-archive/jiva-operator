@@ -17,6 +17,12 @@ type ISCSISpec struct {
 	ISCSIInterface string   `json:"iscsiInterface"`
 }
 
+type MountInfo struct {
+	Path       string `json:"mountPath"`
+	FSType     string `json:"fsType"`
+	DevicePath string `json:"devicePath"`
+}
+
 // JivaVolumeSpec defines the desired state of JivaVolume
 // +k8s:openapi-gen=true
 type JivaVolumeSpec struct {
@@ -28,10 +34,8 @@ type JivaVolumeSpec struct {
 	// ReplicationFactor represents the actual replica count for the underlying
 	// jiva volume
 	ReplicationFactor string                  `json:"replicationFactor"`
-	MountPath         string                  `json:"mountPath"`
-	FSType            string                  `json:"fsType"`
-	DevicePath        string                  `json:"devicePath"`
 	ISCSISpec         ISCSISpec               `json:"iscsiSpec"`
+	MountInfo         MountInfo               `json:"mountInfo"`
 	ReplicaResource   v1.ResourceRequirements `json:"replicaResource"`
 	TargetResource    v1.ResourceRequirements `json:"targetResource"`
 }
