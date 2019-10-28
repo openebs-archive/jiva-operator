@@ -57,48 +57,7 @@ func TestLookEnv(t *testing.T) {
 	}
 }
 
-func TestCASTemplateFeatureGate(t *testing.T) {
-
-	cases := map[string]struct {
-		key, value  string
-		expectValue bool
-	}{
-		"Incorrect value on": {
-			key:         string(CASTemplateFeatureGateENVK),
-			value:       "on",
-			expectValue: false,
-		},
-		"Key and value nil": {
-			key:         "",
-			value:       "",
-			expectValue: false,
-		},
-		"Value is nil": {
-			key:         string(CASTemplateFeatureGateENVK),
-			value:       "",
-			expectValue: false,
-		},
-		"Valid key and value": {
-			key:         string(CASTemplateFeatureGateENVK),
-			value:       "true",
-			expectValue: true,
-		},
-	}
-
-	for name, tc := range cases {
-		t.Run(name, func(t *testing.T) {
-			os.Setenv(tc.key, tc.value)
-			defer os.Unsetenv(tc.key)
-
-			feature := Truthy(CASTemplateFeatureGateENVK)
-			if !reflect.DeepEqual(feature, tc.expectValue) {
-				t.Errorf("Expected %v, got %v", tc.expectValue, feature)
-			}
-		})
-	}
-}
-
-func TestgetEnv(t *testing.T) {
+func TestGetEnv(t *testing.T) {
 	testCases := map[string]struct {
 		key         string
 		value       string
