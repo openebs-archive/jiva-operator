@@ -8,8 +8,10 @@ import (
 
 	"github.com/go-logr/logr"
 	jv "github.com/openebs/jiva-operator/pkg/apis/openebs/v1alpha1"
+	"github.com/openebs/jiva-operator/pkg/jiva"
 	container "github.com/openebs/jiva-operator/pkg/kubernetes/container/v1alpha1"
 	pts "github.com/openebs/jiva-operator/pkg/kubernetes/podtemplatespec/v1alpha1"
+	"github.com/openebs/jiva-operator/pkg/volume"
 
 	operr "github.com/openebs/jiva-operator/pkg/errors/v1alpha1"
 	deploy "github.com/openebs/jiva-operator/pkg/kubernetes/deployment/appsv1/v1alpha1"
@@ -147,7 +149,7 @@ func (r *ReconcileJivaVolume) Reconcile(request reconcile.Request) (reconcile.Re
 
 	switch instance.Status.Phase {
 	case jv.JivaVolumePhaseCreated, jv.JivaVolumePhaseSyncing:
-		return reconcile.Result{}, getAndUpdateVolumeStatus(instance)
+		return reconcile.Result{}, r.getAndUpdateVolumeStatus(instance, reqLogger)
 	case jv.JivaVolumePhaseDeleting:
 		reqLogger.Info("start tearing down jiva components", "JivaVolume: ", instance)
 		return reconcile.Result{}, nil //r.teardownJivaComponents(instance, reqLogger)
@@ -161,21 +163,23 @@ func (r *ReconcileJivaVolume) Reconcile(request reconcile.Request) (reconcile.Re
 	return reconcile.Result{}, r.bootstrapJiva(instance, reqLogger)
 }
 
+func (r *ReconcileJivaVolume) finally(err error, cr *jv.JivaVolume, reqLog logr.Logger) {
+	if err != nil {
+		if err := r.updateJivaVolumeWithPhase(cr, jv.JivaVolumePhaseFailed); err != nil {
+			reqLog.Error(err, "failed to update JivaVolume phase", "JivaVolume CR: ", cr)
+		}
+	} else {
+		if err := r.updateJivaVolumeWithPhase(cr, jv.JivaVolumePhaseSyncing); err != nil {
+			reqLog.Error(err, "failed to update JivaVolume phase", "JivaVolume CR: ", cr)
+		}
+	}
+}
+
 // 1. Create controller svc
 // 2. Create controller deploy
 // 3. Create replica statefulset
 func (r *ReconcileJivaVolume) bootstrapJiva(cr *jv.JivaVolume, reqLog logr.Logger) (err error) {
-	defer func() {
-		if err != nil {
-			if err := r.updateJivaVolumeWithPhase(cr, jv.JivaVolumePhaseFailed); err != nil {
-				reqLog.Error(err, "failed to update JivaVolume phase", "JivaVolume CR: ", cr)
-			}
-		} else {
-			if err := r.updateJivaVolumeWithPhase(cr, jv.JivaVolumePhaseSyncing); err != nil {
-				reqLog.Error(err, "failed to update JivaVolume phase", "JivaVolume CR: ", cr)
-			}
-		}
-	}()
+	defer r.finally(err, cr, reqLog)
 
 	for _, f := range installFuncs {
 		if err = f(r, cr, reqLog); err != nil {
@@ -538,8 +542,7 @@ func createControllerService(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 		}).
 		WithPorts([]corev1.ServicePort{
 			{
-				Name: "iscsi",
-
+				Name:       "iscsi",
 				Port:       3260,
 				Protocol:   "TCP",
 				TargetPort: intstr.IntOrString{IntVal: 3260},
@@ -600,8 +603,54 @@ func deleteResource(name, ns string, r *ReconcileJivaVolume, obj runtime.Object)
 	return nil
 }
 
-// TODO: Get and update target status periodically
-func getAndUpdateVolumeStatus(cr *jv.JivaVolume) error {
-	//addr := cr.Spec.TargetIP + fmt.Sprintf(":%v", cr.Spec.TargetPort)
+func (r *ReconcileJivaVolume) updateJivaVolume(cr *jv.JivaVolume) error {
+	if err := r.client.Update(context.TODO(), cr); err != nil {
+		return operr.Wrapf(err, "failed to update JivaVolume CR: {%v} with targetIP", cr)
+	}
+	return nil
+}
+
+// setdefaults set the default value
+func setdefaults(cr *jv.JivaVolume) {
+	cr.Status = jv.JivaVolumeStatus{
+		Status: "Unknown",
+		Phase:  jv.JivaVolumePhaseSyncing,
+	}
+}
+
+func (r *ReconcileJivaVolume) getAndUpdateVolumeStatus(cr *jv.JivaVolume, reqLog logr.Logger) (err error) {
+	var cli *jiva.ControllerClient
+	defer func() {
+		if err != nil {
+			setdefaults(cr)
+		}
+		if err := r.updateJivaVolume(cr); err != nil {
+			reqLog.Error(err, "failed to update status", "JivaVolume CR", cr)
+		}
+	}()
+	addr := cr.Spec.ISCSISpec.TargetPortals[0]
+	errMsg := fmt.Sprintf("Failed to get volume stats")
+	if len(addr) == 0 {
+		return operr.Errorf("%s: target address is empty", errMsg)
+	}
+	cli = jiva.NewControllerClient(addr)
+	stats := &volume.Stats{}
+	err = cli.Get("/stats", stats)
+	if err != nil {
+		return operr.Errorf("%s, err: %v", errMsg, err)
+	}
+
+	cr.Status.Status = stats.TargetStatus
+	cr.Status.ReplicaCount = len(stats.Replicas)
+
+	for i, rep := range stats.Replicas {
+		cr.Status.ReplicaStatuses[i].Address = rep.Address
+		cr.Status.ReplicaStatuses[i].Mode = rep.Mode
+	}
+
+	if stats.TargetStatus == "RW" {
+		cr.Status.Phase = jv.JivaVolumePhaseCreated
+	}
+
 	return nil
 }
