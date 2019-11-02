@@ -17,7 +17,7 @@ spec:
       containers:
         - name: jiva-operator
           # Replace this with the built image name
-          image: utkarshmani1997/jiva-operator:7194fa9
+          image: utkarshmani1997/jiva-operator:ci
           command:
           - jiva-operator
           imagePullPolicy: Always

@@ -1,6 +1,6 @@
 # Output registry and image names for operator image
 # Set env to override this value
-REGISTRY ?= openebs
+REGISTRY ?= utkarshmani1997
 
 # Output operator name and its image name and tag
 OPERATOR_NAME=jiva-operator
@@ -56,7 +56,7 @@ deps: .get
 build: deps test
 	GO111MODULE=on GOOS=linux go build -a -ldflags '$(LDFLAGS)' -o ./build/_output/bin/$(OPERATOR_NAME) ./cmd/manager/main.go
 
-image: build-operator
+image: build
 	docker build -f ./build/Dockerfile -t $(REGISTRY)/$(OPERATOR_NAME):$(OPERATOR_TAG) .
 
 generate:

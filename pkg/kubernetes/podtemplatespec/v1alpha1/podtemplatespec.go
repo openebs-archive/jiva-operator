@@ -15,9 +15,9 @@
 package v1alpha1
 
 import (
-	errors "github.com/openebs/jiva-operator/pkg/errors/v1alpha1"
 	container "github.com/openebs/jiva-operator/pkg/kubernetes/container/v1alpha1"
 	volume "github.com/openebs/jiva-operator/pkg/kubernetes/volume/v1alpha1"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 )
 

@@ -14,9 +14,9 @@ limitations under the License.
 package v1alpha1
 
 import (
-	errors "github.com/openebs/jiva-operator/pkg/errors/v1alpha1"
 	templatespec "github.com/openebs/jiva-operator/pkg/kubernetes/podtemplatespec/v1alpha1"
 	pvc "github.com/openebs/jiva-operator/pkg/kubernetes/pvc/v1alpha1"
+	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

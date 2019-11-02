@@ -12,8 +12,8 @@ import (
 	container "github.com/openebs/jiva-operator/pkg/kubernetes/container/v1alpha1"
 	pts "github.com/openebs/jiva-operator/pkg/kubernetes/podtemplatespec/v1alpha1"
 	"github.com/openebs/jiva-operator/pkg/volume"
+	operr "github.com/pkg/errors"
 
-	operr "github.com/openebs/jiva-operator/pkg/errors/v1alpha1"
 	deploy "github.com/openebs/jiva-operator/pkg/kubernetes/deployment/appsv1/v1alpha1"
 	pvc "github.com/openebs/jiva-operator/pkg/kubernetes/pvc/v1alpha1"
 	svc "github.com/openebs/jiva-operator/pkg/kubernetes/service/v1alpha1"
@@ -131,7 +131,6 @@ type ReconcileJivaVolume struct {
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileJivaVolume) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
-	reqLogger.Info("Reconciling JivaVolume")
 
 	// Fetch the JivaVolume instance
 	instance := &jv.JivaVolume{}
@@ -198,7 +197,7 @@ func (r *ReconcileJivaVolume) bootstrapJiva(cr *jv.JivaVolume, reqLog logr.Logge
 func createReplicaPodDisruptionBudget(r *ReconcileJivaVolume, cr *jv.JivaVolume, reqLog logr.Logger) error {
 	min, err := strconv.Atoi(cr.Spec.ReplicationFactor)
 	if err != nil {
-		return fmt.Errorf("failed to convert to int, err: %v", err)
+		return operr.Errorf("failed to convert to int, err: %v", err)
 	}
 	pdbObj := &policyv1beta1.PodDisruptionBudget{
 		TypeMeta: metav1.TypeMeta{
@@ -506,7 +505,7 @@ func updateJivaVolumeWithServiceInfo(r *ReconcileJivaVolume, cr *jv.JivaVolume, 
 	}
 
 	if !found {
-		return fmt.Errorf("Can't find targetPort in target service spec: %v", ctrlSVC)
+		return operr.Errorf("Can't find targetPort in target service spec: %v", ctrlSVC)
 	}
 
 	cr.Status.Phase = phase
@@ -563,7 +562,7 @@ func createControllerService(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 		Build()
 
 	if err != nil {
-		return operr.Wrapf(err, "failed to build service object")
+		return operr.Wrap(err, "failed to build service object")
 	}
 
 	found := &v1.Service{}
@@ -628,7 +627,7 @@ func (r *ReconcileJivaVolume) getAndUpdateVolumeStatus(cr *jv.JivaVolume, reqLog
 			reqLog.Error(err, "failed to update status", "JivaVolume CR", cr)
 		}
 	}()
-	addr := cr.Spec.ISCSISpec.TargetPortals[0]
+	addr := fmt.Sprintf(svcNameFormat, cr.Name, cr.Namespace) + ":9501"
 	errMsg := fmt.Sprintf("Failed to get volume stats")
 	if len(addr) == 0 {
 		return operr.Errorf("%s: target address is empty", errMsg)
@@ -642,6 +641,7 @@ func (r *ReconcileJivaVolume) getAndUpdateVolumeStatus(cr *jv.JivaVolume, reqLog
 
 	cr.Status.Status = stats.TargetStatus
 	cr.Status.ReplicaCount = len(stats.Replicas)
+	cr.Status.ReplicaStatuses = make([]jv.ReplicaStatus, len(stats.Replicas))
 
 	for i, rep := range stats.Replicas {
 		cr.Status.ReplicaStatuses[i].Address = rep.Address

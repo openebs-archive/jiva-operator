@@ -14,6 +14,7 @@ require (
 	k8s.io/kube-openapi v0.0.0-20190401085232-94e1e7b7574c
 	k8s.io/kubernetes v1.15.0 // indirect
 	sigs.k8s.io/controller-runtime v0.3.0
+	sigs.k8s.io/controller-tools v0.2.2 // indirect
 )
 
 replace (
