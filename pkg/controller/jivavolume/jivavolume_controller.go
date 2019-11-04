@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/go-logr/logr"
 	jv "github.com/openebs/jiva-operator/pkg/apis/openebs/v1alpha1"
@@ -164,13 +165,13 @@ func (r *ReconcileJivaVolume) Reconcile(request reconcile.Request) (reconcile.Re
 
 func (r *ReconcileJivaVolume) finally(err error, cr *jv.JivaVolume, reqLog logr.Logger) {
 	if err != nil {
-		if err := r.updateJivaVolumeWithPhase(cr, jv.JivaVolumePhaseFailed); err != nil {
-			reqLog.Error(err, "failed to update JivaVolume phase", "JivaVolume CR: ", cr)
-		}
+		cr.Status.Phase = jv.JivaVolumePhaseFailed
 	} else {
-		if err := r.updateJivaVolumeWithPhase(cr, jv.JivaVolumePhaseSyncing); err != nil {
-			reqLog.Error(err, "failed to update JivaVolume phase", "JivaVolume CR: ", cr)
-		}
+		cr.Status.Phase = jv.JivaVolumePhaseSyncing
+	}
+
+	if err := r.updateJivaVolume(cr); err != nil {
+		reqLog.Error(err, "failed to update JivaVolume phase")
 	}
 }
 
@@ -186,10 +187,6 @@ func (r *ReconcileJivaVolume) bootstrapJiva(cr *jv.JivaVolume, reqLog logr.Logge
 		}
 	}
 
-	err = updateJivaVolumeWithServiceInfo(r, cr, jv.JivaVolumePhasePending)
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -197,7 +194,7 @@ func (r *ReconcileJivaVolume) bootstrapJiva(cr *jv.JivaVolume, reqLog logr.Logge
 func createReplicaPodDisruptionBudget(r *ReconcileJivaVolume, cr *jv.JivaVolume, reqLog logr.Logger) error {
 	min, err := strconv.Atoi(cr.Spec.ReplicationFactor)
 	if err != nil {
-		return operr.Errorf("failed to convert to int, err: %v", err)
+		return operr.Wrapf(err, "failed to convert to int")
 	}
 	pdbObj := &policyv1beta1.PodDisruptionBudget{
 		TypeMeta: metav1.TypeMeta{
@@ -245,6 +242,8 @@ func createReplicaPodDisruptionBudget(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 func createControllerDeployment(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 	reqLog logr.Logger) error {
 	reps := int32(1)
+	reqLog.Info("JivaVolume info", "JivaVolume", cr)
+
 	dep, err := deploy.NewBuilder().WithName(cr.Name + "-jiva-ctrl").
 		WithNamespace(cr.Namespace).
 		WithLabels(defaultControllerLabels(cr.Spec.PV)).
@@ -282,7 +281,7 @@ func createControllerDeployment(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 							"--frontend",
 							"gotgt",
 							"--clusterIP",
-							fmt.Sprintf(svcNameFormat, cr.Name, cr.Namespace),
+							cr.Spec.ISCSISpec.TargetIP,
 							cr.Name,
 						}).
 						WithEnvsNew([]corev1.EnvVar{
@@ -359,6 +358,14 @@ func defaultControllerLabels(pv string) map[string]string {
 	return map[string]string{
 		"openebs.io/cas-type":          "jiva",
 		"openebs.io/component":         "jiva-controller",
+		"openebs.io/persistent-volume": pv,
+	}
+}
+
+func defaultServiceLabels(pv string) map[string]string {
+	return map[string]string{
+		"openebs.io/cas-type":          "jiva",
+		"openebs.io/component":         "jiva-controller-service",
 		"openebs.io/persistent-volume": pv,
 	}
 }
@@ -482,14 +489,14 @@ func createReplicaStatefulSet(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 	return nil
 }
 
-func updateJivaVolumeWithServiceInfo(r *ReconcileJivaVolume, cr *jv.JivaVolume, phase jv.JivaVolumePhase) error {
+func updateJivaVolumeWithServiceInfo(r *ReconcileJivaVolume, cr *jv.JivaVolume, reqLog logr.Logger) error {
 	ctrlSVC := &v1.Service{}
 	if err := r.client.Get(context.TODO(),
 		types.NamespacedName{
 			Name:      cr.Name + "-jiva-ctrl-svc",
 			Namespace: cr.Namespace,
 		}, ctrlSVC); err != nil {
-		return operr.Wrapf(err, "failed to get service: {%v}", cr.Name+"-ctrl-svc")
+		return err
 	}
 	cr.Spec.ISCSISpec.TargetIP = ctrlSVC.Spec.ClusterIP
 	var found bool
@@ -500,40 +507,42 @@ func updateJivaVolumeWithServiceInfo(r *ReconcileJivaVolume, cr *jv.JivaVolume, 
 			cr.Spec.ISCSISpec.Iqn = "iqn.2016-09.com.openebs.jiva" + ":" + cr.Spec.PV
 			cr.Spec.ISCSISpec.ISCSIInterface = "default"
 			cr.Spec.ISCSISpec.Lun = 0
-			cr.Spec.ISCSISpec.TargetPortals = []string{ctrlSVC.Spec.ClusterIP + fmt.Sprintf(":%v", port.Port)}
+			cr.Spec.ISCSISpec.TargetPortals = []string{ctrlSVC.Spec.ClusterIP + fmt.Sprint(":", port.Port)}
 		}
 	}
 
 	if !found {
-		return operr.Errorf("Can't find targetPort in target service spec: %v", ctrlSVC)
+		err := fmt.Errorf("Can't find targetPort in target service spec: %v", ctrlSVC)
+		return operr.Wrapf(err, "Failed to update JivaVolume with service info")
 	}
 
-	cr.Status.Phase = phase
+	reqLog.Info("Updating JivaVolume with iscsi spec", "ISCSISpec", cr.Spec.ISCSISpec)
+	cr.Status.Phase = jv.JivaVolumePhasePending
 	if err := r.client.Update(context.TODO(), cr); err != nil {
-		return operr.Wrapf(err, "failed to update JivaVolume CR: {%v} with targetIP", cr)
+		return operr.Wrapf(err, "failed to update JivaVolume CR: {%+v} with targetIP", cr)
 	}
-	return nil
-}
 
-func (r *ReconcileJivaVolume) updateJivaVolumeWithPhase(cr *jv.JivaVolume, phase jv.JivaVolumePhase) error {
-	cr.Status.Phase = phase
-	if err := r.client.Update(context.TODO(), cr); err != nil {
-		return operr.Wrapf(err, "failed to update JivaVolume CR: {%v} with targetIP", cr)
+	instance := &jv.JivaVolume{}
+	if err := r.client.Get(context.TODO(),
+		types.NamespacedName{
+			Name:      cr.Name,
+			Namespace: cr.Namespace,
+		}, instance); err != nil {
+		return operr.Wrapf(err, "failed to get JivaVolume: %v", cr.Name)
 	}
+
+	// update cr with the latest change
+	cr = instance.DeepCopy()
+
 	return nil
 }
 
 func createControllerService(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 	reqLog logr.Logger) error {
-	labels := map[string]string{
-		"openebs.io/cas-type":          "jiva",
-		"openebs.io/component":         "jiva-controller-service",
-		"openebs.io/persistent-volume": cr.Spec.PV,
-	}
 
 	svcObj, err := svc.NewBuilder().
 		WithName(cr.Name + "-jiva-ctrl-svc").
-		WithLabelsNew(labels).
+		WithLabelsNew(defaultServiceLabels(cr.Spec.PV)).
 		WithNamespace(cr.Namespace).
 		WithSelectorsNew(map[string]string{
 			"openebs.io/cas-type":          "jiva",
@@ -570,20 +579,23 @@ func createControllerService(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 	if err != nil && errors.IsNotFound(err) {
 		// Set JivaVolume instance as the owner and controller
 		if err := controllerutil.SetControllerReference(cr, svcObj, r.scheme); err != nil {
-			return operr.Wrapf(err, "failed to set JivaVolume: %v as owner for svc: %v", cr.Name, svcObj.Name)
+			return err
 		}
 
 		reqLog.Info("Creating a new service", "Service.Namespace", svcObj.Namespace, "Service.Name", svcObj.Name)
 		err = r.client.Create(context.TODO(), svcObj)
 		if err != nil {
-			return operr.Wrapf(err, "failed to create svc: %v", svcObj.Name)
+			return err
 		}
-		return nil
+		// Wait for service to get created
+		time.Sleep(1 * time.Second)
+		return updateJivaVolumeWithServiceInfo(r, cr, reqLog)
 	} else if err != nil {
-		return operr.Wrapf(err, "failed to get the service details: %v", svcObj.Name)
+		return err
 	}
 
-	return nil
+	return updateJivaVolumeWithServiceInfo(r, cr, reqLog)
+
 }
 
 func deleteResource(name, ns string, r *ReconcileJivaVolume, obj runtime.Object) error {
@@ -591,12 +603,12 @@ func deleteResource(name, ns string, r *ReconcileJivaVolume, obj runtime.Object)
 	if err != nil && errors.IsNotFound(err) {
 		return nil
 	} else if err != nil {
-		return operr.Wrapf(err, "failed to get the resource details: %v", name)
+		return err
 	}
 
 	err = r.client.Delete(context.TODO(), obj)
 	if err != nil {
-		return operr.Wrapf(err, "failed to delete the resource: %v", name)
+		return err
 	}
 
 	return nil
@@ -604,7 +616,7 @@ func deleteResource(name, ns string, r *ReconcileJivaVolume, obj runtime.Object)
 
 func (r *ReconcileJivaVolume) updateJivaVolume(cr *jv.JivaVolume) error {
 	if err := r.client.Update(context.TODO(), cr); err != nil {
-		return operr.Wrapf(err, "failed to update JivaVolume CR: {%v} with targetIP", cr)
+		return operr.Wrapf(err, "failed to update JivaVolume CR: {%+v}", cr)
 	}
 	return nil
 }
@@ -624,19 +636,19 @@ func (r *ReconcileJivaVolume) getAndUpdateVolumeStatus(cr *jv.JivaVolume, reqLog
 			setdefaults(cr)
 		}
 		if err := r.updateJivaVolume(cr); err != nil {
-			reqLog.Error(err, "failed to update status", "JivaVolume CR", cr)
+			reqLog.Error(err, "failed to update status")
 		}
 	}()
-	addr := fmt.Sprintf(svcNameFormat, cr.Name, cr.Namespace) + ":9501"
-	errMsg := fmt.Sprintf("Failed to get volume stats")
+	addr := cr.Spec.ISCSISpec.TargetIP + ":9501"
 	if len(addr) == 0 {
-		return operr.Errorf("%s: target address is empty", errMsg)
+		err := fmt.Errorf("Failed to get volume stats")
+		return operr.Wrapf(err, "target address is empty")
 	}
 	cli = jiva.NewControllerClient(addr)
 	stats := &volume.Stats{}
 	err = cli.Get("/stats", stats)
 	if err != nil {
-		return operr.Errorf("%s, err: %v", errMsg, err)
+		return operr.Wrapf(err, "Failed to get volume stats")
 	}
 
 	cr.Status.Status = stats.TargetStatus

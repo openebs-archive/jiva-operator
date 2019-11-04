@@ -98,6 +98,7 @@ func main() {
 		MapperProvider:     restmapper.NewDynamicRESTMapper,
 		MetricsBindAddress: fmt.Sprintf("%s:%d", metricsHost, metricsPort),
 		SyncPeriod:         &syncPeriod,
+		RetryPeriod:        &syncPeriod,
 	})
 	if err != nil {
 		log.Error(err, "")
