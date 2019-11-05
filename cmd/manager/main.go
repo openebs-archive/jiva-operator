@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"runtime"
-	"time"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -14,8 +13,8 @@ import (
 
 	"github.com/openebs/jiva-operator/pkg/apis"
 	"github.com/openebs/jiva-operator/pkg/controller"
+	mgr "github.com/openebs/jiva-operator/pkg/manager"
 	"github.com/openebs/jiva-operator/version"
-
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	kubemetrics "github.com/operator-framework/operator-sdk/pkg/kube-metrics"
 	"github.com/operator-framework/operator-sdk/pkg/leader"
@@ -91,14 +90,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	syncPeriod := 5 * time.Second
 	// Create a new Cmd to provide shared dependencies and start components
 	mgr, err := manager.New(cfg, manager.Options{
 		Namespace:          namespace,
 		MapperProvider:     restmapper.NewDynamicRESTMapper,
 		MetricsBindAddress: fmt.Sprintf("%s:%d", metricsHost, metricsPort),
-		SyncPeriod:         &syncPeriod,
-		RetryPeriod:        &syncPeriod,
+		SyncPeriod:         &mgr.SyncPeriod,
+		RetryPeriod:        &mgr.RetryPeriod,
 	})
 	if err != nil {
 		log.Error(err, "")

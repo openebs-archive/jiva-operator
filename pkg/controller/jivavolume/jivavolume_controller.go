@@ -51,6 +51,8 @@ var (
 		createReplicaStatefulSet,
 		createReplicaPodDisruptionBudget,
 	}
+
+	updateErrMsg = "Failed to update JivaVolume with service info"
 )
 
 /**
@@ -194,7 +196,7 @@ func (r *ReconcileJivaVolume) bootstrapJiva(cr *jv.JivaVolume, reqLog logr.Logge
 func createReplicaPodDisruptionBudget(r *ReconcileJivaVolume, cr *jv.JivaVolume, reqLog logr.Logger) error {
 	min, err := strconv.Atoi(cr.Spec.ReplicationFactor)
 	if err != nil {
-		return operr.Wrapf(err, "failed to convert to int")
+		return fmt.Errorf("failed to convert to int, err: %v", err)
 	}
 	pdbObj := &policyv1beta1.PodDisruptionBudget{
 		TypeMeta: metav1.TypeMeta{
@@ -221,13 +223,13 @@ func createReplicaPodDisruptionBudget(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 	if err != nil && errors.IsNotFound(err) {
 		// Set JivaVolume instance as the owner and controller
 		if err := controllerutil.SetControllerReference(cr, pdbObj, r.scheme); err != nil {
-			return operr.Wrapf(err, "failed to set JivaVolume: %v as owner for pdb: %v", cr.Name, pdbObj.Name)
+			return err
 		}
 
 		reqLog.Info("Creating a new pod disruption budget", "Pdb.Namespace", pdbObj.Namespace, "Pdb.Name", pdbObj.Name)
 		err = r.client.Create(context.TODO(), pdbObj)
 		if err != nil {
-			return operr.Wrapf(err, "failed to create pdb: %v", pdbObj.Name)
+			return err
 		}
 		// Statefulset created successfully - don't requeue
 		return nil
@@ -308,7 +310,7 @@ func createControllerDeployment(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 		).Build()
 
 	if err != nil {
-		return operr.Wrapf(err, "failed to build deployment object")
+		return fmt.Errorf("failed to build deployment object, err: %v", err)
 	}
 
 	found := &appsv1.Deployment{}
@@ -316,13 +318,13 @@ func createControllerDeployment(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 	if err != nil && errors.IsNotFound(err) {
 		// Set JivaVolume instance as the owner and controller
 		if err := controllerutil.SetControllerReference(cr, dep, r.scheme); err != nil {
-			return operr.Wrapf(err, "failed to set JivaVolume: %v as owner for svc: %v", cr.Name, dep.Name)
+			return err
 		}
 
 		reqLog.Info("Creating a new deployment", "Deploy.Namespace", dep.Namespace, "Deploy.Name", dep.Name)
 		err = r.client.Create(context.TODO(), dep)
 		if err != nil {
-			return operr.Wrapf(err, "failed to create deployment: %v", dep.Name)
+			return err
 		}
 		// Statefulset created successfully - don't requeue
 		return nil
@@ -381,9 +383,8 @@ func createReplicaStatefulSet(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 	)
 	rc, err := strconv.ParseInt(cr.Spec.ReplicationFactor, 10, 32)
 	if err != nil {
-		return operr.Wrapf(err,
-			"failed to create replica statefulsets: error while parsing RF: %v",
-			cr.Spec.ReplicationFactor)
+		return fmt.Errorf("failed to create replica statefulsets: error while parsing RF: %v, err: %v",
+			cr.Spec.ReplicationFactor, err)
 	}
 
 	replicaCount = int32(rc)
@@ -464,7 +465,7 @@ func createReplicaStatefulSet(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 		).Build()
 
 	if err != nil {
-		return operr.Wrapf(err, "failed to build statefulset object")
+		return fmt.Errorf("failed to build statefulset object, err: %v", err)
 	}
 
 	found := &appsv1.StatefulSet{}
@@ -472,13 +473,13 @@ func createReplicaStatefulSet(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 	if err != nil && errors.IsNotFound(err) {
 		// Set JivaVolume instance as the owner and controller
 		if err := controllerutil.SetControllerReference(cr, stsObj, r.scheme); err != nil {
-			return operr.Wrapf(err, "failed to set JivaVolume: %v as owner for svc: %v", cr.Name, stsObj.Name)
+			return err
 		}
 
 		reqLog.Info("Creating a new Statefulset", "Statefulset.Namespace", stsObj.Namespace, "Sts.Name", stsObj.Name)
 		err = r.client.Create(context.TODO(), stsObj)
 		if err != nil {
-			return operr.Wrapf(err, "failed to create statefulset: %v", stsObj.Name)
+			return err
 		}
 		// Statefulset created successfully - don't requeue
 		return nil
@@ -496,7 +497,7 @@ func updateJivaVolumeWithServiceInfo(r *ReconcileJivaVolume, cr *jv.JivaVolume, 
 			Name:      cr.Name + "-jiva-ctrl-svc",
 			Namespace: cr.Namespace,
 		}, ctrlSVC); err != nil {
-		return err
+		return fmt.Errorf("%s, err: %v", updateErrMsg, err)
 	}
 	cr.Spec.ISCSISpec.TargetIP = ctrlSVC.Spec.ClusterIP
 	var found bool
@@ -512,14 +513,13 @@ func updateJivaVolumeWithServiceInfo(r *ReconcileJivaVolume, cr *jv.JivaVolume, 
 	}
 
 	if !found {
-		err := fmt.Errorf("Can't find targetPort in target service spec: %v", ctrlSVC)
-		return operr.Wrapf(err, "Failed to update JivaVolume with service info")
+		return fmt.Errorf("%s, err: can't find targetPort in target service spec: {%+v}", updateErrMsg, ctrlSVC)
 	}
 
 	reqLog.Info("Updating JivaVolume with iscsi spec", "ISCSISpec", cr.Spec.ISCSISpec)
 	cr.Status.Phase = jv.JivaVolumePhasePending
 	if err := r.client.Update(context.TODO(), cr); err != nil {
-		return operr.Wrapf(err, "failed to update JivaVolume CR: {%+v} with targetIP", cr)
+		return fmt.Errorf("%s, err: %v, JivaVolume CR: {%+v}", updateErrMsg, err, cr)
 	}
 
 	instance := &jv.JivaVolume{}
@@ -528,7 +528,7 @@ func updateJivaVolumeWithServiceInfo(r *ReconcileJivaVolume, cr *jv.JivaVolume, 
 			Name:      cr.Name,
 			Namespace: cr.Namespace,
 		}, instance); err != nil {
-		return operr.Wrapf(err, "failed to get JivaVolume: %v", cr.Name)
+		return fmt.Errorf("%s, err: %v", updateErrMsg, err)
 	}
 
 	// update cr with the latest change
@@ -571,7 +571,7 @@ func createControllerService(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 		Build()
 
 	if err != nil {
-		return operr.Wrap(err, "failed to build service object")
+		return fmt.Errorf("failed to build service object, err: %v", err)
 	}
 
 	found := &v1.Service{}
@@ -591,7 +591,8 @@ func createControllerService(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 		time.Sleep(1 * time.Second)
 		return updateJivaVolumeWithServiceInfo(r, cr, reqLog)
 	} else if err != nil {
-		return err
+		return operr.Wrapf(err, "failed to get the service details: %v", svcObj.Name)
+
 	}
 
 	return updateJivaVolumeWithServiceInfo(r, cr, reqLog)
@@ -616,7 +617,7 @@ func deleteResource(name, ns string, r *ReconcileJivaVolume, obj runtime.Object)
 
 func (r *ReconcileJivaVolume) updateJivaVolume(cr *jv.JivaVolume) error {
 	if err := r.client.Update(context.TODO(), cr); err != nil {
-		return operr.Wrapf(err, "failed to update JivaVolume CR: {%+v}", cr)
+		return fmt.Errorf("failed to update JivaVolume CR: {%+v}, err: %v", cr, err)
 	}
 	return nil
 }
@@ -629,26 +630,38 @@ func setdefaults(cr *jv.JivaVolume) {
 	}
 }
 
-func (r *ReconcileJivaVolume) getAndUpdateVolumeStatus(cr *jv.JivaVolume, reqLog logr.Logger) (err error) {
-	var cli *jiva.ControllerClient
-	defer func() {
-		if err != nil {
-			setdefaults(cr)
-		}
+func (r *ReconcileJivaVolume) updateStatus(err error, update bool, cr *jv.JivaVolume, reqLog logr.Logger) {
+	if err != nil {
+		update = true
+		setdefaults(cr)
+	}
+	if update {
 		if err := r.updateJivaVolume(cr); err != nil {
 			reqLog.Error(err, "failed to update status")
 		}
-	}()
+	}
+}
+
+func (r *ReconcileJivaVolume) getAndUpdateVolumeStatus(cr *jv.JivaVolume, reqLog logr.Logger) (err error) {
+	var (
+		cli    *jiva.ControllerClient
+		update bool
+	)
+	defer r.updateStatus(err, update, cr, reqLog)
 	addr := cr.Spec.ISCSISpec.TargetIP + ":9501"
 	if len(addr) == 0 {
-		err := fmt.Errorf("Failed to get volume stats")
-		return operr.Wrapf(err, "target address is empty")
+		return fmt.Errorf("Failed to get volume stats: target address is empty")
 	}
 	cli = jiva.NewControllerClient(addr)
 	stats := &volume.Stats{}
 	err = cli.Get("/stats", stats)
 	if err != nil {
-		return operr.Wrapf(err, "Failed to get volume stats")
+		return fmt.Errorf("Failed to get volume stats, err: %v", err)
+	}
+
+	// Update CR only when status doesn't match else ignore
+	if stats.TargetStatus != cr.Status.Status {
+		update = true
 	}
 
 	cr.Status.Status = stats.TargetStatus
