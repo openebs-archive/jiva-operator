@@ -127,8 +127,6 @@ type ReconcileJivaVolume struct {
 
 // Reconcile reads that state of the cluster for a JivaVolume object and makes changes based on the state read
 // and what is in the JivaVolume.Spec
-// TODO(user): Modify this Reconcile function to implement your Controller logic.  This example creates
-// a Pod as an example
 // Note:
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
@@ -226,7 +224,7 @@ func createReplicaPodDisruptionBudget(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 			return err
 		}
 
-		reqLog.Info("Creating a new pod disruption budget", "Pdb.Namespace", pdbObj.Namespace, "Pdb.Name", pdbObj.Name)
+		reqLog.V(2).Info("Creating a new pod disruption budget", "Pdb.Namespace", pdbObj.Namespace, "Pdb.Name", pdbObj.Name)
 		err = r.client.Create(context.TODO(), pdbObj)
 		if err != nil {
 			return err
@@ -244,7 +242,6 @@ func createReplicaPodDisruptionBudget(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 func createControllerDeployment(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 	reqLog logr.Logger) error {
 	reps := int32(1)
-	reqLog.Info("JivaVolume info", "JivaVolume", cr)
 
 	dep, err := deploy.NewBuilder().WithName(cr.Name + "-jiva-ctrl").
 		WithNamespace(cr.Namespace).
@@ -321,7 +318,7 @@ func createControllerDeployment(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 			return err
 		}
 
-		reqLog.Info("Creating a new deployment", "Deploy.Namespace", dep.Namespace, "Deploy.Name", dep.Name)
+		reqLog.V(2).Info("Creating a new deployment", "Deploy.Namespace", dep.Namespace, "Deploy.Name", dep.Name)
 		err = r.client.Create(context.TODO(), dep)
 		if err != nil {
 			return err
@@ -476,7 +473,7 @@ func createReplicaStatefulSet(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 			return err
 		}
 
-		reqLog.Info("Creating a new Statefulset", "Statefulset.Namespace", stsObj.Namespace, "Sts.Name", stsObj.Name)
+		reqLog.V(2).Info("Creating a new Statefulset", "Statefulset.Namespace", stsObj.Namespace, "Sts.Name", stsObj.Name)
 		err = r.client.Create(context.TODO(), stsObj)
 		if err != nil {
 			return err
@@ -516,7 +513,7 @@ func updateJivaVolumeWithServiceInfo(r *ReconcileJivaVolume, cr *jv.JivaVolume, 
 		return fmt.Errorf("%s, err: can't find targetPort in target service spec: {%+v}", updateErrMsg, ctrlSVC)
 	}
 
-	reqLog.Info("Updating JivaVolume with iscsi spec", "ISCSISpec", cr.Spec.ISCSISpec)
+	reqLog.V(2).Info("Updating JivaVolume with iscsi spec", "ISCSISpec", cr.Spec.ISCSISpec)
 	cr.Status.Phase = jv.JivaVolumePhasePending
 	if err := r.client.Update(context.TODO(), cr); err != nil {
 		return fmt.Errorf("%s, err: %v, JivaVolume CR: {%+v}", updateErrMsg, err, cr)
@@ -582,7 +579,7 @@ func createControllerService(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 			return err
 		}
 
-		reqLog.Info("Creating a new service", "Service.Namespace", svcObj.Namespace, "Service.Name", svcObj.Name)
+		reqLog.V(2).Info("Creating a new service", "Service.Namespace", svcObj.Namespace, "Service.Name", svcObj.Name)
 		err = r.client.Create(context.TODO(), svcObj)
 		if err != nil {
 			return err
@@ -656,7 +653,11 @@ func (r *ReconcileJivaVolume) getAndUpdateVolumeStatus(cr *jv.JivaVolume, reqLog
 	stats := &volume.Stats{}
 	err = cli.Get("/stats", stats)
 	if err != nil {
-		return fmt.Errorf("Failed to get volume stats, err: %v", err)
+		// log err only, as controller must be in container creating state
+		// don't return err as it will dump stack trace unneccesary
+		time.Sleep(2 * time.Second)
+		reqLog.V(2).Info("Failed to get volume stats", "err", err)
+		return nil
 	}
 
 	// Update CR only when status doesn't match else ignore
