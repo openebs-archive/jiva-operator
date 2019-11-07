@@ -627,12 +627,12 @@ func setdefaults(cr *jv.JivaVolume) {
 	}
 }
 
-func (r *ReconcileJivaVolume) updateStatus(err error, update bool, cr *jv.JivaVolume, reqLog logr.Logger) {
+func (r *ReconcileJivaVolume) updateStatus(err error, update *bool, cr *jv.JivaVolume, reqLog logr.Logger) {
 	if err != nil {
-		update = true
+		*update = true
 		setdefaults(cr)
 	}
-	if update {
+	if *update {
 		if err := r.updateJivaVolume(cr); err != nil {
 			reqLog.Error(err, "failed to update status")
 		}
@@ -641,9 +641,12 @@ func (r *ReconcileJivaVolume) updateStatus(err error, update bool, cr *jv.JivaVo
 
 func (r *ReconcileJivaVolume) getAndUpdateVolumeStatus(cr *jv.JivaVolume, reqLog logr.Logger) (err error) {
 	var (
-		cli    *jiva.ControllerClient
-		update bool
+		cli          *jiva.ControllerClient
+		shouldUpdate bool
+		update       *bool
 	)
+
+	update = &shouldUpdate
 	defer r.updateStatus(err, update, cr, reqLog)
 	addr := cr.Spec.ISCSISpec.TargetIP + ":9501"
 	if len(addr) == 0 {
@@ -655,14 +658,13 @@ func (r *ReconcileJivaVolume) getAndUpdateVolumeStatus(cr *jv.JivaVolume, reqLog
 	if err != nil {
 		// log err only, as controller must be in container creating state
 		// don't return err as it will dump stack trace unneccesary
-		time.Sleep(2 * time.Second)
 		reqLog.V(2).Info("Failed to get volume stats", "err", err)
-		return nil
 	}
 
+	reqLog.V(2).Info("Update status", "Stats", stats)
 	// Update CR only when status doesn't match else ignore
 	if stats.TargetStatus != cr.Status.Status {
-		update = true
+		*update = true
 	}
 
 	cr.Status.Status = stats.TargetStatus
