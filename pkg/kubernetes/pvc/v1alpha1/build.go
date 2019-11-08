@@ -20,6 +20,7 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // Builder is the builder object for PVC
@@ -95,6 +96,21 @@ func (b *Builder) WithLabels(labels map[string]string) *Builder {
 	for key, value := range labels {
 		b.pvc.object.Labels[key] = value
 	}
+	return b
+}
+
+// WithOwnerReferenceNew sets ownerreference if any with
+// ones that are provided here
+func (b *Builder) WithOwnerReferenceNew(ownerRefernce []metav1.OwnerReference) *Builder {
+	if len(ownerRefernce) == 0 {
+		b.errs = append(
+			b.errs,
+			errors.New("failed to build pvc object: no new ownerRefernce"),
+		)
+		return b
+	}
+
+	b.pvc.object.OwnerReferences = ownerRefernce
 	return b
 }
 

@@ -238,7 +238,6 @@ func createReplicaPodDisruptionBudget(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 	return nil
 }
 
-// TODO: Add code to configure resource limits, nodeAffinity etc.
 func createControllerDeployment(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 	reqLog logr.Logger) error {
 	reps := int32(1)
@@ -374,9 +373,10 @@ func createReplicaStatefulSet(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 	reqLog logr.Logger) error {
 
 	var (
-		err          error
-		replicaCount int32
-		stsObj       *appsv1.StatefulSet
+		err                            error
+		replicaCount                   int32
+		stsObj                         *appsv1.StatefulSet
+		blockOwnerDeletion, controller = true, true
 	)
 	rc, err := strconv.ParseInt(cr.Spec.ReplicationFactor, 10, 32)
 	if err != nil {
@@ -456,6 +456,15 @@ func createReplicaStatefulSet(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 			pvc.NewBuilder().
 				WithName("openebs").
 				WithNamespace(cr.Namespace).
+				WithOwnerReferenceNew([]metav1.OwnerReference{{
+					APIVersion:         cr.APIVersion,
+					BlockOwnerDeletion: &blockOwnerDeletion,
+					Controller:         &controller,
+					Kind:               cr.Kind,
+					Name:               cr.Name,
+					UID:                cr.UID,
+				},
+				}).
 				WithStorageClass(cr.Spec.ReplicaSC).
 				WithAccessModes([]corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}).
 				WithCapacity(fmt.Sprintf("%v", cr.Spec.Capacity)),
@@ -519,17 +528,9 @@ func updateJivaVolumeWithServiceInfo(r *ReconcileJivaVolume, cr *jv.JivaVolume, 
 		return fmt.Errorf("%s, err: %v, JivaVolume CR: {%+v}", updateErrMsg, err, cr)
 	}
 
-	instance := &jv.JivaVolume{}
-	if err := r.client.Get(context.TODO(),
-		types.NamespacedName{
-			Name:      cr.Name,
-			Namespace: cr.Namespace,
-		}, instance); err != nil {
-		return fmt.Errorf("%s, err: %v", updateErrMsg, err)
+	if err := r.getJivaVolume(cr); err != nil {
+		return fmt.Errorf("%s, err: %v, JivaVolume CR: {%+v}", updateErrMsg, err, cr)
 	}
-
-	// update cr with the latest change
-	cr = instance.DeepCopy()
 
 	return nil
 }
@@ -619,6 +620,21 @@ func (r *ReconcileJivaVolume) updateJivaVolume(cr *jv.JivaVolume) error {
 	return nil
 }
 
+func (r *ReconcileJivaVolume) getJivaVolume(cr *jv.JivaVolume) error {
+	instance := &jv.JivaVolume{}
+	if err := r.client.Get(context.TODO(),
+		types.NamespacedName{
+			Name:      cr.Name,
+			Namespace: cr.Namespace,
+		}, instance); err != nil {
+		return err
+	}
+
+	// update cr with the latest change
+	cr = instance.DeepCopy()
+	return nil
+}
+
 // setdefaults set the default value
 func setdefaults(cr *jv.JivaVolume) {
 	cr.Status = jv.JivaVolumeStatus{
@@ -645,6 +661,10 @@ func (r *ReconcileJivaVolume) getAndUpdateVolumeStatus(cr *jv.JivaVolume, reqLog
 		shouldUpdate bool
 		update       *bool
 	)
+
+	if err = r.getJivaVolume(cr); err != nil {
+		return fmt.Errorf("Failed to getAndUpdateVolumeStatus, err: %v", err)
+	}
 
 	update = &shouldUpdate
 	defer r.updateStatus(err, update, cr, reqLog)
