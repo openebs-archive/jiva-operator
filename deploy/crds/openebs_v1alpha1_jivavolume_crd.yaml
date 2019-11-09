@@ -32,6 +32,22 @@ spec:
           type: object
         status:
           type: object
+  additionalPrinterColumns:
+  - name: Status
+    type: string
+    description: Status of jiva volumes (RO/RW/Unknown)
+    JSONPath: .status.status
+  - name: ReplicaCount
+    type: integer
+    description: The number of replicas attached to controller
+    JSONPath: .status.replicaCount
+  - name: Phase
+    type: string
+    description: Phase of JivaVolume CR
+    JSONPath: .status.phase
+  - name: Age
+    type: date
+    JSONPath: .metadata.creationTimestamp
   version: v1alpha1
   versions:
   - name: v1alpha1

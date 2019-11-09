@@ -44,7 +44,6 @@ LDFLAGS ?= \
 	-X github.com/openebs/jiva-operator/version/version.Commit=${COMMIT} \
 	-X github.com/openebs/jiva-operator/version/version.DateTime=${DATETIME}
 
-# list only csi source code directories
 
 .PHONY: all
 all:
