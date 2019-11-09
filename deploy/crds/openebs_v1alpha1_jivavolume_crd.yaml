@@ -37,6 +37,10 @@ spec:
     type: string
     description: Status of jiva volumes (RO/RW/Unknown)
     JSONPath: .status.status
+  - name: ReplicationFactor
+    type: string
+    description: The required no of replicas to be connected to controller
+    JSONPath: .spec.replicationFactor
   - name: ReplicaCount
     type: integer
     description: The number of replicas attached to controller
