@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/docker/go-units"
 	"github.com/go-logr/logr"
 	jv "github.com/openebs/jiva-operator/pkg/apis/openebs/v1alpha1"
 	"github.com/openebs/jiva-operator/pkg/jiva"
@@ -387,6 +388,11 @@ func createReplicaStatefulSet(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 	replicaCount = int32(rc)
 	prev := true
 
+	capacity, err := units.FromHumanSize(cr.Spec.Capacity)
+	if err != nil {
+		return fmt.Errorf("failed to convert human readable size into int64 as per SI standard", err)
+	}
+
 	stsObj, err = sts.NewBuilder().
 		WithName(cr.Name + "-jiva-rep").
 		WithLabelsNew(defaultReplicaLabels(cr.Spec.PV)).
@@ -438,7 +444,7 @@ func createReplicaStatefulSet(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 							"--frontendIP",
 							fmt.Sprintf(svcNameFormat, cr.Name, cr.Namespace),
 							"--size",
-							fmt.Sprintf("%v", cr.Spec.Capacity),
+							capacity,
 							"openebs",
 						}).
 						WithImagePullPolicy(corev1.PullIfNotPresent).
@@ -467,7 +473,7 @@ func createReplicaStatefulSet(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 				}).
 				WithStorageClass(cr.Spec.ReplicaSC).
 				WithAccessModes([]corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}).
-				WithCapacity(fmt.Sprintf("%v", cr.Spec.Capacity)),
+				WithCapacity(fmt.Sprint(capacity)),
 		).Build()
 
 	if err != nil {

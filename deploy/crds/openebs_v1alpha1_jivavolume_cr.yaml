@@ -6,7 +6,7 @@ metadata:
   labels:
     "openebs.io/component": "jiva-operator"
 spec:
-  capacity: 1073741824
+  capacity: 4G
   replicationFactor: "2"
   pv: "example-jivavolume"
   replicaSC: "openebs-hostpath"

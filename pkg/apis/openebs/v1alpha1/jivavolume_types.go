@@ -30,7 +30,7 @@ type JivaVolumeSpec struct {
 	// creating the pvc for the replicas (provisioned by localpv provisioner)
 	ReplicaSC string `json:"replicaSC"`
 	PV        string `json:"pv"`
-	Capacity  int64  `json:"capacity"`
+	Capacity  string `json:"capacity"`
 	// ReplicationFactor represents the actual replica count for the underlying
 	// jiva volume
 	ReplicationFactor string                  `json:"replicationFactor"`

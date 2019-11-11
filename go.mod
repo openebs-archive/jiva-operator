@@ -5,6 +5,7 @@ go 1.13
 require (
 	github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d // indirect
 	github.com/axw/gocov v1.0.0 // indirect
+	github.com/docker/go-units v0.3.3
 	github.com/go-logr/logr v0.1.0
 	github.com/go-openapi/spec v0.19.0
 	github.com/google/shlex v0.0.0-20181106134648-c34317bd91bf // indirect
