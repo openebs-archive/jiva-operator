@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/docker/go-units"
@@ -388,9 +389,10 @@ func createReplicaStatefulSet(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 	replicaCount = int32(rc)
 	prev := true
 
-	capacity, err := units.FromHumanSize(cr.Spec.Capacity)
+	size := strings.Split(cr.Spec.Capacity, "i")[0]
+	capacity, err := units.RAMInBytes(size)
 	if err != nil {
-		return fmt.Errorf("failed to convert human readable size into int64 as per SI standard", err)
+		return fmt.Errorf("failed to convert human readable size: %v into int64, err: %v", cr.Spec.Capacity, err)
 	}
 
 	stsObj, err = sts.NewBuilder().
@@ -444,7 +446,7 @@ func createReplicaStatefulSet(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 							"--frontendIP",
 							fmt.Sprintf(svcNameFormat, cr.Name, cr.Namespace),
 							"--size",
-							capacity,
+							fmt.Sprint(capacity),
 							"openebs",
 						}).
 						WithImagePullPolicy(corev1.PullIfNotPresent).
