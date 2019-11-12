@@ -9,12 +9,9 @@ import (
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 type ISCSISpec struct {
-	TargetIP       string   `json:"targetIP"`
-	TargetPort     int32    `json:"targetPort"`
-	Iqn            string   `json:"iqn"`
-	Lun            int32    `json:"lun"`
-	TargetPortals  []string `json:"targetPortal"`
-	ISCSIInterface string   `json:"iscsiInterface"`
+	TargetIP   string `json:"targetIP"`
+	TargetPort int32  `json:"targetPort"`
+	Iqn        string `json:"iqn"`
 }
 
 type MountInfo struct {

@@ -218,8 +218,8 @@ func createReplicaPodDisruptionBudget(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 		},
 	}
 
-	found := &policyv1beta1.PodDisruptionBudget{}
-	err = r.client.Get(context.TODO(), types.NamespacedName{Name: pdbObj.Name, Namespace: pdbObj.Namespace}, found)
+	instance := &policyv1beta1.PodDisruptionBudget{}
+	err = r.client.Get(context.TODO(), types.NamespacedName{Name: pdbObj.Name, Namespace: pdbObj.Namespace}, instance)
 	if err != nil && errors.IsNotFound(err) {
 		// Set JivaVolume instance as the owner and controller
 		if err := controllerutil.SetControllerReference(cr, pdbObj, r.scheme); err != nil {
@@ -311,8 +311,8 @@ func createControllerDeployment(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 		return fmt.Errorf("failed to build deployment object, err: %v", err)
 	}
 
-	found := &appsv1.Deployment{}
-	err = r.client.Get(context.TODO(), types.NamespacedName{Name: dep.Name, Namespace: dep.Namespace}, found)
+	instance := &appsv1.Deployment{}
+	err = r.client.Get(context.TODO(), types.NamespacedName{Name: dep.Name, Namespace: dep.Namespace}, instance)
 	if err != nil && errors.IsNotFound(err) {
 		// Set JivaVolume instance as the owner and controller
 		if err := controllerutil.SetControllerReference(cr, dep, r.scheme); err != nil {
@@ -338,9 +338,9 @@ func getImage(key, component string) string {
 	if !present {
 		switch component {
 		case "jiva-controller", "jiva-replica":
-			image = "openebs/jiva:ci"
+			image = "quay.io/openebs/jiva:ci"
 		case "exporter":
-			image = "openebs/m-exporter:ci"
+			image = "quay.io/openebs/m-exporter:ci"
 		}
 	}
 	return image
@@ -482,8 +482,8 @@ func createReplicaStatefulSet(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 		return fmt.Errorf("failed to build statefulset object, err: %v", err)
 	}
 
-	found := &appsv1.StatefulSet{}
-	err = r.client.Get(context.TODO(), types.NamespacedName{Name: stsObj.Name, Namespace: stsObj.Namespace}, found)
+	instance := &appsv1.StatefulSet{}
+	err = r.client.Get(context.TODO(), types.NamespacedName{Name: stsObj.Name, Namespace: stsObj.Namespace}, instance)
 	if err != nil && errors.IsNotFound(err) {
 		// Set JivaVolume instance as the owner and controller
 		if err := controllerutil.SetControllerReference(cr, stsObj, r.scheme); err != nil {
@@ -520,9 +520,6 @@ func updateJivaVolumeWithServiceInfo(r *ReconcileJivaVolume, cr *jv.JivaVolume, 
 			found = true
 			cr.Spec.ISCSISpec.TargetPort = port.Port
 			cr.Spec.ISCSISpec.Iqn = "iqn.2016-09.com.openebs.jiva" + ":" + cr.Spec.PV
-			cr.Spec.ISCSISpec.ISCSIInterface = "default"
-			cr.Spec.ISCSISpec.Lun = 0
-			cr.Spec.ISCSISpec.TargetPortals = []string{ctrlSVC.Spec.ClusterIP + fmt.Sprint(":", port.Port)}
 		}
 	}
 
@@ -546,6 +543,7 @@ func updateJivaVolumeWithServiceInfo(r *ReconcileJivaVolume, cr *jv.JivaVolume, 
 func createControllerService(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 	reqLog logr.Logger) error {
 
+	// By default type is clusterIP
 	svcObj, err := svc.NewBuilder().
 		WithName(cr.Name + "-jiva-ctrl-svc").
 		WithLabelsNew(defaultServiceLabels(cr.Spec.PV)).
@@ -580,8 +578,8 @@ func createControllerService(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 		return fmt.Errorf("failed to build service object, err: %v", err)
 	}
 
-	found := &v1.Service{}
-	err = r.client.Get(context.TODO(), types.NamespacedName{Name: svcObj.Name, Namespace: svcObj.Namespace}, found)
+	instance := &v1.Service{}
+	err = r.client.Get(context.TODO(), types.NamespacedName{Name: svcObj.Name, Namespace: svcObj.Namespace}, instance)
 	if err != nil && errors.IsNotFound(err) {
 		// Set JivaVolume instance as the owner and controller
 		if err := controllerutil.SetControllerReference(cr, svcObj, r.scheme); err != nil {
@@ -651,31 +649,25 @@ func setdefaults(cr *jv.JivaVolume) {
 	}
 }
 
-func (r *ReconcileJivaVolume) updateStatus(err error, update *bool, cr *jv.JivaVolume, reqLog logr.Logger) {
+func (r *ReconcileJivaVolume) updateStatus(err error, cr *jv.JivaVolume, reqLog logr.Logger) {
 	if err != nil {
-		*update = true
 		setdefaults(cr)
 	}
-	if *update {
-		if err := r.updateJivaVolume(cr); err != nil {
-			reqLog.Error(err, "failed to update status")
-		}
+	if err := r.updateJivaVolume(cr); err != nil {
+		reqLog.Error(err, "failed to update status")
 	}
 }
 
 func (r *ReconcileJivaVolume) getAndUpdateVolumeStatus(cr *jv.JivaVolume, reqLog logr.Logger) (err error) {
 	var (
-		cli          *jiva.ControllerClient
-		shouldUpdate bool
-		update       *bool
+		cli *jiva.ControllerClient
 	)
 
 	if err = r.getJivaVolume(cr); err != nil {
 		return fmt.Errorf("Failed to getAndUpdateVolumeStatus, err: %v", err)
 	}
 
-	update = &shouldUpdate
-	defer r.updateStatus(err, update, cr, reqLog)
+	defer r.updateStatus(err, cr, reqLog)
 	addr := cr.Spec.ISCSISpec.TargetIP + ":9501"
 	if len(addr) == 0 {
 		return fmt.Errorf("Failed to get volume stats: target address is empty")
@@ -690,10 +682,6 @@ func (r *ReconcileJivaVolume) getAndUpdateVolumeStatus(cr *jv.JivaVolume, reqLog
 	}
 
 	reqLog.V(2).Info("Update status", "Stats", stats)
-	// Update CR only when status doesn't match else ignore
-	if stats.TargetStatus != cr.Status.Status {
-		*update = true
-	}
 
 	cr.Status.Status = stats.TargetStatus
 	cr.Status.ReplicaCount = len(stats.Replicas)
