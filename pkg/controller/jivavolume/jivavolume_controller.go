@@ -150,7 +150,7 @@ func (r *ReconcileJivaVolume) Reconcile(request reconcile.Request) (reconcile.Re
 	}
 
 	switch instance.Status.Phase {
-	case jv.JivaVolumePhaseCreated, jv.JivaVolumePhaseSyncing:
+	case jv.JivaVolumePhaseReady, jv.JivaVolumePhaseSyncing:
 		return reconcile.Result{}, r.getAndUpdateVolumeStatus(instance, reqLogger)
 	case jv.JivaVolumePhaseDeleting:
 		reqLogger.Info("start tearing down jiva components", "JivaVolume: ", instance)
@@ -693,7 +693,9 @@ func (r *ReconcileJivaVolume) getAndUpdateVolumeStatus(cr *jv.JivaVolume, reqLog
 	}
 
 	if stats.TargetStatus == "RW" {
-		cr.Status.Phase = jv.JivaVolumePhaseCreated
+		cr.Status.Phase = jv.JivaVolumePhaseReady
+	} else if stats.TargetStatus == "RO" {
+		cr.Status.Phase = jv.JivaVolumePhaseSyncing
 	}
 
 	return nil

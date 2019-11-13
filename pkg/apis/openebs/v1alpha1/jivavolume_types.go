@@ -91,9 +91,9 @@ const (
 	// has failed
 	JivaVolumePhaseFailed JivaVolumePhase = "Failed"
 
-	// JivaVolumePhaseCreated indicates that the jivavolume provisioning
+	// JivaVolumePhaseReady indicates that the jivavolume provisioning
 	// has Created
-	JivaVolumePhaseCreated JivaVolumePhase = "Created"
+	JivaVolumePhaseReady JivaVolumePhase = "Ready"
 
 	// JivaVolumePhaseDeleting indicates the the jivavolume is deprovisioned
 	JivaVolumePhaseDeleting JivaVolumePhase = "Deleting"
