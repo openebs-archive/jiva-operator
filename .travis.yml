@@ -44,7 +44,4 @@ after_success:
 notifications:
   email:
     recipients:
-      - kiran.mova@cloudbyte.com
-  webhooks:
-    urls:
-      - https://webhooks.gitter.im/e/d885a0beef16020c3878
+      - kiran.mova@mayadata.io

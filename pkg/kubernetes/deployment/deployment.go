@@ -11,10 +11,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha1
+package deployment
 
 import (
-	templatespec "github.com/openebs/jiva-operator/pkg/kubernetes/podtemplatespec/v1alpha1"
+	templatespec "github.com/openebs/jiva-operator/pkg/kubernetes/podtemplatespec"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

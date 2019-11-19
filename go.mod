@@ -3,19 +3,13 @@ module github.com/openebs/jiva-operator
 go 1.13
 
 require (
-	github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d // indirect
-	github.com/axw/gocov v1.0.0 // indirect
 	github.com/docker/go-units v0.3.3
 	github.com/go-logr/logr v0.1.0
 	github.com/go-openapi/spec v0.19.0
-	github.com/google/shlex v0.0.0-20181106134648-c34317bd91bf // indirect
 	github.com/operator-framework/operator-sdk v0.12.0
 	github.com/pkg/errors v0.8.1
 	github.com/spf13/pflag v1.0.3
-	github.com/ugorji/go/codec/codecgen v1.1.7 // indirect
-	golang.org/x/tools v0.0.0-20191107235519-f7ea15e60b12 // indirect
-	gopkg.in/alecthomas/gometalinter.v1 v1.2.1 // indirect
-	gopkg.in/alecthomas/kingpin.v3-unstable v3.0.0-20191105091915-95d230a53780 // indirect
+	github.com/stretchr/testify v1.4.0 // indirect
 	k8s.io/api v0.0.0
 	k8s.io/apimachinery v0.0.0
 	k8s.io/client-go v11.0.0+incompatible

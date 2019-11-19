@@ -12,15 +12,15 @@ import (
 	"github.com/go-logr/logr"
 	jv "github.com/openebs/jiva-operator/pkg/apis/openebs/v1alpha1"
 	"github.com/openebs/jiva-operator/pkg/jiva"
-	container "github.com/openebs/jiva-operator/pkg/kubernetes/container/v1alpha1"
-	pts "github.com/openebs/jiva-operator/pkg/kubernetes/podtemplatespec/v1alpha1"
+	"github.com/openebs/jiva-operator/pkg/kubernetes/container"
+	pts "github.com/openebs/jiva-operator/pkg/kubernetes/podtemplatespec"
 	"github.com/openebs/jiva-operator/pkg/volume"
 	operr "github.com/pkg/errors"
 
-	deploy "github.com/openebs/jiva-operator/pkg/kubernetes/deployment/appsv1/v1alpha1"
-	pvc "github.com/openebs/jiva-operator/pkg/kubernetes/pvc/v1alpha1"
-	svc "github.com/openebs/jiva-operator/pkg/kubernetes/service/v1alpha1"
-	sts "github.com/openebs/jiva-operator/pkg/kubernetes/statefulset/appsv1/v1alpha1"
+	deploy "github.com/openebs/jiva-operator/pkg/kubernetes/deployment"
+	pvc "github.com/openebs/jiva-operator/pkg/kubernetes/pvc"
+	svc "github.com/openebs/jiva-operator/pkg/kubernetes/service"
+	sts "github.com/openebs/jiva-operator/pkg/kubernetes/statefulset"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
@@ -45,6 +45,10 @@ var (
 	svcNameFormat = "%s-jiva-ctrl-svc.%s.svc.cluster.local"
 )
 
+const (
+	pdbAPIVersion = "policyv1beta1"
+)
+
 var (
 	installFuncs = []func(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 		reqLog logr.Logger) error{
@@ -56,11 +60,6 @@ var (
 
 	updateErrMsg = "Failed to update JivaVolume with service info"
 )
-
-/**
-* USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller
-* business logic.  Delete these comments after modifying this file.*
- */
 
 // Add creates a new JivaVolume Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
@@ -149,19 +148,22 @@ func (r *ReconcileJivaVolume) Reconcile(request reconcile.Request) (reconcile.Re
 		return reconcile.Result{}, err
 	}
 
+	// initially Phase will be "", so it will skip switch case
+	// Once it has started boostrapping it will set the Phase to Pending/Failed
+	// depends upon the error. If bootstrap is successful it will set the Phase
+	// to syncing which will be changed to Ready later when volume becomes RW
 	switch instance.Status.Phase {
 	case jv.JivaVolumePhaseReady, jv.JivaVolumePhaseSyncing:
 		return reconcile.Result{}, r.getAndUpdateVolumeStatus(instance, reqLogger)
 	case jv.JivaVolumePhaseDeleting:
 		reqLogger.Info("start tearing down jiva components", "JivaVolume: ", instance)
-		return reconcile.Result{}, nil //r.teardownJivaComponents(instance, reqLogger)
+		return reconcile.Result{}, nil
 	case jv.JivaVolumePhasePending, jv.JivaVolumePhaseFailed:
 		reqLogger.Info("start bootstraping jiva components", "JivaVolume: ", instance)
 		return reconcile.Result{}, r.bootstrapJiva(instance, reqLogger)
 	}
 
 	reqLogger.Info("start bootstraping jiva components")
-
 	return reconcile.Result{}, r.bootstrapJiva(instance, reqLogger)
 }
 
@@ -201,7 +203,7 @@ func createReplicaPodDisruptionBudget(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 	pdbObj := &policyv1beta1.PodDisruptionBudget{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "PodDisruptionBudget",
-			APIVersion: "policyv1beta1",
+			APIVersion: pdbAPIVersion,
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      cr.Name + "-pdb",
@@ -231,7 +233,7 @@ func createReplicaPodDisruptionBudget(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 		if err != nil {
 			return err
 		}
-		// Statefulset created successfully - don't requeue
+		// pdb created successfully - don't requeue
 		return nil
 	} else if err != nil {
 		return operr.Wrapf(err, "failed to get the pod disruption budget details: %v", pdbObj.Name)
@@ -253,26 +255,13 @@ func createControllerDeployment(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 		WithPodTemplateSpecBuilder(
 			pts.NewBuilder().
 				WithLabels(defaultControllerLabels(cr.Spec.PV)).
-				WithAnnotations(map[string]string{
-					"prometheus.io/path":  "/metrics",
-					"prometheus.io/port":  "9500",
-					"prometheus.io/scrap": "true",
-				}).
+				WithAnnotations(defaultAnnotations()).
 				WithContainerBuilders(
 					container.NewBuilder().
 						WithName("jiva-controller").
 						WithImage(getImage("OPENEBS_IO_JIVA_CONTROLLER_IMAGE",
 							"jiva-controller")).
-						WithPortsNew([]corev1.ContainerPort{
-							{
-								ContainerPort: 3260,
-								Protocol:      "TCP",
-							},
-							{
-								ContainerPort: 9501,
-								Protocol:      "TCP",
-							},
-						}).
+						WithPortsNew(defaultControllerPorts()).
 						WithCommandNew([]string{
 							"launch",
 						}).
@@ -324,7 +313,7 @@ func createControllerDeployment(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 		if err != nil {
 			return err
 		}
-		// Statefulset created successfully - don't requeue
+		// deployment created successfully - don't requeue
 		return nil
 	} else if err != nil {
 		return operr.Wrapf(err, "failed to get the deployment details: %v", dep.Name)
@@ -359,6 +348,66 @@ func defaultControllerLabels(pv string) map[string]string {
 		"openebs.io/cas-type":          "jiva",
 		"openebs.io/component":         "jiva-controller",
 		"openebs.io/persistent-volume": pv,
+	}
+}
+
+func defaultAnnotations() map[string]string {
+	return map[string]string{"prometheus.io/path": "/metrics",
+		"prometheus.io/port":  "9500",
+		"prometheus.io/scrap": "true",
+	}
+}
+
+func defaultControllerPorts() []corev1.ContainerPort {
+	return []corev1.ContainerPort{
+		{
+			ContainerPort: 3260,
+			Protocol:      "TCP",
+		},
+		{
+			ContainerPort: 9501,
+			Protocol:      "TCP",
+		},
+	}
+}
+
+func defaultControllerSVCPorts() []corev1.ServicePort {
+	return []corev1.ServicePort{
+		{
+			Name:       "iscsi",
+			Port:       3260,
+			Protocol:   "TCP",
+			TargetPort: intstr.IntOrString{IntVal: 3260},
+		},
+		{
+			Name:       "api",
+			Port:       9501,
+			Protocol:   "TCP",
+			TargetPort: intstr.IntOrString{IntVal: 9501},
+		},
+		{
+			Name:       "m-exporter",
+			Port:       9500,
+			Protocol:   "TCP",
+			TargetPort: intstr.IntOrString{IntVal: 9500},
+		},
+	}
+}
+
+func defaultReplicaPorts() []corev1.ContainerPort {
+	return []corev1.ContainerPort{
+		{
+			ContainerPort: 9502,
+			Protocol:      "TCP",
+		},
+		{
+			ContainerPort: 9503,
+			Protocol:      "TCP",
+		},
+		{
+			ContainerPort: 9504,
+			Protocol:      "TCP",
+		},
 	}
 }
 
@@ -424,20 +473,7 @@ func createReplicaStatefulSet(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 						WithName("jiva-replica").
 						WithImage(getImage("OPENEBS_IO_JIVA_REPLICA_IMAGE",
 							"jiva-replica")).
-						WithPortsNew([]corev1.ContainerPort{
-							{
-								ContainerPort: 9502,
-								Protocol:      "TCP",
-							},
-							{
-								ContainerPort: 9503,
-								Protocol:      "TCP",
-							},
-							{
-								ContainerPort: 9504,
-								Protocol:      "TCP",
-							},
-						}).
+						WithPortsNew(defaultReplicaPorts()).
 						WithCommandNew([]string{
 							"launch",
 						}).
@@ -533,6 +569,8 @@ func updateJivaVolumeWithServiceInfo(r *ReconcileJivaVolume, cr *jv.JivaVolume, 
 		return fmt.Errorf("%s, err: %v, JivaVolume CR: {%+v}", updateErrMsg, err, cr)
 	}
 
+	// Update cr with the updated fields so that we don't get
+	// resourceVersion changed error in next steps
 	if err := r.getJivaVolume(cr); err != nil {
 		return fmt.Errorf("%s, err: %v, JivaVolume CR: {%+v}", updateErrMsg, err, cr)
 	}
@@ -552,26 +590,7 @@ func createControllerService(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 			"openebs.io/cas-type":          "jiva",
 			"openebs.io/persistent-volume": cr.Spec.PV,
 		}).
-		WithPorts([]corev1.ServicePort{
-			{
-				Name:       "iscsi",
-				Port:       3260,
-				Protocol:   "TCP",
-				TargetPort: intstr.IntOrString{IntVal: 3260},
-			},
-			{
-				Name:       "api",
-				Port:       9501,
-				Protocol:   "TCP",
-				TargetPort: intstr.IntOrString{IntVal: 9501},
-			},
-			{
-				Name:       "m-exporter",
-				Port:       9500,
-				Protocol:   "TCP",
-				TargetPort: intstr.IntOrString{IntVal: 9500},
-			},
-		}).
+		WithPorts(defaultControllerSVCPorts()).
 		Build()
 
 	if err != nil {
