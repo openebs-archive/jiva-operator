@@ -2,9 +2,34 @@
 # Set env to override this value
 REGISTRY ?= openebs
 
+# Determine the arch/os
+ifeq (${XC_OS}, )
+  XC_OS:=$(shell go env GOOS)
+endif
+export XC_OS
+
+ifeq (${XC_ARCH}, )
+  XC_ARCH:=$(shell go env GOARCH)
+endif
+export XC_ARCH
+
+ARCH:=${XC_OS}_${XC_ARCH}
+export ARCH
+
+ifeq (${BASEIMAGE}, )
+ifeq ($(ARCH),linux_arm64)
+  BASEIMAGE:=arm64v8/ubuntu:18.04
+else
+	BASEIMAGE:=registry.access.redhat.com/ubi7/ubi-minimal:latest
+endif
+endif
+export BASEIMAGE
+
 # Output operator name and its image name and tag
 OPERATOR_NAME=jiva-operator
 OPERATOR_TAG=ci
+
+
 
 # Tools required for different make targets or for development purposes
 EXTERNAL_TOOLS=\
@@ -97,11 +122,15 @@ deps: .get
 
 build: deps test
 	@echo "--> Build binary $(OPERATOR_NAME) ..."
-	GOOS=linux go build -a -ldflags '$(LDFLAGS)' -o ./build/_output/bin/$(OPERATOR_NAME) ./cmd/manager/main.go
+	GOOS=linux go build -a -ldflags '$(LDFLAGS)' -o ./build/_output/bin/${ARCH}/$(OPERATOR_NAME) ./cmd/manager/main.go
 
-image: build
+.PHONY: Dockerfile.jo
+Dockerfile.jo: ./build/Dockerfile
+	sed -e 's|@BASEIMAGE@|$(BASEIMAGE)|g' $< >$@
+
+image: build Dockerfile.jo
 	@echo "--> Build image $(REGISTRY)/$(OPERATOR_NAME):$(OPERATOR_TAG) ..."
-	docker build -f ./build/Dockerfile -t $(REGISTRY)/$(OPERATOR_NAME):$(OPERATOR_TAG) .
+	docker build --build-arg ARCH=${ARCH} -f Dockerfile.jo -t $(REGISTRY)/$(OPERATOR_NAME)-$(ARCH):$(OPERATOR_TAG) .
 
 generate:
 	@echo "--> Generate CR ..."
@@ -112,20 +141,20 @@ operator:
 	operator-sdk build $(REGISTRY)/$(OPERATOR_NAME):$(OPERATOR_TAG) --verbose
 
 push-image: image
-	@echo "--> Push image $(REGISTRY)/$(OPERATOR_NAME):$(OPERATOR_TAG) ..."
-	docker push $(REGISTRY)/$(OPERATOR_NAME):$(OPERATOR_TAG)
+	@echo "--> Push image $(REGISTRY)/$(OPERATOR_NAME)-$(ARCH):$(OPERATOR_TAG) ..."
+	docker push $(REGISTRY)/$(OPERATOR_NAME)-$(ARCH):$(OPERATOR_TAG)
 
 push:
-	@echo "--> Push image $(REGISTRY)/$(OPERATOR_NAME):$(OPERATOR_TAG) ..."
-	docker push $(REGISTRY)/$(OPERATOR_NAME):$(OPERATOR_TAG)
+	@echo "--> Push image $(REGISTRY)/$(OPERATOR_NAME)-$(ARCH):$(OPERATOR_TAG) ..."
+	docker push $(REGISTRY)/$(OPERATOR_NAME)-$(ARCH):$(OPERATOR_TAG)
 
 tag:
-	@echo "--> Tag image $(REGISTRY)/$(OPERATOR_NAME):$(OPERATOR_TAG) to $(REGISTRY)/$(OPERATOR_NAME):$(GIT_TAG) ..."
-	docker tag $(REGISTRY)/$(OPERATOR_NAME):$(OPERATOR_TAG) $(REGISTRY)/$(OPERATOR_NAME):$(GIT_TAG)
+	@echo "--> Tag image $(REGISTRY)/$(OPERATOR_NAME)-$(ARCH):$(OPERATOR_TAG) to $(REGISTRY)/$(OPERATOR_NAME):$(GIT_TAG) ..."
+	docker tag $(REGISTRY)/$(OPERATOR_NAME)-$(ARCH):$(OPERATOR_TAG) $(REGISTRY)/$(OPERATOR_NAME)-$(ARCH):$(GIT_TAG)
 
 push-tag: tag push
-	@echo "--> Push image $(REGISTRY)/$(OPERATOR_NAME):$(GIT_TAG) ..."
-	docker push $(REGISTRY)/$(OPERATOR_NAME):$(GIT_TAG)
+	@echo "--> Push image $(REGISTRY)/$(OPERATOR_NAME)-$(ARCH):$(GIT_TAG) ..."
+	docker push $(REGISTRY)/$(OPERATOR_NAME)-$(ARCH):$(GIT_TAG)
 
 clean:
 	rm -rf ./build/_output/bin/
