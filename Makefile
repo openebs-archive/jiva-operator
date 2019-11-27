@@ -20,7 +20,7 @@ ifeq (${BASEIMAGE}, )
 ifeq ($(ARCH),linux_arm64)
   BASEIMAGE:=arm64v8/ubuntu:18.04
 else
-	BASEIMAGE:=registry.access.redhat.com/ubi7/ubi-minimal:latest
+	BASEIMAGE:=ubuntu:16.04
 endif
 endif
 export BASEIMAGE
@@ -158,8 +158,9 @@ push-tag: tag push
 
 clean:
 	rm -rf ./build/_output/bin/
+	go mod tidy
 
-format:
+format: clean
 	@echo "--> Running go fmt"
 	@go fmt $(PACKAGES)
 
