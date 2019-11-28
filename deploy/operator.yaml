@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jiva-operator
+  namespace: openebs
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: jiva-operator
+  template:
+    metadata:
+      labels:
+        name: jiva-operator
+    spec:
+      serviceAccountName: jiva-operator
+      containers:
+        - name: jiva-operator
+          # Replace this with the built image name
+          image: openebs/jiva-operator:ci
+          command:
+          - jiva-operator
+          args:
+          # supported options: epoch, iso8601, millis, nano
+          - "--zap-time-encoding=iso8601"
+          - "--zap-sample=false"
+          imagePullPolicy: Always
+          env:
+            - name: WATCH_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: OPERATOR_NAME
+              value: "jiva-operator"
+            - name: OPENEBS_IO_JIVA_CONTROLLER_IMAGE
+              value: "openebs/jiva:ci"
+            - name: OPENEBS_IO_JIVA_REPLICA_IMAGE
+              value: "openebs/jiva:ci"

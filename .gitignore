@@ -1,0 +1,4 @@
+cscope*
+jiva-discussion
+build/_output/bin/*
+vendor/*
