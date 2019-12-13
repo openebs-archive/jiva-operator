@@ -33,6 +33,34 @@ A Jiva Volume comprises of the following components:
 
 ## Quick Start
 
+### Prerequisite
+- Kubernetes version should be > 1.14.
 
-
-
+### Installation
+Run following commands to proceed with the installation:
+- Install openebs control plane components:
+  ```
+  kubectl apply -f https://raw.githubusercontent.com/openebs/openebs/master/k8s/openebs-operator.yaml
+  ```
+- Install jiva-operator CRD:
+  ```
+  kubectl apply -f deploy/crds/openebs_v1alpha1_jivavolume_crd.yaml
+  ```
+- Install jiva-operator:
+  ```
+  kubectl create -f deploy/
+  ```
+- After the installation of control plane components and operator, it will look
+  like below:
+  ```
+  jiva-operator-7765cbfffd-vt787                 1/1     Running   0          10s
+  maya-apiserver-5c5d944d-fpkfj                  1/1     Running   2          2m5s
+  openebs-admission-server-5959f9f9cd-vcwfw      1/1     Running   0          119s
+  openebs-localpv-provisioner-57b44f4664-klsrw   1/1     Running   0          118s
+  openebs-ndm-6dtjz                              1/1     Running   0          2m1s
+  openebs-ndm-operator-f84848f77-j57vr           1/1     Running   1          2m
+  openebs-ndm-qfrjf                              1/1     Running   0          2m1s
+  openebs-ndm-tgpmk                              1/1     Running   0          2m1s
+  openebs-provisioner-cd5759f96-jfcxb            1/1     Running   0          2m3s
+  openebs-snapshot-operator-5f87bd54bf-mmtlh     2/2     Running   0          2m2s
+  ```
