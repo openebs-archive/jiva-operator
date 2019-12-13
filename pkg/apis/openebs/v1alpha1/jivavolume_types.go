@@ -28,6 +28,7 @@ type ISCSISpec struct {
 }
 
 type MountInfo struct {
+	TargetPath string `json:"targetPath"`
 	Path       string `json:"mountPath"`
 	FSType     string `json:"fsType"`
 	DevicePath string `json:"devicePath"`

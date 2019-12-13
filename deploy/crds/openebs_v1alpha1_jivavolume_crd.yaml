@@ -9,6 +9,8 @@ spec:
     listKind: JivaVolumeList
     plural: jivavolumes
     singular: jivavolume
+    shortNames:
+    - "jv"
   scope: Namespaced
   # commenting out so that we can set the status while creating CR
   #subresources:
