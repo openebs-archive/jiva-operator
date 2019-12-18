@@ -44,11 +44,23 @@ Run following commands to proceed with the installation:
   ```
 - Install jiva-operator CRD:
   ```
-  kubectl apply -f deploy/crds/openebs_v1alpha1_jivavolume_crd.yaml
+  kubectl apply -f https://raw.githubusercontent.com/openebs/jiva-operator/master/deploy/crds/openebs_v1alpha1_jivavolume_crd.yaml
   ```
+- Create service-account:
+  ```
+  kubectl create -f https://raw.githubusercontent.com/openebs/jiva-operator/master/deploy/service_account.yaml
+  ```  
+- Create role:
+  ```
+  kubectl create -f https://raw.githubusercontent.com/openebs/jiva-operator/master/deploy/role.yaml
+  ```
+- Create role-binding:
+  ```
+  kubectl create -f https://raw.githubusercontent.com/openebs/jiva-operator/master/deploy/role_binding.yaml
+  ```  
 - Install jiva-operator:
   ```
-  kubectl create -f deploy/
+  kubectl create -f https://raw.githubusercontent.com/openebs/jiva-operator/master/deploy/operator.yaml
   ```
 - After the installation of control plane components and operator, it will look
   like below:
