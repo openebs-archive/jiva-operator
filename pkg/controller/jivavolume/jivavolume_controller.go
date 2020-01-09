@@ -524,7 +524,7 @@ func createReplicaStatefulSet(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 				}).
 				WithStorageClass(cr.Spec.ReplicaSC).
 				WithAccessModes([]corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}).
-				WithCapacity(fmt.Sprint(capacity)),
+				WithCapacity(cr.Spec.Capacity),
 		).Build()
 
 	if err != nil {
