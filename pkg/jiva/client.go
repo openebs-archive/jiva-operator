@@ -45,6 +45,11 @@ func NewControllerClient(address string) *ControllerClient {
 	}
 }
 
+// SetTimeout overrides the default timeout
+func (c *ControllerClient) SetTimeout(interval time.Duration) {
+	c.httpClient.Timeout = interval
+}
+
 // Get sends a request to the specified path and stores body in the value
 // pointed to by obj.
 func (c *ControllerClient) Get(path string, obj interface{}) error {
