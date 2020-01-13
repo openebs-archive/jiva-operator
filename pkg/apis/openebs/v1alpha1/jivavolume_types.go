@@ -14,7 +14,6 @@ limitations under the License.
 package v1alpha1
 
 import (
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -37,18 +36,11 @@ type MountInfo struct {
 // JivaVolumeSpec defines the desired state of JivaVolume
 // +k8s:openapi-gen=true
 type JivaVolumeSpec struct {
-	// ReplicaSC represents the storage class used for
-	// creating the pvc for the replicas (provisioned by localpv provisioner)
-	ReplicaSC string `json:"replicaSC"`
-	PV        string `json:"pv"`
-	Capacity  string `json:"capacity"`
-	// ReplicationFactor represents the actual replica count for the underlying
-	// jiva volume
-	ReplicationFactor string                  `json:"replicationFactor"`
-	ISCSISpec         ISCSISpec               `json:"iscsiSpec"`
-	MountInfo         MountInfo               `json:"mountInfo"`
-	ReplicaResource   v1.ResourceRequirements `json:"replicaResource"`
-	TargetResource    v1.ResourceRequirements `json:"targetResource"`
+	PV        string            `json:"pv"`
+	Capacity  string            `json:"capacity"`
+	ISCSISpec ISCSISpec         `json:"iscsiSpec"`
+	MountInfo MountInfo         `json:"mountInfo"`
+	Policy    *JivaVolumePolicy `json:"policy"`
 }
 
 // JivaVolumeStatus defines the observed state of JivaVolume

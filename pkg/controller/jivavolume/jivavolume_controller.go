@@ -209,10 +209,7 @@ func (r *ReconcileJivaVolume) bootstrapJiva(cr *jv.JivaVolume, reqLog logr.Logge
 
 // TODO: add logic to create disruption budget for replicas
 func createReplicaPodDisruptionBudget(r *ReconcileJivaVolume, cr *jv.JivaVolume, reqLog logr.Logger) error {
-	min, err := strconv.Atoi(cr.Spec.ReplicationFactor)
-	if err != nil {
-		return fmt.Errorf("failed to convert to int, err: %v", err)
-	}
+	min := cr.Spec.Policy.Spec.Target.ReplicationFactor
 	pdbObj := &policyv1beta1.PodDisruptionBudget{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "PodDisruptionBudget",
@@ -234,7 +231,7 @@ func createReplicaPodDisruptionBudget(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 	}
 
 	instance := &policyv1beta1.PodDisruptionBudget{}
-	err = r.client.Get(context.TODO(), types.NamespacedName{Name: pdbObj.Name, Namespace: pdbObj.Namespace}, instance)
+	err := r.client.Get(context.TODO(), types.NamespacedName{Name: pdbObj.Name, Namespace: pdbObj.Namespace}, instance)
 	if err != nil && errors.IsNotFound(err) {
 		// Set JivaVolume instance as the owner and controller
 		if err := controllerutil.SetControllerReference(cr, pdbObj, r.scheme); err != nil {
@@ -289,10 +286,10 @@ func createControllerDeployment(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 						WithEnvsNew([]corev1.EnvVar{
 							{
 								Name:  "REPLICATION_FACTOR",
-								Value: cr.Spec.ReplicationFactor,
+								Value: strconv.Itoa(cr.Spec.Policy.Spec.Target.ReplicationFactor),
 							},
 						}).
-						WithResources(&cr.Spec.TargetResource).
+						WithResources(cr.Spec.Policy.Spec.Target.Resources).
 						WithImagePullPolicy(corev1.PullIfNotPresent),
 					container.NewBuilder().
 						WithImage(getImage("OPENEBS_IO_MAYA_EXPORTER_IMAGE",
@@ -442,12 +439,7 @@ func createReplicaStatefulSet(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 		stsObj                         *appsv1.StatefulSet
 		blockOwnerDeletion, controller = true, true
 	)
-	rc, err := strconv.ParseInt(cr.Spec.ReplicationFactor, 10, 32)
-	if err != nil {
-		return fmt.Errorf("failed to create replica statefulsets: error while parsing RF: %v, err: %v",
-			cr.Spec.ReplicationFactor, err)
-	}
-
+	rc := cr.Spec.Policy.Spec.Target.ReplicationFactor
 	replicaCount = int32(rc)
 	prev := true
 
@@ -500,7 +492,7 @@ func createReplicaStatefulSet(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 						}).
 						WithImagePullPolicy(corev1.PullIfNotPresent).
 						WithPrivilegedSecurityContext(&prev).
-						WithResources(&cr.Spec.ReplicaResource).
+						WithResources(cr.Spec.Policy.Spec.Replica.Resources).
 						WithVolumeMountsNew([]corev1.VolumeMount{
 							{
 								Name:      "openebs",
@@ -522,7 +514,7 @@ func createReplicaStatefulSet(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 					UID:                cr.UID,
 				},
 				}).
-				WithStorageClass(cr.Spec.ReplicaSC).
+				WithStorageClass(cr.Spec.Policy.Spec.ReplicaSC).
 				WithAccessModes([]corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}).
 				WithCapacity(cr.Spec.Capacity),
 		).Build()
