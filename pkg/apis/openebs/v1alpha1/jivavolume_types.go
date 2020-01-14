@@ -36,11 +36,11 @@ type MountInfo struct {
 // JivaVolumeSpec defines the desired state of JivaVolume
 // +k8s:openapi-gen=true
 type JivaVolumeSpec struct {
-	PV        string            `json:"pv"`
-	Capacity  string            `json:"capacity"`
-	ISCSISpec ISCSISpec         `json:"iscsiSpec"`
-	MountInfo MountInfo         `json:"mountInfo"`
-	Policy    *JivaVolumePolicy `json:"policy"`
+	PV        string                `json:"pv"`
+	Capacity  string                `json:"capacity"`
+	ISCSISpec ISCSISpec             `json:"iscsiSpec"`
+	MountInfo MountInfo             `json:"mountInfo"`
+	Policy    *JivaVolumePolicySpec `json:"policy"`
 }
 
 // JivaVolumeStatus defines the observed state of JivaVolume
