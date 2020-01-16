@@ -3,5 +3,11 @@ kind: JivaVolumePolicy
 metadata:
   name: example-jivavolumepolicy
 spec:
-  # Add fields here
-  size: 3
+  replicaSC: openebs-hostpath
+  enableBufio: false
+  autoScaling: false
+  target:
+    ...
+  replica:
+    ...
+status:

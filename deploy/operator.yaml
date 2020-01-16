@@ -220,7 +220,7 @@ spec:
           # supported options: epoch, iso8601, millis, nano
           - "--zap-time-encoding=iso8601"
           - "--zap-sample=false"
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           env:
             - name: WATCH_NAMESPACE
               valueFrom:
