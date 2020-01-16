@@ -1,12 +1,9 @@
 /*
-Copyright 2020 The OpenEBS Authors.
-
+Copyright 2019 The OpenEBS Authors
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
-
     http://www.apache.org/licenses/LICENSE-2.0
-
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -21,28 +18,18 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +k8s:openapi-gen=true
+// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
+// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// JivaVolumePolicy describes a configuration required for jiva volume
-// resources
-type JivaVolumePolicy struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-	// Spec defines a configuration info of a jiva volume required
-	// to provisione jiva volume resources
-	Spec   JivaVolumePolicySpec   `json:"spec"`
-	Status JivaVolumePolicyStatus `json:"status"`
-}
-
-// JivaVolumePolicySpec ...
+// JivaVolumePolicySpec defines the desired state of JivaVolumePolicy
 type JivaVolumePolicySpec struct {
 	// ReplicaSC represents the storage class used for
 	// creating the pvc for the replicas (provisioned by localpv provisioner)
 	ReplicaSC string `json:"replicaSC"`
 	// EnableBufio ...
 	EnableBufio bool `json:"enableBufio"`
+	// AutoScaling ...
+	AutoScaling bool `json:"autoScaling"`
 	// TargetSpec represents configuration related to jiva target and its resources
 	Target TargetSpec `json:"target"`
 	// ReplicaSpec represents configuration related to replicas resources
@@ -100,12 +87,27 @@ type JivaVolumePolicyStatus struct {
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +k8s:openapi-gen=true
 
-// JivaVolumePolicyList is a list of JivaVolumePolicy resources
+// JivaVolumePolicy is the Schema for the jivavolumepolicies API
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:path=jivavolumepolicies,scope=Namespaced
+type JivaVolumePolicy struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   JivaVolumePolicySpec   `json:"spec,omitempty"`
+	Status JivaVolumePolicyStatus `json:"status,omitempty"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// JivaVolumePolicyList contains a list of JivaVolumePolicy
 type JivaVolumePolicyList struct {
 	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []JivaVolumePolicy `json:"items"`
+}
 
-	Items []JivaVolumePolicy `json:"items"`
+func init() {
+	SchemeBuilder.Register(&JivaVolumePolicy{}, &JivaVolumePolicyList{})
 }

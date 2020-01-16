@@ -167,14 +167,14 @@ spec:
       containers:
         - name: jiva-operator
           # Replace this with the built image name
-          image: openebs/jiva-operator-linux_amd64:ci
+          image: openebs/jiva-operator-linux_amd64:policy
           command:
           - jiva-operator
           args:
           # supported options: epoch, iso8601, millis, nano
           - "--zap-time-encoding=iso8601"
           - "--zap-sample=false"
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           env:
             - name: WATCH_NAMESPACE
               valueFrom:

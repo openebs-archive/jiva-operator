@@ -209,7 +209,7 @@ func (r *ReconcileJivaVolume) bootstrapJiva(cr *jv.JivaVolume, reqLog logr.Logge
 
 // TODO: add logic to create disruption budget for replicas
 func createReplicaPodDisruptionBudget(r *ReconcileJivaVolume, cr *jv.JivaVolume, reqLog logr.Logger) error {
-	min := cr.Spec.Policy.Spec.Target.ReplicationFactor
+	min := cr.Spec.Policy.Target.ReplicationFactor
 	pdbObj := &policyv1beta1.PodDisruptionBudget{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "PodDisruptionBudget",
@@ -286,10 +286,10 @@ func createControllerDeployment(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 						WithEnvsNew([]corev1.EnvVar{
 							{
 								Name:  "REPLICATION_FACTOR",
-								Value: strconv.Itoa(cr.Spec.Policy.Spec.Target.ReplicationFactor),
+								Value: strconv.Itoa(cr.Spec.Policy.Target.ReplicationFactor),
 							},
 						}).
-						WithResources(cr.Spec.Policy.Spec.Target.Resources).
+						WithResources(cr.Spec.Policy.Target.Resources).
 						WithImagePullPolicy(corev1.PullIfNotPresent),
 					container.NewBuilder().
 						WithImage(getImage("OPENEBS_IO_MAYA_EXPORTER_IMAGE",
@@ -439,7 +439,7 @@ func createReplicaStatefulSet(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 		stsObj                         *appsv1.StatefulSet
 		blockOwnerDeletion, controller = true, true
 	)
-	rc := cr.Spec.Policy.Spec.Target.ReplicationFactor
+	rc := cr.Spec.Policy.Target.ReplicationFactor
 	replicaCount = int32(rc)
 	prev := true
 
@@ -492,7 +492,7 @@ func createReplicaStatefulSet(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 						}).
 						WithImagePullPolicy(corev1.PullIfNotPresent).
 						WithPrivilegedSecurityContext(&prev).
-						WithResources(cr.Spec.Policy.Spec.Replica.Resources).
+						WithResources(cr.Spec.Policy.Replica.Resources).
 						WithVolumeMountsNew([]corev1.VolumeMount{
 							{
 								Name:      "openebs",
@@ -514,7 +514,7 @@ func createReplicaStatefulSet(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 					UID:                cr.UID,
 				},
 				}).
-				WithStorageClass(cr.Spec.Policy.Spec.ReplicaSC).
+				WithStorageClass(cr.Spec.Policy.ReplicaSC).
 				WithAccessModes([]corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}).
 				WithCapacity(cr.Spec.Capacity),
 		).Build()
