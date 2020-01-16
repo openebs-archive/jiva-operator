@@ -42,7 +42,7 @@ spec:
   - name: ReplicationFactor
     type: string
     description: The required no of replicas to be connected to controller
-    JSONPath: .spec.replicationFactor
+    JSONPath: .spec.policy.replicationFactor
   - name: ReplicaCount
     type: integer
     description: The number of replicas attached to controller
@@ -71,6 +71,8 @@ spec:
     listKind: JivaVolumePolicyList
     plural: jivavolumepolicies
     singular: jivavolumepolicy
+    shortNames:
+    - jvp
   scope: Namespaced
   # commenting out so that we can set the status while creating CR
   # subresources:
@@ -211,7 +213,7 @@ spec:
       containers:
         - name: jiva-operator
           # Replace this with the built image name
-          image: openebs/jiva-operator-linux_amd64:policy
+          image: openebs/jiva-operator-linux_amd64:ci
           command:
           - jiva-operator
           args:

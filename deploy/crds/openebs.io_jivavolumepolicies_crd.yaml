@@ -9,6 +9,8 @@ spec:
     listKind: JivaVolumePolicyList
     plural: jivavolumepolicies
     singular: jivavolumepolicy
+    shortNames:
+    - jvp
   scope: Namespaced
   subresources:
     status: {}
