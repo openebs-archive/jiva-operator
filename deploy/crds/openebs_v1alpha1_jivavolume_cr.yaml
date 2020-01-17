@@ -10,10 +10,10 @@ spec:
   pv: "example-jivavolume"
   replicaSC: "openebs-hostpath"
   policy:
-    spec:
-      replicaSC: openebs-hostpath
-      enableBufio: 
-      target:
-        ...
-      replica:
+    replicaSC: openebs-hostpath
+    enableBufio: false
+    autoScaling: false
+    target:
+      ...
+    replica:
         ...

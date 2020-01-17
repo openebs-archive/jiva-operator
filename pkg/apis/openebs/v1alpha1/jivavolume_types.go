@@ -27,20 +27,26 @@ type ISCSISpec struct {
 }
 
 type MountInfo struct {
+	// StagingPath is the path provided by K8s during NodeStageVolume
+	// rpc call, where volume is mounted globally.
 	StagingPath string `json:"stagingPath"`
-	TargetPath  string `json:"targetPath"`
-	FSType      string `json:"fsType"`
-	DevicePath  string `json:"devicePath"`
+	// TargetPath is the path provided by K8s during NodePublishVolume
+	// rpc call where bind mount happens.
+	TargetPath string `json:"targetPath"`
+	FSType     string `json:"fsType"`
+	DevicePath string `json:"devicePath"`
 }
 
 // JivaVolumeSpec defines the desired state of JivaVolume
 // +k8s:openapi-gen=true
 type JivaVolumeSpec struct {
-	PV        string                `json:"pv"`
-	Capacity  string                `json:"capacity"`
-	ISCSISpec ISCSISpec             `json:"iscsiSpec"`
-	MountInfo MountInfo             `json:"mountInfo"`
-	Policy    *JivaVolumePolicySpec `json:"policy"`
+	PV        string    `json:"pv"`
+	Capacity  string    `json:"capacity"`
+	ISCSISpec ISCSISpec `json:"iscsiSpec"`
+	MountInfo MountInfo `json:"mountInfo"`
+	// Policy is the configuration used for creating target
+	// and replica pods during volume provisioning
+	Policy *JivaVolumePolicySpec `json:"policy"`
 }
 
 // JivaVolumeStatus defines the observed state of JivaVolume
