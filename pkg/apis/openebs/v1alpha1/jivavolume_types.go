@@ -28,9 +28,10 @@ type ISCSISpec struct {
 }
 
 type MountInfo struct {
-	Path       string `json:"mountPath"`
-	FSType     string `json:"fsType"`
-	DevicePath string `json:"devicePath"`
+	StagingPath string `json:"stagingPath"`
+	TargetPath  string `json:"targetPath"`
+	FSType      string `json:"fsType"`
+	DevicePath  string `json:"devicePath"`
 }
 
 // JivaVolumeSpec defines the desired state of JivaVolume
