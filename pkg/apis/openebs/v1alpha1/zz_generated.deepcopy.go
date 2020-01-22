@@ -186,11 +186,7 @@ func (in *JivaVolumeSpec) DeepCopyInto(out *JivaVolumeSpec) {
 	*out = *in
 	out.ISCSISpec = in.ISCSISpec
 	out.MountInfo = in.MountInfo
-	if in.Policy != nil {
-		in, out := &in.Policy, &out.Policy
-		*out = new(JivaVolumePolicySpec)
-		(*in).DeepCopyInto(*out)
-	}
+	in.Policy.DeepCopyInto(&out.Policy)
 	return
 }
 

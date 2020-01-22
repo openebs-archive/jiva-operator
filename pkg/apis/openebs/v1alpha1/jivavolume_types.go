@@ -46,7 +46,7 @@ type JivaVolumeSpec struct {
 	MountInfo MountInfo `json:"mountInfo"`
 	// Policy is the configuration used for creating target
 	// and replica pods during volume provisioning
-	Policy *JivaVolumePolicySpec `json:"policy"`
+	Policy JivaVolumePolicySpec `json:"policy"`
 }
 
 // JivaVolumeStatus defines the observed state of JivaVolume
