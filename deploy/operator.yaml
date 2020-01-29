@@ -42,7 +42,7 @@ spec:
   - name: ReplicationFactor
     type: string
     description: The required no of replicas to be connected to controller
-    JSONPath: .spec.policy.replicationFactor
+    JSONPath: .spec.policy.target.replicationFactor
   - name: ReplicaCount
     type: integer
     description: The number of replicas attached to controller
@@ -220,7 +220,7 @@ spec:
           # supported options: epoch, iso8601, millis, nano
           - "--zap-time-encoding=iso8601"
           - "--zap-sample=false"
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           env:
             - name: WATCH_NAMESPACE
               valueFrom:

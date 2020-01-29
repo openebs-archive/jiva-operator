@@ -39,6 +39,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -59,12 +60,17 @@ var (
 )
 
 const (
-	pdbAPIVersion = "policyv1beta1"
+	pdbAPIVersion            = "policyv1beta1"
+	defaultStorageClass      = "openebs-hostpath"
+	defaultReplicationFactor = 3
 )
+
+type policyOpts func(*jv.JivaVolumePolicySpec)
 
 var (
 	installFuncs = []func(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 		reqLog logr.Logger) error{
+		populateJivaVolumePolicy,
 		createControllerService,
 		createControllerDeployment,
 		createReplicaStatefulSet,
@@ -580,6 +586,95 @@ func updateJivaVolumeWithServiceInfo(r *ReconcileJivaVolume, cr *jv.JivaVolume, 
 		return fmt.Errorf("%s, err: %v, JivaVolume CR: {%+v}", updateErrMsg, err, cr)
 	}
 
+	return nil
+}
+
+func getDefaultPolicySpec() jv.JivaVolumePolicySpec {
+	return jv.JivaVolumePolicySpec{
+		ReplicaSC: defaultStorageClass,
+		Target: jv.TargetSpec{
+			PodTemplateResources: jv.PodTemplateResources{
+				Resources: &corev1.ResourceRequirements{
+					Requests: corev1.ResourceList{
+						corev1.ResourceCPU:    resource.MustParse("0"),
+						corev1.ResourceMemory: resource.MustParse("0"),
+					},
+					Limits: corev1.ResourceList{
+						corev1.ResourceCPU:    resource.MustParse("0"),
+						corev1.ResourceMemory: resource.MustParse("0"),
+					},
+				},
+			},
+			ReplicationFactor: defaultReplicationFactor,
+		},
+		Replica: jv.ReplicaSpec{
+			PodTemplateResources: jv.PodTemplateResources{
+				Resources: &corev1.ResourceRequirements{
+					Requests: corev1.ResourceList{
+						corev1.ResourceCPU:    resource.MustParse("0"),
+						corev1.ResourceMemory: resource.MustParse("0"),
+					},
+					Limits: corev1.ResourceList{
+						corev1.ResourceCPU:    resource.MustParse("0"),
+						corev1.ResourceMemory: resource.MustParse("0"),
+					},
+				},
+			},
+		},
+	}
+}
+
+func defaultRF(policy *jv.JivaVolumePolicySpec) {
+	if policy.Target.ReplicationFactor == 0 {
+		policy.Target.ReplicationFactor = getDefaultPolicySpec().Target.ReplicationFactor
+	}
+}
+
+func defaultSC(policy *jv.JivaVolumePolicySpec) {
+	if policy.ReplicaSC == "" {
+		policy.ReplicaSC = getDefaultPolicySpec().ReplicaSC
+	}
+}
+
+func defaultTargetRes(policy *jv.JivaVolumePolicySpec) {
+	if policy.Target.Resources == nil {
+		policy.Target.Resources = getDefaultPolicySpec().Target.Resources
+	}
+}
+
+func defaultReplicaRes(policy *jv.JivaVolumePolicySpec) {
+	if policy.Replica.Resources == nil {
+		policy.Replica.Resources = getDefaultPolicySpec().Replica.Resources
+	}
+}
+
+func validatePolicySpec(policy *jv.JivaVolumePolicySpec) {
+	opts := []policyOpts{
+		defaultRF, defaultSC, defaultTargetRes, defaultReplicaRes,
+	}
+	for _, o := range opts {
+		o(policy)
+	}
+}
+
+func populateJivaVolumePolicy(r *ReconcileJivaVolume, cr *jv.JivaVolume,
+	reqLog logr.Logger) error {
+	policyName := cr.Annotations["openebs.io/volume-policy"]
+	policySpec := getDefaultPolicySpec()
+	if policyName != "" {
+		policy := jv.JivaVolumePolicy{}
+		err := r.client.Get(
+			context.TODO(),
+			types.NamespacedName{Name: policyName, Namespace: cr.Namespace},
+			&policy,
+		)
+		if err != nil {
+			return operr.Wrapf(err, "failed to get volume policy %s", policyName)
+		}
+		policySpec = policy.Spec
+		validatePolicySpec(&policySpec)
+	}
+	cr.Spec.Policy = policySpec
 	return nil
 }
 
