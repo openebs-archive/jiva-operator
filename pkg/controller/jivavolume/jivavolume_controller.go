@@ -65,7 +65,7 @@ const (
 	defaultReplicationFactor = 3
 )
 
-type policyOpts func(*jv.JivaVolumePolicySpec)
+type policyOptFuncs func(*jv.JivaVolumePolicySpec, jv.JivaVolumePolicySpec)
 
 var (
 	installFuncs = []func(r *ReconcileJivaVolume, cr *jv.JivaVolume,
@@ -624,36 +624,37 @@ func getDefaultPolicySpec() jv.JivaVolumePolicySpec {
 	}
 }
 
-func defaultRF(policy *jv.JivaVolumePolicySpec) {
+func defaultRF(policy *jv.JivaVolumePolicySpec, defaultPolicy jv.JivaVolumePolicySpec) {
 	if policy.Target.ReplicationFactor == 0 {
-		policy.Target.ReplicationFactor = getDefaultPolicySpec().Target.ReplicationFactor
+		policy.Target.ReplicationFactor = defaultPolicy.Target.ReplicationFactor
 	}
 }
 
-func defaultSC(policy *jv.JivaVolumePolicySpec) {
+func defaultSC(policy *jv.JivaVolumePolicySpec, defaultPolicy jv.JivaVolumePolicySpec) {
 	if policy.ReplicaSC == "" {
-		policy.ReplicaSC = getDefaultPolicySpec().ReplicaSC
+		policy.ReplicaSC = defaultPolicy.ReplicaSC
 	}
 }
 
-func defaultTargetRes(policy *jv.JivaVolumePolicySpec) {
+func defaultTargetRes(policy *jv.JivaVolumePolicySpec, defaultPolicy jv.JivaVolumePolicySpec) {
 	if policy.Target.Resources == nil {
-		policy.Target.Resources = getDefaultPolicySpec().Target.Resources
+		policy.Target.Resources = defaultPolicy.Target.Resources
 	}
 }
 
-func defaultReplicaRes(policy *jv.JivaVolumePolicySpec) {
+func defaultReplicaRes(policy *jv.JivaVolumePolicySpec, defaultPolicy jv.JivaVolumePolicySpec) {
 	if policy.Replica.Resources == nil {
-		policy.Replica.Resources = getDefaultPolicySpec().Replica.Resources
+		policy.Replica.Resources = defaultPolicy.Replica.Resources
 	}
 }
 
 func validatePolicySpec(policy *jv.JivaVolumePolicySpec) {
-	opts := []policyOpts{
+	defaultPolicy := getDefaultPolicySpec()
+	optFuncs := []policyOptFuncs{
 		defaultRF, defaultSC, defaultTargetRes, defaultReplicaRes,
 	}
-	for _, o := range opts {
-		o(policy)
+	for _, o := range optFuncs {
+		o(policy, defaultPolicy)
 	}
 }
 
