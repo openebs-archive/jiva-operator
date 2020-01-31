@@ -101,3 +101,39 @@ type Replica struct {
 	// Mode is the mode of replica.
 	Mode string `json:"Mode"`
 }
+
+// Resource keep id, links, actions associated with the volume
+type Resource struct {
+	Id      string            `json:"id,omitempty"`
+	Type    string            `json:"type,omitempty"`
+	Links   map[string]string `json:"links"`
+	Actions map[string]string `json:"actions"`
+}
+
+// Volume keep the volume info
+type Volume struct {
+	Resource
+	Name         string `json:"name"`
+	ReplicaCount int    `json:"replicaCount"`
+	ReadOnly     string `json:"readOnly"`
+}
+
+// ResizeInput is the input for resizing volume
+type ResizeInput struct {
+	Resource
+	Name string `json:"name"`
+	Size string `json:"size"`
+}
+
+// Volumes is the list of volumes per controller
+type Volumes struct {
+	Collection
+	Data []Volume `json:"data"`
+}
+
+// Collection keep the type, link and actions associated with volume
+type Collection struct {
+	Type    string            `json:"type,omitempty"`
+	Links   map[string]string `json:"links,omitempty"`
+	Actions map[string]string `json:"actions,omitempty"`
+}
