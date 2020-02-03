@@ -589,6 +589,7 @@ func updateJivaVolumeWithServiceInfo(r *ReconcileJivaVolume, cr *jv.JivaVolume, 
 	return nil
 }
 
+// getDefaultPolicySpec gives the default policy spec for jiva volume.
 func getDefaultPolicySpec() jv.JivaVolumePolicySpec {
 	return jv.JivaVolumePolicySpec{
 		ReplicaSC: defaultStorageClass,
@@ -648,6 +649,8 @@ func defaultReplicaRes(policy *jv.JivaVolumePolicySpec, defaultPolicy jv.JivaVol
 	}
 }
 
+// validatePolicySpec checks the policy provided by the user and sets the
+// defaults to the policy spec of jiva volume.
 func validatePolicySpec(policy *jv.JivaVolumePolicySpec) {
 	defaultPolicy := getDefaultPolicySpec()
 	optFuncs := []policyOptFuncs{
@@ -662,6 +665,8 @@ func populateJivaVolumePolicy(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 	reqLog logr.Logger) error {
 	policyName := cr.Annotations["openebs.io/volume-policy"]
 	policySpec := getDefaultPolicySpec()
+	// if policy name is provided via annotation get and validate the
+	// policy spec else set the default policy spec.
 	if policyName != "" {
 		policy := jv.JivaVolumePolicy{}
 		err := r.client.Get(
