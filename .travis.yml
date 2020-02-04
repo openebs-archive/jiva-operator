@@ -40,7 +40,7 @@ script:
   - make image
   #- ./ci/travis-ci.sh
 after_success:
-  - make push-tag
+  - make push
 notifications:
   email:
     recipients:
