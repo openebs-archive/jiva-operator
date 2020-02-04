@@ -1,6 +1,9 @@
 # Output registry and image names for operator image
 # Set env to override this value
-REGISTRY ?= openebs
+ifeq (${REGISTRY}, )
+  REGISTRY:=openebs
+endif
+export REGISTRY
 
 # Determine the arch/os
 ifeq (${XC_OS}, )
