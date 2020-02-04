@@ -149,7 +149,7 @@ push-image: image
 
 push:
 	@echo "--> Push image $(REGISTRY)/$(OPERATOR_NAME)-$(ARCH):$(OPERATOR_TAG) ..."
-	@DIMAGE=$(REGISTRY)/$(PLUGIN_NAME) ./build/push
+	@DIMAGE=$(REGISTRY)/$(OPERATOR_NAME)-$(ARCH) ./build/push
 
 tag:
 	@echo "--> Tag image $(REGISTRY)/$(OPERATOR_NAME)-$(ARCH):$(OPERATOR_TAG) to $(REGISTRY)/$(OPERATOR_NAME):$(GIT_TAG) ..."
