@@ -312,7 +312,8 @@ func createControllerDeployment(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 							},
 						},
 						),
-				),
+				).
+				WithTolerations(cr.Spec.Policy.Target.Tolerations...),
 		).Build()
 
 	if err != nil {
@@ -508,7 +509,8 @@ func createReplicaStatefulSet(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 								MountPath: "/openebs",
 							},
 						}),
-				),
+				).
+				WithTolerations(cr.Spec.Policy.Replica.Tolerations...),
 		).
 		WithPVC(
 			pvc.NewBuilder().
@@ -592,12 +594,98 @@ func updateJivaVolumeWithServiceInfo(r *ReconcileJivaVolume, cr *jv.JivaVolume, 
 	return nil
 }
 
+func getBaseReplicaTolerations() []corev1.Toleration {
+	return []corev1.Toleration{
+		corev1.Toleration{
+			Key:      "node.alpha.kubernetes.io/notReady",
+			Effect:   corev1.TaintEffectNoExecute,
+			Operator: corev1.TolerationOpExists,
+		},
+		corev1.Toleration{
+			Key:      "node.cloudprovider.kubernetes.io/uninitialized",
+			Effect:   corev1.TaintEffectNoExecute,
+			Operator: corev1.TolerationOpExists,
+		},
+		corev1.Toleration{
+			Key:      "node.alpha.kubernetes.io/unreachable",
+			Effect:   corev1.TaintEffectNoExecute,
+			Operator: corev1.TolerationOpExists,
+		},
+		corev1.Toleration{
+			Key:      "node.kubernetes.io/not-ready",
+			Effect:   corev1.TaintEffectNoExecute,
+			Operator: corev1.TolerationOpExists,
+		},
+		corev1.Toleration{
+			Key:      "node.kubernetes.io/unschedulable",
+			Effect:   corev1.TaintEffectNoExecute,
+			Operator: corev1.TolerationOpExists,
+		},
+		corev1.Toleration{
+			Key:      "node.kubernetes.io/unreachable",
+			Effect:   corev1.TaintEffectNoExecute,
+			Operator: corev1.TolerationOpExists,
+		},
+		corev1.Toleration{
+			Key:      "node.kubernetes.io/out-of-disk",
+			Effect:   corev1.TaintEffectNoExecute,
+			Operator: corev1.TolerationOpExists,
+		},
+		corev1.Toleration{
+			Key:      "node.kubernetes.io/memory-pressure",
+			Effect:   corev1.TaintEffectNoExecute,
+			Operator: corev1.TolerationOpExists,
+		},
+		corev1.Toleration{
+			Key:      "node.kubernetes.io/disk-pressure",
+			Effect:   corev1.TaintEffectNoExecute,
+			Operator: corev1.TolerationOpExists,
+		},
+		corev1.Toleration{
+			Key:      "node.kubernetes.io/network-unavailable",
+			Effect:   corev1.TaintEffectNoExecute,
+			Operator: corev1.TolerationOpExists,
+		},
+	}
+}
+
+func getBaseTargetTolerations() []corev1.Toleration {
+	var zero int64
+	return []corev1.Toleration{
+		corev1.Toleration{
+			Key:               "node.alpha.kubernetes.io/notReady",
+			Effect:            corev1.TaintEffectNoExecute,
+			Operator:          corev1.TolerationOpExists,
+			TolerationSeconds: &zero,
+		},
+		corev1.Toleration{
+			Key:               "node.alpha.kubernetes.io/unreachable",
+			Effect:            corev1.TaintEffectNoExecute,
+			Operator:          corev1.TolerationOpExists,
+			TolerationSeconds: &zero,
+		},
+		corev1.Toleration{
+			Key:               "node.kubernetes.io/not-ready",
+			Effect:            corev1.TaintEffectNoExecute,
+			Operator:          corev1.TolerationOpExists,
+			TolerationSeconds: &zero,
+		},
+		corev1.Toleration{
+			Key:               "node.kubernetes.io/unreachable",
+			Effect:            corev1.TaintEffectNoExecute,
+			Operator:          corev1.TolerationOpExists,
+			TolerationSeconds: &zero,
+		},
+	}
+}
+
 // getDefaultPolicySpec gives the default policy spec for jiva volume.
 func getDefaultPolicySpec() jv.JivaVolumePolicySpec {
 	return jv.JivaVolumePolicySpec{
 		ReplicaSC: defaultStorageClass,
 		Target: jv.TargetSpec{
 			PodTemplateResources: jv.PodTemplateResources{
+				Tolerations: getBaseTargetTolerations(),
 				Resources: &corev1.ResourceRequirements{
 					Requests: corev1.ResourceList{
 						corev1.ResourceCPU:    resource.MustParse("0"),
@@ -613,6 +701,7 @@ func getDefaultPolicySpec() jv.JivaVolumePolicySpec {
 		},
 		Replica: jv.ReplicaSpec{
 			PodTemplateResources: jv.PodTemplateResources{
+				Tolerations: getBaseReplicaTolerations(),
 				Resources: &corev1.ResourceRequirements{
 					Requests: corev1.ResourceList{
 						corev1.ResourceCPU:    resource.MustParse("0"),
@@ -652,12 +741,21 @@ func defaultReplicaRes(policy *jv.JivaVolumePolicySpec, defaultPolicy jv.JivaVol
 	}
 }
 
+func defaultTargetTolerations(policy *jv.JivaVolumePolicySpec, defaultPolicy jv.JivaVolumePolicySpec) {
+	policy.Target.Tolerations = append(defaultPolicy.Target.Tolerations, policy.Target.Tolerations...)
+}
+
+func defaultReplicaTolerations(policy *jv.JivaVolumePolicySpec, defaultPolicy jv.JivaVolumePolicySpec) {
+	policy.Replica.Tolerations = append(defaultPolicy.Replica.Tolerations, policy.Replica.Tolerations...)
+}
+
 // validatePolicySpec checks the policy provided by the user and sets the
 // defaults to the policy spec of jiva volume.
 func validatePolicySpec(policy *jv.JivaVolumePolicySpec) {
 	defaultPolicy := getDefaultPolicySpec()
 	optFuncs := []policyOptFuncs{
 		defaultRF, defaultSC, defaultTargetRes, defaultReplicaRes,
+		defaultTargetTolerations, defaultReplicaTolerations,
 	}
 	for _, o := range optFuncs {
 		o(policy, defaultPolicy)
