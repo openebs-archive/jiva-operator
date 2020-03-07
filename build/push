@@ -75,7 +75,7 @@ fi;
 # Push ci image to quay.io for security scanning
 if [ ! -z "${QNAME}" ] && [ ! -z "${QPASS}" ];
 then
-  echo "$DPASS" | sudo docker login -u "${QNAME}" --password-stdin quay.io;
+  echo "$QPASS" | sudo docker login -u "${QNAME}" --password-stdin quay.io;
 
   # Push CI tagged image - :ci or :branch-ci
   TagAndPushImage "quay.io/${DIMAGE}" "${CI_TAG}"
