@@ -3,8 +3,8 @@
 ifeq (${REGISTRY}, )
   REGISTRY:=openebs
 endif
-export REGISTRY
 
+export REGISTRY
 # Determine the arch/os
 ifeq (${XC_OS}, )
   XC_OS:=$(shell go env GOOS)
