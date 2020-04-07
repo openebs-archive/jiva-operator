@@ -1,11 +1,17 @@
 language: go
+
 dist: xenial
+
 sudo: required
+
 install: true
+
 services:
   - docker
+
 go:
   - 1.13.x
+
 env:
   global:
     - GOARCH=$(go env GOARCH)
@@ -16,6 +22,13 @@ env:
     - MINIKUBE_HOME=$HOME
     - CHANGE_MINIKUBE_NONE_USER=true
     - KUBECONFIG=$HOME/.kube/config
+
+jobs:
+  include:
+    - os: linux
+      arch: amd64
+      env:
+        - RELEASE_TAG_DOWNSTREAM=1
 addons:
   apt:
     update: true
@@ -38,10 +51,16 @@ script:
   # kube-addon-manager is responsible for managing other kubernetes components, such as kube-dns, dashboard, storage-provisioner..
   #- JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'; until kubectl -n kube-system get pods -lcomponent=kube-addon-manager -o jsonpath="$JSONPATH" 2>&1 | grep -q "Ready=True"; do sleep 1;echo "waiting for kube-addon-manager to be available"; kubectl get pods --all-namespaces; done
   - make image
-  #- ./ci/travis-ci.sh
-after_success:
   - make push
+  #- ./ci/travis-ci.sh
+  # If this build is running due to travis release tag, and
+  # this job indicates to push the release downstream, then
+  # go ahead and tag the dependent repo.
+  - if [ ! -z $TRAVIS_TAG ] && [ $RELEASE_TAG_DOWNSTREAM = 1 ] && [ "$TRAVIS_REPO_SLUG" == "openebs/jiva-operator" ]; then
+      ./build/git-release "openebs/jiva-csi" "$TRAVIS_TAG" "$TRAVIS_BRANCH" || travis_terminate 1;
+    fi
 notifications:
   email:
     recipients:
       - kiran.mova@mayadata.io
+      - utkarsh.tripathi@mayadata.io
