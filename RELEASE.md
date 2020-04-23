@@ -10,7 +10,7 @@ Every release has release candidate builds that are created starting from the th
 - Strict security scanners on the container images
 - Upgrade from previous releases
 - Beta testing by users on issues that they are interested in.
-- Dogfooding on workload and MayaData OpenEBS Director staging cluster.
+- Dogfooding on OpenEBS workload and e2e infrastructure clusters.
 
 If any issues are found during the above stages, they are fixed and a new release candidate builds are generated.
 
