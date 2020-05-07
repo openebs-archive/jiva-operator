@@ -41,8 +41,10 @@ echo "Set the build/unique image tag as: ${BUILD_TAG}"
 function TagAndPushImage() {
   REPO="$1"
   TAG="$2"
-
-  IMAGE_URI="${REPO}:${TAG}";
+  #Add an option to specify a custom TAG_SUFFIX 
+  #via environment variable. Default is no tag.
+  #Example suffix could be "-debug" of "-dev"
+  IMAGE_URI="${REPO}:${TAG}${TAG_SUFFIX}";
   sudo docker tag ${IMAGEID} ${IMAGE_URI};
   echo " push ${IMAGE_URI}";
   sudo docker push ${IMAGE_URI};
@@ -65,7 +67,7 @@ then
     # Push with different tags if tagged as a release
     # When github is tagged with a release, then Travis will
     # set the release tag in env TRAVIS_TAG
-    TagAndPushImage "${DIMAGE}" "${TRAVIS_TAG}"
+    TagAndPushImage "${DIMAGE}" "${TRAVIS_TAG#v}"
     TagAndPushImage "${DIMAGE}" "latest"
   fi;
 else
@@ -85,7 +87,7 @@ then
     # Push with different tags if tagged as a release
     # When github is tagged with a release, then Travis will
     # set the release tag in env TRAVIS_TAG
-    TagAndPushImage "quay.io/${DIMAGE}" "${TRAVIS_TAG}"
+    TagAndPushImage "quay.io/${DIMAGE}" "${TRAVIS_TAG#v}"
     TagAndPushImage "quay.io/${DIMAGE}" "latest"
   fi;
 else
