@@ -36,11 +36,11 @@
 
 # Output registry and image names for operator image
 # Set env to override this value
-ifeq (${REGISTRY}, )
-  REGISTRY:=openebs
+ifeq (${IMAGE_ORG}, )
+  IMAGE_ORG:=openebs
 endif
 
-export REGISTRY
+export IMAGE_ORG
 # Determine the arch/os
 ifeq (${XC_OS}, )
   XC_OS:=$(shell go env GOOS)
@@ -127,7 +127,7 @@ all:
 	@echo "Available commands:"
 	@echo "  build                           - build operator source code"
 	@echo "  image                           - build operator container image"
-	@echo "  push                            - push operator to dockerhub registry (${REGISTRY})"
+	@echo "  push                            - push operator to dockerhub registry (${IMAGE_ORG})"
 	@echo ""
 	@make print-variables --no-print-directory
 
@@ -140,7 +140,7 @@ print-variables:
 	@echo "  COMMIT:     ${COMMIT}"
 	@echo "Testing variables:"
 	@echo " Produced Image: ${OPERATOR_NAME}:${OPERATOR_TAG}"
-	@echo " REGISTRY: ${REGISTRY}"
+	@echo " IMAGE_ORG: ${IMAGE_ORG}"
 
 
 # Bootstrap the build by downloading additional tools
@@ -181,8 +181,8 @@ Dockerfile.jo: ./build/Dockerfile
 	sed -e 's|@BASEIMAGE@|$(BASEIMAGE)|g' $< >$@
 
 image: build Dockerfile.jo
-	@echo "--> Build image $(REGISTRY)/$(OPERATOR_NAME):$(OPERATOR_TAG) ..."
-	docker build -f Dockerfile.jo -t $(REGISTRY)/$(OPERATOR_NAME)-$(ARCH):$(OPERATOR_TAG) $(DBUILD_ARGS) .
+	@echo "--> Build image $(IMAGE_ORG)/$(OPERATOR_NAME):$(OPERATOR_TAG) ..."
+	docker build -f Dockerfile.jo -t $(IMAGE_ORG)/$(OPERATOR_NAME)-$(ARCH):$(OPERATOR_TAG) $(DBUILD_ARGS) .
 
 generate:
 	@echo "--> Generate CR ..."
@@ -190,23 +190,23 @@ generate:
 
 operator:
 	@echo "--> Build using operator-sdk ..."
-	operator-sdk build $(REGISTRY)/$(OPERATOR_NAME):$(OPERATOR_TAG) --verbose
+	operator-sdk build $(IMAGE_ORG)/$(OPERATOR_NAME):$(OPERATOR_TAG) --verbose
 
 push-image: image
-	@echo "--> Push image $(REGISTRY)/$(OPERATOR_NAME)-$(ARCH):$(OPERATOR_TAG) ..."
-	docker push $(REGISTRY)/$(OPERATOR_NAME)-$(ARCH):$(OPERATOR_TAG)
+	@echo "--> Push image $(IMAGE_ORG)/$(OPERATOR_NAME)-$(ARCH):$(OPERATOR_TAG) ..."
+	docker push $(IMAGE_ORG)/$(OPERATOR_NAME)-$(ARCH):$(OPERATOR_TAG)
 
 push:
-	@echo "--> Push image $(REGISTRY)/$(OPERATOR_NAME)-$(ARCH):$(OPERATOR_TAG) ..."
-	@DIMAGE=$(REGISTRY)/$(OPERATOR_NAME)-$(ARCH) ./build/push
+	@echo "--> Push image $(IMAGE_ORG)/$(OPERATOR_NAME)-$(ARCH):$(OPERATOR_TAG) ..."
+	@DIMAGE=$(IMAGE_ORG)/$(OPERATOR_NAME)-$(ARCH) ./build/push
 
 tag:
-	@echo "--> Tag image $(REGISTRY)/$(OPERATOR_NAME)-$(ARCH):$(OPERATOR_TAG) to $(REGISTRY)/$(OPERATOR_NAME):$(GIT_TAG) ..."
-	docker tag $(REGISTRY)/$(OPERATOR_NAME)-$(ARCH):$(OPERATOR_TAG) $(REGISTRY)/$(OPERATOR_NAME)-$(ARCH):$(GIT_TAG)
+	@echo "--> Tag image $(IMAGE_ORG)/$(OPERATOR_NAME)-$(ARCH):$(OPERATOR_TAG) to $(IMAGE_ORG)/$(OPERATOR_NAME):$(GIT_TAG) ..."
+	docker tag $(IMAGE_ORG)/$(OPERATOR_NAME)-$(ARCH):$(OPERATOR_TAG) $(IMAGE_ORG)/$(OPERATOR_NAME)-$(ARCH):$(GIT_TAG)
 
 push-tag: tag push
-	@echo "--> Push image $(REGISTRY)/$(OPERATOR_NAME)-$(ARCH):$(GIT_TAG) ..."
-	docker push $(REGISTRY)/$(OPERATOR_NAME)-$(ARCH):$(GIT_TAG)
+	@echo "--> Push image $(IMAGE_ORG)/$(OPERATOR_NAME)-$(ARCH):$(GIT_TAG) ..."
+	docker push $(IMAGE_ORG)/$(OPERATOR_NAME)-$(ARCH):$(GIT_TAG)
 
 clean:
 	rm -rf ./build/_output/bin/
