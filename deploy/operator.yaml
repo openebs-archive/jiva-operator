@@ -213,7 +213,7 @@ spec:
       containers:
         - name: jiva-operator
           # Replace this with the built image name
-          image: openebs/jiva-operator-linux_amd64:ci
+          image: openebs/jiva-operator-amd64:ci
           command:
           - jiva-operator
           args:

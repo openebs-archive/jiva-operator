@@ -182,7 +182,7 @@ Dockerfile.jo: ./build/Dockerfile
 
 image: build Dockerfile.jo
 	@echo "--> Build image $(IMAGE_ORG)/$(OPERATOR_NAME):$(OPERATOR_TAG) ..."
-	docker build -f Dockerfile.jo -t $(IMAGE_ORG)/$(OPERATOR_NAME)-$(ARCH):$(OPERATOR_TAG) $(DBUILD_ARGS) .
+	docker build -f Dockerfile.jo -t $(IMAGE_ORG)/$(OPERATOR_NAME)-$(XC_ARCH):$(OPERATOR_TAG) $(DBUILD_ARGS) .
 
 generate:
 	@echo "--> Generate CR ..."
