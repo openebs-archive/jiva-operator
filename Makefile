@@ -66,7 +66,7 @@ export BASEIMAGE
 
 # Specify the docker arg for repository url
 ifeq (${DBUILD_REPO_URL}, )
-  DBUILD_REPO_URL="https://github.com/openebs/jiva-csi"
+  DBUILD_REPO_URL="https://github.com/openebs/jiva-operator"
   export DBUILD_REPO_URL
 endif
 
@@ -182,7 +182,7 @@ Dockerfile.jo: ./build/Dockerfile
 
 image: build Dockerfile.jo
 	@echo "--> Build image $(IMAGE_ORG)/$(OPERATOR_NAME):$(OPERATOR_TAG) ..."
-	docker build -f Dockerfile.jo -t $(IMAGE_ORG)/$(OPERATOR_NAME)-$(ARCH):$(OPERATOR_TAG) $(DBUILD_ARGS) .
+	docker build -f Dockerfile.jo -t $(IMAGE_ORG)/$(OPERATOR_NAME)-$(XC_ARCH):$(OPERATOR_TAG) $(DBUILD_ARGS) .
 
 generate:
 	@echo "--> Generate CR ..."
@@ -193,20 +193,20 @@ operator:
 	operator-sdk build $(IMAGE_ORG)/$(OPERATOR_NAME):$(OPERATOR_TAG) --verbose
 
 push-image: image
-	@echo "--> Push image $(IMAGE_ORG)/$(OPERATOR_NAME)-$(ARCH):$(OPERATOR_TAG) ..."
-	docker push $(IMAGE_ORG)/$(OPERATOR_NAME)-$(ARCH):$(OPERATOR_TAG)
+	@echo "--> Push image $(IMAGE_ORG)/$(OPERATOR_NAME)-$(XC_ARCH):$(OPERATOR_TAG) ..."
+	docker push $(IMAGE_ORG)/$(OPERATOR_NAME)-$(XC_ARCH):$(OPERATOR_TAG)
 
 push:
-	@echo "--> Push image $(IMAGE_ORG)/$(OPERATOR_NAME)-$(ARCH):$(OPERATOR_TAG) ..."
-	@DIMAGE=$(IMAGE_ORG)/$(OPERATOR_NAME)-$(ARCH) ./build/push
+	@echo "--> Push image $(IMAGE_ORG)/$(OPERATOR_NAME)-$(XC_ARCH):$(OPERATOR_TAG) ..."
+	@DIMAGE=$(IMAGE_ORG)/$(OPERATOR_NAME)-$(XC_ARCH) ./build/push
 
 tag:
-	@echo "--> Tag image $(IMAGE_ORG)/$(OPERATOR_NAME)-$(ARCH):$(OPERATOR_TAG) to $(IMAGE_ORG)/$(OPERATOR_NAME):$(GIT_TAG) ..."
-	docker tag $(IMAGE_ORG)/$(OPERATOR_NAME)-$(ARCH):$(OPERATOR_TAG) $(IMAGE_ORG)/$(OPERATOR_NAME)-$(ARCH):$(GIT_TAG)
+	@echo "--> Tag image $(IMAGE_ORG)/$(OPERATOR_NAME)-$(XC_ARCH):$(OPERATOR_TAG) to $(IMAGE_ORG)/$(OPERATOR_NAME):$(GIT_TAG) ..."
+	docker tag $(IMAGE_ORG)/$(OPERATOR_NAME)-$(XC_ARCH):$(OPERATOR_TAG) $(IMAGE_ORG)/$(OPERATOR_NAME)-$(ARCH):$(GIT_TAG)
 
 push-tag: tag push
-	@echo "--> Push image $(IMAGE_ORG)/$(OPERATOR_NAME)-$(ARCH):$(GIT_TAG) ..."
-	docker push $(IMAGE_ORG)/$(OPERATOR_NAME)-$(ARCH):$(GIT_TAG)
+	@echo "--> Push image $(IMAGE_ORG)/$(OPERATOR_NAME)-$(XC_ARCH):$(GIT_TAG) ..."
+	docker push $(IMAGE_ORG)/$(OPERATOR_NAME)-$(XC_ARCH):$(GIT_TAG)
 
 clean:
 	rm -rf ./build/_output/bin/
