@@ -147,7 +147,7 @@ print-variables:
 bootstrap:
 	@for tool in  $(EXTERNAL_TOOLS) ; do \
 		echo "+ Installing $$tool" ; \
-		go get -u $$tool; \
+		cd && GO111MODULE=on go get $$tool; \
 	done
 
 .get:
