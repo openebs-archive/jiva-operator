@@ -1,4 +1,4 @@
-# Copyright 2018-2020 The OpenEBS Authors. All rights reserved.
+# Copyright © 2019 The OpenEBS Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -147,7 +147,7 @@ print-variables:
 bootstrap:
 	@for tool in  $(EXTERNAL_TOOLS) ; do \
 		echo "+ Installing $$tool" ; \
-		go get -u $$tool; \
+		cd && GO111MODULE=on go get $$tool; \
 	done
 
 .get:
@@ -219,3 +219,17 @@ format: clean
 test: format vet
 	@echo "--> Running go test" ;
 	@go test -v --cover $(PACKAGES)
+
+
+
+.PHONY: license-check
+license-check:
+	@echo "Checking license header..."
+	@licRes=$$(for file in $$(find . -type f -regex '.*\.sh\|.*\.go\|.*Docker.*\|.*\Makefile*' ! -path './vendor/*' ) ; do \
+               awk 'NR<=5' $$file | grep -Eq "(Copyright|generated|GENERATED|License)" || echo $$file; \
+       done); \
+       if [ -n "$${licRes}" ]; then \
+               echo "license header checking failed:"; echo "$${licRes}"; \
+               exit 1; \
+       fi
+	@echo "Done checking license."
