@@ -627,7 +627,7 @@ func updateJivaVolumeWithServiceInfo(r *ReconcileJivaVolume, cr *jv.JivaVolume, 
 func getBaseReplicaTolerations() []corev1.Toleration {
 	return []corev1.Toleration{
 		corev1.Toleration{
-			Key:      "node.alpha.kubernetes.io/notReady",
+			Key:      "node.kubernetes.io/notReady",
 			Effect:   corev1.TaintEffectNoExecute,
 			Operator: corev1.TolerationOpExists,
 		},
@@ -637,7 +637,7 @@ func getBaseReplicaTolerations() []corev1.Toleration {
 			Operator: corev1.TolerationOpExists,
 		},
 		corev1.Toleration{
-			Key:      "node.alpha.kubernetes.io/unreachable",
+			Key:      "node.kubernetes.io/unreachable",
 			Effect:   corev1.TaintEffectNoExecute,
 			Operator: corev1.TolerationOpExists,
 		},
@@ -683,13 +683,13 @@ func getBaseTargetTolerations() []corev1.Toleration {
 	var zero int64
 	return []corev1.Toleration{
 		corev1.Toleration{
-			Key:               "node.alpha.kubernetes.io/notReady",
+			Key:               "node.kubernetes.io/notReady",
 			Effect:            corev1.TaintEffectNoExecute,
 			Operator:          corev1.TolerationOpExists,
 			TolerationSeconds: &zero,
 		},
 		corev1.Toleration{
-			Key:               "node.alpha.kubernetes.io/unreachable",
+			Key:               "node.kubernetes.io/unreachable",
 			Effect:            corev1.TaintEffectNoExecute,
 			Operator:          corev1.TolerationOpExists,
 			TolerationSeconds: &zero,
