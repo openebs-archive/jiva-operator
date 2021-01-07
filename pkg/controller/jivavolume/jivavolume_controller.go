@@ -652,11 +652,6 @@ func getBaseReplicaTolerations() []corev1.Toleration {
 			Operator: corev1.TolerationOpExists,
 		},
 		corev1.Toleration{
-			Key:      "node.kubernetes.io/unreachable",
-			Effect:   corev1.TaintEffectNoExecute,
-			Operator: corev1.TolerationOpExists,
-		},
-		corev1.Toleration{
 			Key:      "node.kubernetes.io/out-of-disk",
 			Effect:   corev1.TaintEffectNoExecute,
 			Operator: corev1.TolerationOpExists,
@@ -696,12 +691,6 @@ func getBaseTargetTolerations() []corev1.Toleration {
 		},
 		corev1.Toleration{
 			Key:               "node.kubernetes.io/not-ready",
-			Effect:            corev1.TaintEffectNoExecute,
-			Operator:          corev1.TolerationOpExists,
-			TolerationSeconds: &zero,
-		},
-		corev1.Toleration{
-			Key:               "node.kubernetes.io/unreachable",
 			Effect:            corev1.TaintEffectNoExecute,
 			Operator:          corev1.TolerationOpExists,
 			TolerationSeconds: &zero,
