@@ -272,47 +272,66 @@ func createControllerDeployment(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 		WithStrategyType(appsv1.RecreateDeploymentStrategyType).
 		WithSelectorMatchLabelsNew(defaultControllerLabels(cr.Spec.PV)).
 		WithPodTemplateSpecBuilder(
-			pts.NewBuilder().
-				WithLabels(defaultControllerLabels(cr.Spec.PV)).
-				WithAnnotations(defaultAnnotations()).
-				WithContainerBuilders(
-					container.NewBuilder().
-						WithName("jiva-controller").
-						WithImage(getImage("OPENEBS_IO_JIVA_CONTROLLER_IMAGE",
-							"jiva-controller")).
-						WithPortsNew(defaultControllerPorts()).
-						WithCommandNew([]string{
-							"launch",
-						}).
-						WithArgumentsNew([]string{
-							"controller",
-							"--frontend",
-							"gotgt",
-							"--clusterIP",
-							cr.Spec.ISCSISpec.TargetIP,
-							cr.Name,
-						}).
-						WithEnvsNew([]corev1.EnvVar{
-							{
-								Name:  "REPLICATION_FACTOR",
-								Value: strconv.Itoa(cr.Spec.Policy.Target.ReplicationFactor),
+			func() *pts.Builder {
+				ptsBuilder := pts.NewBuilder().
+					WithLabels(defaultControllerLabels(cr.Spec.PV)).
+					WithAnnotations(defaultAnnotations()).
+					WithTolerations(cr.Spec.Policy.Target.Tolerations...).
+					WithContainerBuilders(
+						container.NewBuilder().
+							WithName("jiva-controller").
+							WithImage(getImage("OPENEBS_IO_JIVA_CONTROLLER_IMAGE",
+								"jiva-controller")).
+							WithPortsNew(defaultControllerPorts()).
+							WithCommandNew([]string{
+								"launch",
+							}).
+							WithArgumentsNew([]string{
+								"controller",
+								"--frontend",
+								"gotgt",
+								"--clusterIP",
+								cr.Spec.ISCSISpec.TargetIP,
+								cr.Name,
+							}).
+							WithEnvsNew([]corev1.EnvVar{
+								{
+									Name:  "REPLICATION_FACTOR",
+									Value: strconv.Itoa(cr.Spec.Policy.Target.ReplicationFactor),
+								},
+							}).
+							WithResources(cr.Spec.Policy.Target.Resources).
+							WithImagePullPolicy(corev1.PullIfNotPresent),
+					)
+				if cr.Spec.Policy.Target.Monitor {
+					ptsBuilder = ptsBuilder.WithContainerBuilders(
+						container.NewBuilder().
+							WithImage(getImage("OPENEBS_IO_MAYA_EXPORTER_IMAGE",
+								"exporter")).
+							WithImagePullPolicy(corev1.PullIfNotPresent).
+							WithName("maya-volume-exporter").
+							WithCommandNew([]string{"maya-exporter"}).
+							WithPortsNew([]corev1.ContainerPort{
+								{
+									ContainerPort: 9500,
+									Protocol:      "TCP",
+								},
 							},
-						}).
-						WithResources(cr.Spec.Policy.Target.Resources).
-						WithImagePullPolicy(corev1.PullIfNotPresent),
-					container.NewBuilder().
-						WithImage(getImage("OPENEBS_IO_MAYA_EXPORTER_IMAGE",
-							"exporter")).
-						WithName("maya-volume-exporter").
-						WithCommandNew([]string{"maya-exporter"}).
-						WithPortsNew([]corev1.ContainerPort{
-							{
-								ContainerPort: 9500,
-								Protocol:      "TCP",
-							},
-						},
-						),
-				),
+							).
+							WithResources(cr.Spec.Policy.Target.AuxResources),
+					)
+				}
+				if len(cr.Spec.Policy.ServiceAccountName) != 0 {
+					ptsBuilder = ptsBuilder.WithServiceAccountName(cr.Spec.Policy.ServiceAccountName)
+				}
+				if len(cr.Spec.Policy.PriorityClassName) != 0 {
+					ptsBuilder = ptsBuilder.WithPriorityClassName(cr.Spec.Policy.PriorityClassName)
+				}
+				if cr.Spec.Policy.Target.NodeSelector != nil {
+					ptsBuilder = ptsBuilder.WithNodeSelector(cr.Spec.Policy.Target.NodeSelector)
+				}
+				return ptsBuilder
+			}(),
 		).Build()
 
 	if err != nil {
@@ -468,47 +487,60 @@ func createReplicaStatefulSet(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 		WithReplicas(&replicaCount).
 		WithSelectorMatchLabels(defaultReplicaLabels(cr.Spec.PV)).
 		WithPodTemplateSpecBuilder(
-			pts.NewBuilder().
-				WithLabels(defaultReplicaLabels(cr.Spec.PV)).
-				WithAffinity(&corev1.Affinity{
-					PodAntiAffinity: &corev1.PodAntiAffinity{
-						RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
-							{
-								LabelSelector: &metav1.LabelSelector{
-									MatchLabels: defaultReplicaLabels(cr.Spec.PV),
+			func() *pts.Builder {
+				ptsBuilder := pts.NewBuilder().
+					WithLabels(defaultReplicaLabels(cr.Spec.PV)).
+					WithAffinity(&corev1.Affinity{
+						PodAntiAffinity: &corev1.PodAntiAffinity{
+							RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+								{
+									LabelSelector: &metav1.LabelSelector{
+										MatchLabels: defaultReplicaLabels(cr.Spec.PV),
+									},
+									TopologyKey: "kubernetes.io/hostname",
 								},
-								TopologyKey: "kubernetes.io/hostname",
 							},
 						},
-					},
-				}).
-				WithContainerBuilders(
-					container.NewBuilder().
-						WithName("jiva-replica").
-						WithImage(getImage("OPENEBS_IO_JIVA_REPLICA_IMAGE",
-							"jiva-replica")).
-						WithPortsNew(defaultReplicaPorts()).
-						WithCommandNew([]string{
-							"launch",
-						}).
-						WithArgumentsNew([]string{
-							"replica",
-							"--frontendIP",
-							fmt.Sprintf(svcNameFormat, cr.Name, cr.Namespace),
-							"--size",
-							fmt.Sprint(capacity),
-							"openebs",
-						}).
-						WithImagePullPolicy(corev1.PullIfNotPresent).
-						WithPrivilegedSecurityContext(&prev).
-						WithResources(cr.Spec.Policy.Replica.Resources).
-						WithVolumeMountsNew([]corev1.VolumeMount{
-							{
-								Name:      "openebs",
-								MountPath: "/openebs",
-							},
-						}),
-				),
+					}).
+					WithContainerBuilders(
+						container.NewBuilder().
+							WithName("jiva-replica").
+							WithImage(getImage("OPENEBS_IO_JIVA_REPLICA_IMAGE",
+								"jiva-replica")).
+							WithPortsNew(defaultReplicaPorts()).
+							WithCommandNew([]string{
+								"launch",
+							}).
+							WithArgumentsNew([]string{
+								"replica",
+								"--frontendIP",
+								fmt.Sprintf(svcNameFormat, cr.Name, cr.Namespace),
+								"--size",
+								fmt.Sprint(capacity),
+								"openebs",
+							}).
+							WithImagePullPolicy(corev1.PullIfNotPresent).
+							WithPrivilegedSecurityContext(&prev).
+							WithResources(cr.Spec.Policy.Replica.Resources).
+							WithVolumeMountsNew([]corev1.VolumeMount{
+								{
+									Name:      "openebs",
+									MountPath: "/openebs",
+								},
+							}),
+					).
+					WithTolerations(cr.Spec.Policy.Replica.Tolerations...)
+				if len(cr.Spec.Policy.ServiceAccountName) != 0 {
+					ptsBuilder = ptsBuilder.WithServiceAccountName(cr.Spec.Policy.ServiceAccountName)
+				}
+				if len(cr.Spec.Policy.PriorityClassName) != 0 {
+					ptsBuilder = ptsBuilder.WithPriorityClassName(cr.Spec.Policy.PriorityClassName)
+				}
+				if cr.Spec.Policy.Target.NodeSelector != nil {
+					ptsBuilder = ptsBuilder.WithNodeSelector(cr.Spec.Policy.Replica.NodeSelector)
+				}
+				return ptsBuilder
+			}(),
 		).
 		WithPVC(
 			pvc.NewBuilder().
@@ -592,12 +624,87 @@ func updateJivaVolumeWithServiceInfo(r *ReconcileJivaVolume, cr *jv.JivaVolume, 
 	return nil
 }
 
+func getBaseReplicaTolerations() []corev1.Toleration {
+	return []corev1.Toleration{
+		corev1.Toleration{
+			Key:      "node.kubernetes.io/notReady",
+			Effect:   corev1.TaintEffectNoExecute,
+			Operator: corev1.TolerationOpExists,
+		},
+		corev1.Toleration{
+			Key:      "node.cloudprovider.kubernetes.io/uninitialized",
+			Effect:   corev1.TaintEffectNoExecute,
+			Operator: corev1.TolerationOpExists,
+		},
+		corev1.Toleration{
+			Key:      "node.kubernetes.io/unreachable",
+			Effect:   corev1.TaintEffectNoExecute,
+			Operator: corev1.TolerationOpExists,
+		},
+		corev1.Toleration{
+			Key:      "node.kubernetes.io/not-ready",
+			Effect:   corev1.TaintEffectNoExecute,
+			Operator: corev1.TolerationOpExists,
+		},
+		corev1.Toleration{
+			Key:      "node.kubernetes.io/unschedulable",
+			Effect:   corev1.TaintEffectNoExecute,
+			Operator: corev1.TolerationOpExists,
+		},
+		corev1.Toleration{
+			Key:      "node.kubernetes.io/out-of-disk",
+			Effect:   corev1.TaintEffectNoExecute,
+			Operator: corev1.TolerationOpExists,
+		},
+		corev1.Toleration{
+			Key:      "node.kubernetes.io/memory-pressure",
+			Effect:   corev1.TaintEffectNoExecute,
+			Operator: corev1.TolerationOpExists,
+		},
+		corev1.Toleration{
+			Key:      "node.kubernetes.io/disk-pressure",
+			Effect:   corev1.TaintEffectNoExecute,
+			Operator: corev1.TolerationOpExists,
+		},
+		corev1.Toleration{
+			Key:      "node.kubernetes.io/network-unavailable",
+			Effect:   corev1.TaintEffectNoExecute,
+			Operator: corev1.TolerationOpExists,
+		},
+	}
+}
+
+func getBaseTargetTolerations() []corev1.Toleration {
+	var zero int64
+	return []corev1.Toleration{
+		corev1.Toleration{
+			Key:               "node.kubernetes.io/notReady",
+			Effect:            corev1.TaintEffectNoExecute,
+			Operator:          corev1.TolerationOpExists,
+			TolerationSeconds: &zero,
+		},
+		corev1.Toleration{
+			Key:               "node.kubernetes.io/unreachable",
+			Effect:            corev1.TaintEffectNoExecute,
+			Operator:          corev1.TolerationOpExists,
+			TolerationSeconds: &zero,
+		},
+		corev1.Toleration{
+			Key:               "node.kubernetes.io/not-ready",
+			Effect:            corev1.TaintEffectNoExecute,
+			Operator:          corev1.TolerationOpExists,
+			TolerationSeconds: &zero,
+		},
+	}
+}
+
 // getDefaultPolicySpec gives the default policy spec for jiva volume.
 func getDefaultPolicySpec() jv.JivaVolumePolicySpec {
 	return jv.JivaVolumePolicySpec{
 		ReplicaSC: defaultStorageClass,
 		Target: jv.TargetSpec{
 			PodTemplateResources: jv.PodTemplateResources{
+				Tolerations: getBaseTargetTolerations(),
 				Resources: &corev1.ResourceRequirements{
 					Requests: corev1.ResourceList{
 						corev1.ResourceCPU:    resource.MustParse("0"),
@@ -609,10 +716,21 @@ func getDefaultPolicySpec() jv.JivaVolumePolicySpec {
 					},
 				},
 			},
+			AuxResources: &corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					corev1.ResourceCPU:    resource.MustParse("0"),
+					corev1.ResourceMemory: resource.MustParse("0"),
+				},
+				Limits: corev1.ResourceList{
+					corev1.ResourceCPU:    resource.MustParse("0"),
+					corev1.ResourceMemory: resource.MustParse("0"),
+				},
+			},
 			ReplicationFactor: defaultReplicationFactor,
 		},
 		Replica: jv.ReplicaSpec{
 			PodTemplateResources: jv.PodTemplateResources{
+				Tolerations: getBaseReplicaTolerations(),
 				Resources: &corev1.ResourceRequirements{
 					Requests: corev1.ResourceList{
 						corev1.ResourceCPU:    resource.MustParse("0"),
@@ -646,10 +764,24 @@ func defaultTargetRes(policy *jv.JivaVolumePolicySpec, defaultPolicy jv.JivaVolu
 	}
 }
 
+func defaultTargetAuxRes(policy *jv.JivaVolumePolicySpec, defaultPolicy jv.JivaVolumePolicySpec) {
+	if policy.Target.AuxResources == nil {
+		policy.Target.AuxResources = defaultPolicy.Target.AuxResources
+	}
+}
+
 func defaultReplicaRes(policy *jv.JivaVolumePolicySpec, defaultPolicy jv.JivaVolumePolicySpec) {
 	if policy.Replica.Resources == nil {
 		policy.Replica.Resources = defaultPolicy.Replica.Resources
 	}
+}
+
+func defaultTargetTolerations(policy *jv.JivaVolumePolicySpec, defaultPolicy jv.JivaVolumePolicySpec) {
+	policy.Target.Tolerations = append(defaultPolicy.Target.Tolerations, policy.Target.Tolerations...)
+}
+
+func defaultReplicaTolerations(policy *jv.JivaVolumePolicySpec, defaultPolicy jv.JivaVolumePolicySpec) {
+	policy.Replica.Tolerations = append(defaultPolicy.Replica.Tolerations, policy.Replica.Tolerations...)
 }
 
 // validatePolicySpec checks the policy provided by the user and sets the
@@ -658,6 +790,8 @@ func validatePolicySpec(policy *jv.JivaVolumePolicySpec) {
 	defaultPolicy := getDefaultPolicySpec()
 	optFuncs := []policyOptFuncs{
 		defaultRF, defaultSC, defaultTargetRes, defaultReplicaRes,
+		defaultTargetTolerations, defaultReplicaTolerations,
+		defaultTargetAuxRes,
 	}
 	for _, o := range optFuncs {
 		o(policy, defaultPolicy)

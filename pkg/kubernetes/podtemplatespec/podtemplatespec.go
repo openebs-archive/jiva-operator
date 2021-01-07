@@ -209,8 +209,8 @@ func (b *Builder) WithNodeSelectorNew(nodeselectors map[string]string) *Builder 
 }
 
 // WithServiceAccountName sets the ServiceAccountnNme field of podtemplatespec
-func (b *Builder) WithServiceAccountName(serviceAccountnNme string) *Builder {
-	if len(serviceAccountnNme) == 0 {
+func (b *Builder) WithServiceAccountName(serviceAccountName string) *Builder {
+	if len(serviceAccountName) == 0 {
 		b.errs = append(
 			b.errs,
 			errors.New(
@@ -220,7 +220,23 @@ func (b *Builder) WithServiceAccountName(serviceAccountnNme string) *Builder {
 		return b
 	}
 
-	b.podtemplatespec.Object.Spec.ServiceAccountName = serviceAccountnNme
+	b.podtemplatespec.Object.Spec.ServiceAccountName = serviceAccountName
+	return b
+}
+
+// WithPriorityClassName sets the ServiceAccountnNme field of podtemplatespec
+func (b *Builder) WithPriorityClassName(priorityClassName string) *Builder {
+	if len(priorityClassName) == 0 {
+		b.errs = append(
+			b.errs,
+			errors.New(
+				"failed to build podtemplatespec object: missing priorityclassname",
+			),
+		)
+		return b
+	}
+
+	b.podtemplatespec.Object.Spec.PriorityClassName = priorityClassName
 	return b
 }
 

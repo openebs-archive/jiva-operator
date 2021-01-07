@@ -33,6 +33,11 @@ type JivaVolumePolicySpec struct {
 	EnableBufio bool `json:"enableBufio"`
 	// AutoScaling ...
 	AutoScaling bool `json:"autoScaling"`
+	// ServiceAccountName can be provided to enable PSP
+	ServiceAccountName string `json:"serviceAccountName"`
+	// PriorityClassName if specified applies to the pod
+	// If left empty, no priority class is applied.
+	PriorityClassName string `json:"priorityClassName,omitempty"`
 	// TargetSpec represents configuration related to jiva target and its resources
 	Target TargetSpec `json:"target"`
 	// ReplicaSpec represents configuration related to replicas resources
@@ -78,10 +83,6 @@ type PodTemplateResources struct {
 	// NodeSelector is the labels that will be used to select
 	// a node for pod scheduleing
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
-
-	// PriorityClassName if specified applies to the pod
-	// If left empty, no priority class is applied.
-	PriorityClassName string `json:"priorityClassName,omitempty"`
 }
 
 // JivaVolumePolicyStatus is for handling status of JivaVolumePolicy
