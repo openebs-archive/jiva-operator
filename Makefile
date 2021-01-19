@@ -55,15 +55,6 @@ export XC_ARCH
 ARCH:=${XC_OS}_${XC_ARCH}
 export ARCH
 
-ifeq (${BASEIMAGE}, )
-ifeq ($(ARCH),linux_arm64)
-  BASEIMAGE:=arm64v8/ubuntu:18.04
-else
-	BASEIMAGE:=ubuntu:16.04
-endif
-endif
-export BASEIMAGE
-
 # Specify the docker arg for repository url
 ifeq (${DBUILD_REPO_URL}, )
   DBUILD_REPO_URL="https://github.com/openebs/jiva-operator"
@@ -82,6 +73,10 @@ DBUILD_DATE ?= $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
 OPERATOR_NAME=jiva-operator
 OPERATOR_TAG=ci
 
+# Output plugin name and its image name and tag
+PLUGIN_NAME=jiva-csi
+PLUGIN_TAG=ci
+
 export DBUILD_ARGS=--build-arg DBUILD_DATE=${DBUILD_DATE} --build-arg DBUILD_REPO_URL=${DBUILD_REPO_URL} --build-arg DBUILD_SITE_URL=${DBUILD_SITE_URL} --build-arg ARCH=${ARCH}
 
 # Tools required for different make targets or for development purposes
@@ -89,6 +84,8 @@ EXTERNAL_TOOLS=\
 	golang.org/x/tools/cmd/cover \
 	github.com/axw/gocov/gocov \
 	github.com/ugorji/go/codec/codecgen \
+	github.com/onsi/ginkgo/ginkgo \
+	github.com/onsi/gomega/...
 
 # Lint our code. Reference: https://golang.org/cmd/vet/
 VETARGS?=-asmdecl -atomic -bool -buildtags -copylocks -methods \
@@ -113,7 +110,7 @@ else
 	export GIT_TAG
 endif
 
-PACKAGES = $(shell go list ./... | grep -v 'vendor')
+PACKAGES = $(shell go list ./... | grep -v 'vendor\|tests')
 
 LDFLAGS ?= \
         -extldflags "-static" \
@@ -139,7 +136,8 @@ print-variables:
 	@echo "  GIT_TAG:    ${GIT_TAG}"
 	@echo "  COMMIT:     ${COMMIT}"
 	@echo "Testing variables:"
-	@echo " Produced Image: ${OPERATOR_NAME}:${OPERATOR_TAG}"
+	@echo " Produced Operator Image: ${OPERATOR_NAME}:${OPERATOR_TAG}"
+	@echo " Produced CSI-Plugin Image: ${PLUGIN_NAME}:${PLUGIN_TAG}"
 	@echo " IMAGE_ORG: ${IMAGE_ORG}"
 
 
@@ -172,18 +170,6 @@ vet:
 deps: .get
 	go mod vendor
 
-build: deps test
-	@echo "--> Build binary $(OPERATOR_NAME) ..."
-	GOOS=linux go build -a -ldflags '$(LDFLAGS)' -o ./build/_output/bin/${ARCH}/$(OPERATOR_NAME) ./cmd/manager/main.go
-
-.PHONY: Dockerfile.jo
-Dockerfile.jo: ./build/Dockerfile
-	sed -e 's|@BASEIMAGE@|$(BASEIMAGE)|g' $< >$@
-
-image: build Dockerfile.jo
-	@echo "--> Build image $(IMAGE_ORG)/$(OPERATOR_NAME):$(OPERATOR_TAG) ..."
-	docker build -f Dockerfile.jo -t $(IMAGE_ORG)/$(OPERATOR_NAME)-$(XC_ARCH):$(OPERATOR_TAG) $(DBUILD_ARGS) .
-
 generate:
 	@echo "--> Generate CR ..."
 	operator-sdk generate k8s --verbose
@@ -192,21 +178,53 @@ operator:
 	@echo "--> Build using operator-sdk ..."
 	operator-sdk build $(IMAGE_ORG)/$(OPERATOR_NAME):$(OPERATOR_TAG) --verbose
 
-push-image: image
-	@echo "--> Push image $(IMAGE_ORG)/$(OPERATOR_NAME)-$(XC_ARCH):$(OPERATOR_TAG) ..."
-	docker push $(IMAGE_ORG)/$(OPERATOR_NAME)-$(XC_ARCH):$(OPERATOR_TAG)
+build.operator: deps
+	@echo "--> Build binary $(OPERATOR_NAME) ..."
+	GOOS=linux go build -a -ldflags '$(LDFLAGS)' -o ./build/bin/$(OPERATOR_NAME) ./cmd/manager/main.go
 
-push:
-	@echo "--> Push image $(IMAGE_ORG)/$(OPERATOR_NAME)-$(XC_ARCH):$(OPERATOR_TAG) ..."
-	@DIMAGE=$(IMAGE_ORG)/$(OPERATOR_NAME)-$(XC_ARCH) ./build/push
+image.operator: build.operator 
+	@echo "--> Build image $(IMAGE_ORG)/$(OPERATOR_NAME):$(OPERATOR_TAG) ..."
+	docker build -f ./build/operator/Dockerfile -t $(IMAGE_ORG)/$(OPERATOR_NAME):$(OPERATOR_TAG) $(DBUILD_ARGS) .
 
-tag:
-	@echo "--> Tag image $(IMAGE_ORG)/$(OPERATOR_NAME)-$(XC_ARCH):$(OPERATOR_TAG) to $(IMAGE_ORG)/$(OPERATOR_NAME):$(GIT_TAG) ..."
-	docker tag $(IMAGE_ORG)/$(OPERATOR_NAME)-$(XC_ARCH):$(OPERATOR_TAG) $(IMAGE_ORG)/$(OPERATOR_NAME)-$(ARCH):$(GIT_TAG)
+push-image.operator: image.operator
+	@echo "--> Push image $(IMAGE_ORG)/$(OPERATOR_NAME):$(OPERATOR_TAG) ..."
+	docker push $(IMAGE_ORG)/$(OPERATOR_NAME):$(OPERATOR_TAG)
 
-push-tag: tag push
-	@echo "--> Push image $(IMAGE_ORG)/$(OPERATOR_NAME)-$(XC_ARCH):$(GIT_TAG) ..."
-	docker push $(IMAGE_ORG)/$(OPERATOR_NAME)-$(XC_ARCH):$(GIT_TAG)
+push.operator:
+	@echo "--> Push image $(IMAGE_ORG)/$(OPERATOR_NAME):$(OPERATOR_TAG) ..."
+	@DIMAGE=$(IMAGE_ORG)/$(OPERATOR_NAME) ./build/push
+
+tag.operator:
+	@echo "--> Tag image $(IMAGE_ORG)/$(OPERATOR_NAME):$(OPERATOR_TAG) to $(IMAGE_ORG)/$(OPERATOR_NAME):$(GIT_TAG) ..."
+	docker tag $(IMAGE_ORG)/$(OPERATOR_NAME):$(OPERATOR_TAG) $(IMAGE_ORG)/$(OPERATOR_NAME)-$(ARCH):$(GIT_TAG)
+
+push-tag.operator: tag.operator push.operator
+	@echo "--> Push image $(IMAGE_ORG)/$(OPERATOR_NAME):$(GIT_TAG) ..."
+	docker push $(IMAGE_ORG)/$(OPERATOR_NAME):$(GIT_TAG)
+
+build.plugin: deps 
+	@echo "--> Build binary $(PLUGIN_NAME) ..."
+	GOOS=linux go build -a -ldflags '$(LDFLAGS)' -o ./build/bin/$(PLUGIN_NAME) ./cmd/csi/main.go
+
+image.plugin: build.plugin
+	@echo "--> Build image $(IMAGE_ORG)/$(PLUGIN_NAME):$(PLUGIN_TAG) ..."
+	docker build -f ./build/plugin/Dockerfile -t $(IMAGE_ORG)/$(PLUGIN_NAME):$(PLUGIN_TAG) $(DBUILD_ARGS) .
+
+push-image.plugin: image.plugin
+	@echo "--> Push image $(IMAGE_ORG)/$(PLUGIN_NAME):$(PLUGIN_TAG) ..."
+	docker push $(IMAGE_ORG)/$(PLUGIN_NAME):$(PLUGIN_TAG)
+
+push.plugin:
+	@echo "--> Push image $(IMAGE_ORG)/$(PLUGIN_NAME):$(PLUGIN_TAG) ..."
+	@DIMAGE=$(IMAGE_ORG)/$(PLUGIN_NAME) ./build/push
+
+tag.plugin:
+	@echo "--> Tag image $(IMAGE_ORG)/$(PLUGIN_NAME):$(PLUGIN_TAG) to $(IMAGE_ORG)/$(PLUGIN_NAME):$(GIT_TAG) ..."
+	docker tag $(IMAGE_ORG)/$(PLUGIN_NAME):$(PLUGIN_TAG) $(IMAGE_ORG)/$(PLUGIN_NAME):$(GIT_TAG)
+
+push-tag.plugin: tag.plugin push.plugin
+	@echo "--> Push image $(IMAGE_ORG)/$(PLUGIN_NAME):$(GIT_TAG) ..."
+	docker push $(IMAGE_ORG)/$(PLUGIN_NAME):$(GIT_TAG)
 
 clean:
 	rm -rf ./build/_output/bin/

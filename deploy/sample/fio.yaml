@@ -1,0 +1,52 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: openebs-jiva-csi-sc
+provisioner: jiva.csi.openebs.io
+allowVolumeExpansion: true
+parameters:
+  cas-type: "jiva"
+  policy: "example-jivavolumepolicy"
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: jiva-csi-demo
+spec:
+  storageClassName: openebs-jiva-csi-sc
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 4Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fio
+spec:
+  selector:
+    matchLabels:
+      name: fio
+  replicas: 1
+  strategy:
+    type: Recreate
+    rollingUpdate: null
+  template:
+    metadata:
+      labels:
+        name: fio
+    spec:
+      #nodeName: gke-utkarsh-csi-default-pool-953ba289-rt9l
+      containers:
+      - name: perfrunner
+        image: openebs/tests-fio
+        command: ["/bin/bash"]
+        args: ["-c", "while true ;do sleep 50; done"]
+        volumeMounts:
+        - mountPath: /datadir
+          name: fio-vol
+      volumes:
+      - name: fio-vol
+        persistentVolumeClaim:
+          claimName: jiva-csi-demo
