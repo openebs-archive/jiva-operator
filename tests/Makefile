@@ -14,7 +14,7 @@
 #
 GOFLAGS=-mod=vendor
 export GOFLAGS
-GINKGO=$(GOPATH)/bin/ginkgo
+GINKGO=$(shell which ginkgo)
 KUBECTL=/usr/local/bin/kubectl
 
 
