@@ -52,8 +52,8 @@ script:
   # kube-addon-manager is responsible for managing other kubernetes components, such as kube-dns, dashboard, storage-provisioner..
   #- JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'; until kubectl -n kube-system get pods -lcomponent=kube-addon-manager -o jsonpath="$JSONPATH" 2>&1 | grep -q "Ready=True"; do sleep 1;echo "waiting for kube-addon-manager to be available"; kubectl get pods --all-namespaces; done
   - make license-check
-  - make image
-  - make push
+  - make image.operator image.plugin
+  - make push.operator push.plugin
   #- ./ci/travis-ci.sh
   # If this build is running due to travis release tag, and
   # this job indicates to push the release downstream, then
