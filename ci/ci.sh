@@ -94,15 +94,13 @@ function waitForComponent() {
 function initializeCSISanitySuite() {
 	echo "=============== Initialize CSI Sanity test suite ==============="
 	CSI_TEST_REPO=https://github.com/$test_repo/csi-test.git
-	CSI_REPO_PATH="$GOPATH/src/github.com/$test_repo/csi-test"
+	CSI_REPO_PATH="home/runner/work/jiva-operator/$test_repo/csi-test"
 	if [ ! -d "$CSI_REPO_PATH" ] ; then
-		sudo git clone -b "v4.0.1" $CSI_TEST_REPO $CSI_REPO_PATH
+		git clone -b "v4.0.1" $CSI_TEST_REPO $CSI_REPO_PATH
 	else
 		cd "$CSI_REPO_PATH"
-		sudo git pull $CSI_REPO_PATH
+		git pull $CSI_REPO_PATH
 	fi
-
-	echo "GOPATH: $GOPATH"
 
 	cd "$CSI_REPO_PATH/cmd/csi-sanity"
 	make clean
@@ -135,7 +133,7 @@ function startTestSuite() {
 
 function createJivaVolumePolicy() {
 	echo "================== Create Jiva Volume Policy ================="
-	cd $GOPATH/src/github.com/openebs/jiva-operator
+	cd /home/runner/work/jiva-operator/jiva-operator
 	kubectl apply -f deploy/crds/openebs.io_v1alpha1_jivavolumepolicy_cr.yaml
 	if [ $? -ne 0 ];
 	then
