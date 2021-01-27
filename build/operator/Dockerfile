@@ -21,12 +21,11 @@ ENV OPERATOR=/usr/local/bin/jiva-operator \
 ARG DBUILD_DATE
 ARG DBUILD_REPO_URL
 ARG DBUILD_SITE_URL
-ARG ARCH
 
 # install operator binary
 ADD build/bin/jiva-operator ${OPERATOR}
 
-COPY build/bin /usr/local/bin
+COPY build/operator/entrypoint build/operator/user_setup /usr/local/bin/
 RUN  /usr/local/bin/user_setup
 
 LABEL org.label-schema.schema-version="1.0"

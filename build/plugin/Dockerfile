@@ -22,7 +22,6 @@ COPY build/bin/jiva-csi /usr/local/bin/
 ARG DBUILD_DATE
 ARG DBUILD_REPO_URL
 ARG DBUILD_SITE_URL
-ARG ARCH
 
 LABEL org.label-schema.schema-version="1.0"
 LABEL org.label-schema.name="jiva-csi"

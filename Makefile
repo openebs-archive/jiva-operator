@@ -149,7 +149,7 @@ bootstrap:
 	done
 
 .get:
-	rm -rf ./build/_output/bin/
+	rm -rf ./build/bin/
 	go mod download
 
 vet:
@@ -227,7 +227,7 @@ push-tag.plugin: tag.plugin push.plugin
 	docker push $(IMAGE_ORG)/$(PLUGIN_NAME):$(GIT_TAG)
 
 clean:
-	rm -rf ./build/_output/bin/
+	rm -rf ./build/bin/
 	go mod tidy
 
 format: clean
