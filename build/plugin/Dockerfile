@@ -1,4 +1,4 @@
-# Copyright © 2019-2020 The OpenEBS Authors
+# Copyright 2019-2020 The OpenEBS Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,22 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM @BASEIMAGE@
+FROM ubuntu:18.04
+RUN apt-get update; exit 0
+RUN apt-get -y install rsyslog xfsprogs curl
+RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
-ENV OPERATOR=/usr/local/bin/jiva-operator \
-    USER_UID=1001 \
-    USER_NAME=jiva-operator
+COPY build/bin/jiva-csi /usr/local/bin/
 
 ARG DBUILD_DATE
 ARG DBUILD_REPO_URL
 ARG DBUILD_SITE_URL
-ARG ARCH
-
-# install operator binary
-ADD build/_output/bin/${ARCH}/jiva-operator ${OPERATOR}
-
-COPY build/bin /usr/local/bin
-RUN  /usr/local/bin/user_setup
 
 LABEL org.label-schema.schema-version="1.0"
 LABEL org.label-schema.name="jiva-csi"
@@ -37,6 +31,4 @@ LABEL org.label-schema.vcs-url=$DBUILD_REPO_URL
 LABEL org.label-schema.url=$DBUILD_SITE_URL
 LABEL org.label-schema.arch=$ARCH
 
-ENTRYPOINT ["/usr/local/bin/entrypoint"]
-
-USER ${USER_UID}
+ENTRYPOINT ["/usr/local/bin/jiva-csi"]
