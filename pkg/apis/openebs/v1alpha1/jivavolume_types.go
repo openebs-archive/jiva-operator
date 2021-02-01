@@ -71,8 +71,9 @@ type JivaVolume struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   JivaVolumeSpec   `json:"spec,omitempty"`
-	Status JivaVolumeStatus `json:"status,omitempty"`
+	Spec           JivaVolumeSpec   `json:"spec,omitempty"`
+	Status         JivaVolumeStatus `json:"status,omitempty"`
+	VersionDetails VersionDetails   `json:"versionDetails,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

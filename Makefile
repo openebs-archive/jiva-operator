@@ -95,8 +95,32 @@ GIT_BRANCH = $(shell git rev-parse --abbrev-ref HEAD | sed -e "s/.*\\///")
 GIT_TAG = $(shell git describe --tags)
 
 # use git branch as default version if not set by env variable, if HEAD is detached that use the most recent tag
-VERSION ?= $(if $(subst HEAD,,${GIT_BRANCH}),$(GIT_BRANCH),$(GIT_TAG))
+# VERSION ?= $(if $(subst HEAD,,${GIT_BRANCH}),$(GIT_BRANCH),$(GIT_TAG))
 COMMIT ?= $(shell git rev-parse HEAD | cut -c 1-7)
+
+CURRENT_BRANCH=""
+ifeq (${BRANCH},)
+	CURRENT_BRANCH=$(shell git branch | grep "\*" | cut -d ' ' -f2)
+else
+	CURRENT_BRANCH=${BRANCH}
+endif
+
+## Populate the version based on release tag
+## If release tag is set then assign it as VERSION and
+## if release tag is empty then mark version as ci
+ifeq (${RELEASE_TAG},)
+    ## Marking VERSION as current_branch-dev
+    ## Example: master branch maps to master-dev
+    ## Example: v1.11.x-ee branch to 1.11.x-ee-dev
+    ## Example: v1.10.x branch to 1.10.x-dev
+	VERSION=$(CURRENT_BRANCH:v%=%)-dev
+else
+	# Trim the `v` from the RELEASE_TAG if it exists
+	# Example: v1.10.0 maps to 1.10.0
+	# Example: 1.10.0 maps to 1.10.0            
+	# Example: v1.10.0-custom maps to 1.10.0-custom
+	VERSION=$(RELEASE_TAG:v%=%)
+endif
 
 ifeq ($(GIT_TAG),)
 	GIT_TAG := $(COMMIT)
@@ -114,9 +138,9 @@ PACKAGES = $(shell go list ./... | grep -v 'vendor\|tests')
 
 LDFLAGS ?= \
         -extldflags "-static" \
-	-X github.com/openebs/jiva-operator/version/version.Version=${VERSION} \
-	-X github.com/openebs/jiva-operator/version/version.Commit=${COMMIT} \
-	-X github.com/openebs/jiva-operator/version/version.DateTime=${DBUILD_DATE}
+	-X github.com/openebs/jiva-operator/version.Version=${VERSION} \
+	-X github.com/openebs/jiva-operator/version.Commit=${COMMIT} \
+	-X github.com/openebs/jiva-operator/version.DateTime=${DBUILD_DATE}
 
 
 .PHONY: all

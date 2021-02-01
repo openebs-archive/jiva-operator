@@ -21,6 +21,7 @@ import (
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	jv "github.com/openebs/jiva-operator/pkg/apis/openebs/v1alpha1"
+	"github.com/openebs/jiva-operator/version"
 )
 
 // Jiva wraps the JivaVolume structure
@@ -84,6 +85,14 @@ func (j *Jiva) WithLabels(labels map[string]string) *Jiva {
 		j.Errs = append(j.Errs,
 			errors.New("failed to initialize JivaVolume: labels are missing"))
 	}
+	return j
+}
+
+// WithVersionDetails is used to set the labels in JivaVolume CR
+func (j *Jiva) WithVersionDetails() *Jiva {
+	j.jvObj.VersionDetails.Status.Current = version.Version
+	j.jvObj.VersionDetails.Desired = version.Version
+	j.jvObj.VersionDetails.Status.DependentsUpgraded = true
 	return j
 }
 
