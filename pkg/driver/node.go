@@ -527,7 +527,7 @@ func (ns *node) isAlreadyMounted(volID, path string) error {
 	// for the same path that is already mounted. Return nil if the path is
 	// mounted already else return err so that it gets unmounted in the
 	// next subsequent calls in respective rpc calls (NodeUnpublishVolume, NodeUnstageVolume)
-	if len(currentMounts) > 1 {
+	if len(currentMounts) > 2 {
 		if mounted, ok := currentMounts[path]; ok && mounted {
 			return nil
 		}

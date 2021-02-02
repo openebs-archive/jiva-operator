@@ -54,9 +54,9 @@ function dumpAllLogs() {
 	echo "========================= Dump All logs ========================"
 	kubectl get pods -n openebs
 	kubectl describe pods -n openebs
-	kubectl describe pods -n kube-system
-	dumpLogs "ds" "openebs-jiva-csi-node" "kube-system" "app=openebs-jiva-csi-node" "openebs-jiva-csi-plugin"
-	dumpLogs "sts" "openebs-jiva-csi-controller" "kube-system" "app=openebs-jiva-csi-controller" "openebs-jiva-csi-plugin"
+	kubectl describe pods -n openebs
+	dumpLogs "ds" "openebs-jiva-csi-node" "openebs" "app=openebs-jiva-csi-node" "openebs-jiva-csi-plugin"
+	dumpLogs "sts" "openebs-jiva-csi-controller" "openebs" "app=openebs-jiva-csi-controller" "openebs-jiva-csi-plugin"
 	dumpLogs "deploy" "openebs-localpv-provisioner" "openebs" "name=openebs-localpv-provisioner"
 }
 
@@ -106,7 +106,7 @@ function initializeCSISanitySuite() {
 	make clean
 	make
 
-	SOCK_PATH=/var/lib/kubelet/pods/`kubectl get pod -n kube-system openebs-jiva-csi-controller-0 -o 'jsonpath={.metadata.uid}'`/volumes/kubernetes.io~empty-dir/socket-dir/csi.sock
+	SOCK_PATH=/var/lib/kubelet/pods/`kubectl get pod -n openebs openebs-jiva-csi-controller-0 -o 'jsonpath={.metadata.uid}'`/volumes/kubernetes.io~empty-dir/socket-dir/csi.sock
 	sudo chmod -R 777 /var/lib/kubelet
 	sudo ln -s $SOCK_PATH /tmp/csi.sock
 	sudo chmod -R 777 /tmp/csi.sock
@@ -116,8 +116,8 @@ function waitForAllComponentsToBeReady() {
 	waitForComponent "deploy" "openebs-ndm-operator" "openebs"
 	waitForComponent "ds" "openebs-ndm" "openebs"
 	waitForComponent "deploy" "openebs-localpv-provisioner" "openebs"
-	waitForComponent "sts" "openebs-jiva-csi-controller" "kube-system" "openebs-jiva-csi-plugin"
-	waitForComponent "ds" "openebs-jiva-csi-node" "kube-system" "openebs-jiva-csi-plugin"
+	waitForComponent "sts" "openebs-jiva-csi-controller" "openebs" "openebs-jiva-csi-plugin"
+	waitForComponent "ds" "openebs-jiva-csi-node" "openebs" "openebs-jiva-csi-plugin"
 }
 
 function startTestSuite() {
