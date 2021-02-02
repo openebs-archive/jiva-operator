@@ -152,7 +152,8 @@ func (cl *Client) CreateJivaVolume(req *csi.CreateVolumeRequest) error {
 		WithAnnotations(getdefaultAnnotations(policyName)).
 		WithLabels(getDefaultLabels(name)).
 		WithPV(name).
-		WithCapacity(capacity)
+		WithCapacity(capacity).
+		WithVersionDetails()
 
 	if jiva.Errs != nil {
 		return status.Errorf(codes.Internal, "Failed to build JivaVolume CR, err: {%v}", jiva.Errs)

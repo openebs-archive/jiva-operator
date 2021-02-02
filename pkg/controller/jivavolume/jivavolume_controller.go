@@ -31,6 +31,7 @@ import (
 	"github.com/openebs/jiva-operator/pkg/kubernetes/container"
 	pts "github.com/openebs/jiva-operator/pkg/kubernetes/podtemplatespec"
 	"github.com/openebs/jiva-operator/pkg/volume"
+	"github.com/openebs/jiva-operator/version"
 	operr "github.com/pkg/errors"
 
 	deploy "github.com/openebs/jiva-operator/pkg/kubernetes/deployment"
@@ -57,9 +58,17 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
+type upgradeParams struct {
+	j      *jv.JivaVolume
+	client client.Client
+}
+
+type upgradeFunc func(u *upgradeParams) (*jv.JivaVolume, error)
+
 var (
 	log           = logf.Log.WithName("controller_jivavolume")
 	svcNameFormat = "%s-jiva-ctrl-svc.%s.svc.cluster.local"
+	upgradeMap    = map[string]upgradeFunc{}
 )
 
 const (
@@ -170,6 +179,16 @@ func (r *ReconcileJivaVolume) Reconcile(request reconcile.Request) (reconcile.Re
 		return reconcile.Result{}, err
 	}
 
+	err = r.reconcileVersion(instance)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	ok, err := r.shouldReconcile(instance)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
 	// initially Phase will be "", so it will skip switch case
 	// Once it has started boostrapping it will set the Phase to Pending/Failed
 	// depends upon the error. If bootstrap is successful it will set the Phase
@@ -181,8 +200,10 @@ func (r *ReconcileJivaVolume) Reconcile(request reconcile.Request) (reconcile.Re
 		reqLogger.Info("start tearing down jiva components", "JivaVolume: ", instance)
 		return reconcile.Result{}, nil
 	case jv.JivaVolumePhasePending, jv.JivaVolumePhaseFailed:
-		reqLogger.Info("start bootstraping jiva components", "JivaVolume: ", instance)
-		return reconcile.Result{}, r.bootstrapJiva(instance, reqLogger)
+		if ok {
+			reqLogger.Info("start bootstraping jiva components", "JivaVolume: ", instance)
+			return reconcile.Result{}, r.bootstrapJiva(instance, reqLogger)
+		}
 	}
 
 	reqLogger.Info("start bootstraping jiva components")
@@ -199,6 +220,18 @@ func (r *ReconcileJivaVolume) finally(err error, cr *jv.JivaVolume, reqLog logr.
 	if err := r.updateJivaVolume(cr); err != nil {
 		reqLog.Error(err, "failed to update JivaVolume phase")
 	}
+}
+
+func (r *ReconcileJivaVolume) shouldReconcile(cr *jv.JivaVolume) (bool, error) {
+	operatorVersion := version.Version
+	jivaVolumeVersion := cr.VersionDetails.Status.Current
+
+	if jivaVolumeVersion != operatorVersion {
+		return false, fmt.Errorf("jiva operator version is %s but volume %s version is %s",
+			operatorVersion, cr.Name, jivaVolumeVersion)
+	}
+
+	return true, nil
 }
 
 // 1. Create controller svc
@@ -960,5 +993,61 @@ func (r *ReconcileJivaVolume) getAndUpdateVolumeStatus(cr *jv.JivaVolume, reqLog
 		cr.Status.Phase = jv.JivaVolumePhaseSyncing
 	}
 
+	return nil
+}
+
+func (r *ReconcileJivaVolume) reconcileVersion(cr *jv.JivaVolume) error {
+	var err error
+	// the below code uses deep copy to have the state of object just before
+	// any update call is done so that on failure the last state object can be returned
+	if cr.VersionDetails.Status.Current != cr.VersionDetails.Desired {
+		if !version.IsCurrentVersionValid(cr.VersionDetails.Status.Current) {
+			return fmt.Errorf("invalid current version %s", cr.VersionDetails.Status.Current)
+		}
+		if !version.IsDesiredVersionValid(cr.VersionDetails.Desired) {
+			return fmt.Errorf("invalid desired version %s", cr.VersionDetails.Desired)
+		}
+		jObj := cr.DeepCopy()
+		if cr.VersionDetails.Status.State != jv.ReconcileInProgress {
+			jObj.VersionDetails.Status.SetInProgressStatus()
+			err = r.updateJivaVolume(jObj)
+			if err != nil {
+				return err
+			}
+		}
+		// Update cr with the updated fields so that we don't get
+		// resourceVersion changed error in next steps
+		if err := r.getJivaVolume(cr); err != nil {
+			return fmt.Errorf("%s, err: %v, JivaVolume CR: {%+v}", updateErrMsg, err, cr)
+		}
+		// As no other steps are required just change current version to
+		// desired version
+		path := strings.Split(jObj.VersionDetails.Status.Current, "-")[0]
+		u := &upgradeParams{
+			j:      jObj,
+			client: r.client,
+		}
+		// Get upgrade function for corresponding path, if path does not
+		// exits then no upgrade is required and funcValue will be nil.
+		funcValue := upgradeMap[path]
+		if funcValue != nil {
+			jObj, err = funcValue(u)
+			if err != nil {
+				return err
+			}
+		}
+		cr = jObj.DeepCopy()
+		jObj.VersionDetails.SetSuccessStatus()
+		err = r.updateJivaVolume(jObj)
+		if err != nil {
+			return err
+		}
+		// Update cr with the updated fields so that we don't get
+		// resourceVersion changed error in next steps
+		if err := r.getJivaVolume(cr); err != nil {
+			return fmt.Errorf("%s, err: %v, JivaVolume CR: {%+v}", updateErrMsg, err, cr)
+		}
+		return nil
+	}
 	return nil
 }
