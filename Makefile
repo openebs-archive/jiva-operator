@@ -77,7 +77,7 @@ OPERATOR_TAG=ci
 PLUGIN_NAME=jiva-csi
 PLUGIN_TAG=ci
 
-export DBUILD_ARGS=--build-arg DBUILD_DATE=${DBUILD_DATE} --build-arg DBUILD_REPO_URL=${DBUILD_REPO_URL} --build-arg DBUILD_SITE_URL=${DBUILD_SITE_URL} --build-arg ARCH=${ARCH}
+export DBUILD_ARGS=--build-arg DBUILD_DATE=${DBUILD_DATE} --build-arg DBUILD_REPO_URL=${DBUILD_REPO_URL} --build-arg DBUILD_SITE_URL=${DBUILD_SITE_URL} --build-arg ARCH=${ARCH} --build-arg RELEASE_TAG=${RELEASE_TAG} --build-arg BRANCH=${BRANCH}
 
 # Tools required for different make targets or for development purposes
 EXTERNAL_TOOLS=\
@@ -208,7 +208,7 @@ build.operator: deps
 
 image.operator: build.operator 
 	@echo "--> Build image $(IMAGE_ORG)/$(OPERATOR_NAME):$(OPERATOR_TAG) ..."
-	docker build -f ./build/operator/Dockerfile -t $(IMAGE_ORG)/$(OPERATOR_NAME):$(OPERATOR_TAG) $(DBUILD_ARGS) .
+	docker build -f ./build/jiva-operator/Dockerfile -t $(IMAGE_ORG)/$(OPERATOR_NAME):$(OPERATOR_TAG) $(DBUILD_ARGS) .
 
 push-image.operator: image.operator
 	@echo "--> Push image $(IMAGE_ORG)/$(OPERATOR_NAME):$(OPERATOR_TAG) ..."
@@ -232,7 +232,7 @@ build.plugin: deps
 
 image.plugin: build.plugin
 	@echo "--> Build image $(IMAGE_ORG)/$(PLUGIN_NAME):$(PLUGIN_TAG) ..."
-	docker build -f ./build/plugin/Dockerfile -t $(IMAGE_ORG)/$(PLUGIN_NAME):$(PLUGIN_TAG) $(DBUILD_ARGS) .
+	docker build -f ./build/jiva-csi/Dockerfile -t $(IMAGE_ORG)/$(PLUGIN_NAME):$(PLUGIN_TAG) $(DBUILD_ARGS) .
 
 push-image.plugin: image.plugin
 	@echo "--> Push image $(IMAGE_ORG)/$(PLUGIN_NAME):$(PLUGIN_TAG) ..."
@@ -275,3 +275,5 @@ license-check:
                exit 1; \
        fi
 	@echo "Done checking license."
+
+include Makefile.buildx.mk

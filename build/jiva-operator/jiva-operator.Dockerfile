@@ -12,6 +12,35 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+FROM golang:1.14.7 as build
+
+ARG BRANCH
+ARG RELEASE_TAG
+ARG TARGETOS
+ARG TARGETARCH
+ARG TARGETVARIANT=""
+
+ENV GO111MODULE=on \
+  GOOS=${TARGETOS} \
+  GOARCH=${TARGETARCH} \
+  GOARM=${TARGETVARIANT} \
+  DEBIAN_FRONTEND=noninteractive \
+  PATH="/root/go/bin:${PATH}" \
+  BRANCH=${BRANCH} \
+  RELEASE_TAG=${RELEASE_TAG}
+
+WORKDIR /go/src/github.com/openebs/jiva-operator/
+
+RUN apt-get update && apt-get install -y make git
+
+COPY go.mod go.sum ./
+# Get dependancies - will also be cached if we won't change mod/sum
+RUN go mod download
+
+COPY . .
+
+RUN make buildx.jiva-operator
+
 FROM ubuntu:18.04
 
 ENV OPERATOR=/usr/local/bin/jiva-operator \
@@ -23,9 +52,10 @@ ARG DBUILD_REPO_URL
 ARG DBUILD_SITE_URL
 
 # install operator binary
-ADD build/bin/jiva-operator ${OPERATOR}
+COPY --from=build /go/src/github.com/openebs/jiva-operator/build/bin/jiva-operator ${OPERATOR}
+COPY --from=build /go/src/github.com/openebs/jiva-operator/build/jiva-operator/entrypoint /usr/local/bin/
+COPY --from=build /go/src/github.com/openebs/jiva-operator/build/jiva-operator/user_setup /usr/local/bin/
 
-COPY build/operator/entrypoint build/operator/user_setup /usr/local/bin/
 RUN  /usr/local/bin/user_setup
 
 LABEL org.label-schema.schema-version="1.0"
