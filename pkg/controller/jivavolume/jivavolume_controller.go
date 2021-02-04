@@ -363,6 +363,9 @@ func createControllerDeployment(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 				if cr.Spec.Policy.Target.NodeSelector != nil {
 					ptsBuilder = ptsBuilder.WithNodeSelector(cr.Spec.Policy.Target.NodeSelector)
 				}
+				if cr.Spec.Policy.Target.Affinity != nil {
+					ptsBuilder = ptsBuilder.WithAffinity(cr.Spec.Policy.Target.Affinity)
+				}
 				return ptsBuilder
 			}(),
 		).Build()
