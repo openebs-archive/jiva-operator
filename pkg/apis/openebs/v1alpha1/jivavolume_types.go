@@ -24,49 +24,60 @@ import (
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 type ISCSISpec struct {
-	TargetIP   string `json:"targetIP"`
-	TargetPort int32  `json:"targetPort"`
-	Iqn        string `json:"iqn"`
+	TargetIP   string `json:"targetIP,omitempty"`
+	TargetPort int32  `json:"targetPort,omitempty"`
+	Iqn        string `json:"iqn,omitempty"`
 }
 
 type MountInfo struct {
 	// StagingPath is the path provided by K8s during NodeStageVolume
 	// rpc call, where volume is mounted globally.
-	StagingPath string `json:"stagingPath"`
+	StagingPath string `json:"stagingPath,omitempty"`
 	// TargetPath is the path provided by K8s during NodePublishVolume
 	// rpc call where bind mount happens.
-	TargetPath string `json:"targetPath"`
-	FSType     string `json:"fsType"`
-	DevicePath string `json:"devicePath"`
+	TargetPath string `json:"targetPath,omitempty"`
+	FSType     string `json:"fsType,omitempty"`
+	DevicePath string `json:"devicePath,omitempty"`
 }
 
 // JivaVolumeSpec defines the desired state of JivaVolume
 // +k8s:openapi-gen=true
 type JivaVolumeSpec struct {
-	PV        string    `json:"pv"`
-	Capacity  string    `json:"capacity"`
-	ISCSISpec ISCSISpec `json:"iscsiSpec"`
-	MountInfo MountInfo `json:"mountInfo"`
+	PV       string `json:"pv"`
+	Capacity string `json:"capacity"`
+	// AccessType can be specified as Block or Mount type
+	AccessType string `json:"accessType"`
+	// +nullable
+	ISCSISpec ISCSISpec `json:"iscsiSpec,omitempty"`
+	// +nullable
+	MountInfo MountInfo `json:"mountInfo,omitempty"`
 	// Policy is the configuration used for creating target
 	// and replica pods during volume provisioning
-	Policy JivaVolumePolicySpec `json:"policy"`
+	// +nullable
+	Policy JivaVolumePolicySpec `json:"policy,omitempty"`
 }
 
 // JivaVolumeStatus defines the observed state of JivaVolume
 // +k8s:openapi-gen=true
 type JivaVolumeStatus struct {
-	Status          string          `json:"status"`
-	ReplicaCount    int             `json:"replicaCount"`
-	ReplicaStatuses []ReplicaStatus `json:"replicaStatus"`
+	Status       string `json:"status,omitempty"`
+	ReplicaCount int    `json:"replicaCount,omitempty"`
+	// +nullable
+	ReplicaStatuses []ReplicaStatus `json:"replicaStatus,omitempty"`
 	// Phase represents the current phase of JivaVolume.
-	Phase JivaVolumePhase `json:"phase"`
+	Phase JivaVolumePhase `json:"phase,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // JivaVolume is the Schema for the jivavolumes API
+// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +k8s:openapi-gen=true
-// +kubebuilder:subresource:status
+// +kubebuilder:resource:scope=Namespaced,shortName=jv
+// +kubebuilder:printcolumn:name="ReplicaCount",type="string",JSONPath=`.status.replicaCount`
+// +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=`.status.phase`
+// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=`.status.status`
 type JivaVolume struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -87,8 +98,8 @@ type JivaVolumeList struct {
 
 // ReplicaStatus stores the status of replicas
 type ReplicaStatus struct {
-	Address string `json:"address"`
-	Mode    string `json:"mode"`
+	Address string `json:"address,omitempty"`
+	Mode    string `json:"mode,omitempty"`
 }
 
 // JivaVolumePhase represents the current phase of JivaVolume.

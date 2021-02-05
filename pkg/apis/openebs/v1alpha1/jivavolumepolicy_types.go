@@ -28,20 +28,22 @@ import (
 type JivaVolumePolicySpec struct {
 	// ReplicaSC represents the storage class used for
 	// creating the pvc for the replicas (provisioned by localpv provisioner)
-	ReplicaSC string `json:"replicaSC"`
+	ReplicaSC string `json:"replicaSC,omitempty"`
 	// EnableBufio ...
 	EnableBufio bool `json:"enableBufio"`
 	// AutoScaling ...
 	AutoScaling bool `json:"autoScaling"`
 	// ServiceAccountName can be provided to enable PSP
-	ServiceAccountName string `json:"serviceAccountName"`
+	ServiceAccountName string `json:"serviceAccountName,omitempty"`
 	// PriorityClassName if specified applies to the pod
 	// If left empty, no priority class is applied.
 	PriorityClassName string `json:"priorityClassName,omitempty"`
 	// TargetSpec represents configuration related to jiva target and its resources
-	Target TargetSpec `json:"target"`
+	// +nullable
+	Target TargetSpec `json:"target,omitempty"`
 	// ReplicaSpec represents configuration related to replicas resources
-	Replica ReplicaSpec `json:"replica"`
+	// +nullable
+	Replica ReplicaSpec `json:"replica,omitempty"`
 }
 
 // TargetSpec represents configuration related to jiva target deployment
@@ -54,7 +56,7 @@ type TargetSpec struct {
 	ReplicationFactor int `json:"replicationFactor,omitempty"`
 
 	// PodTemplateResources represents the configuration for target deployment.
-	PodTemplateResources
+	PodTemplateResources `json:",inline"`
 
 	// AuxResources are the compute resources required by the jiva-target pod
 	// side car containers.
@@ -64,7 +66,7 @@ type TargetSpec struct {
 // ReplicaSpec represents configuration related to jiva replica sts
 type ReplicaSpec struct {
 	// PodTemplateResources represents the configuration for replica sts.
-	PodTemplateResources
+	PodTemplateResources `json:",inline"`
 }
 
 // PodTemplateResources represents the common configuration field for
@@ -92,9 +94,11 @@ type JivaVolumePolicyStatus struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// JivaVolumePolicy is the Schema for the jivavolumepolicies API
-// +kubebuilder:subresource:status
-// +kubebuilder:resource:path=jivavolumepolicies,scope=Namespaced
+// JivaVolumePolicy is the Schema for the jivavolumes API
+// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +k8s:openapi-gen=true
+// +kubebuilder:resource:scope=Namespaced,shortName=jvp
 type JivaVolumePolicy struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

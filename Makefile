@@ -195,8 +195,10 @@ deps: .get
 	go mod vendor
 
 generate:
-	@echo "--> Generate CR ..."
+	@echo "--> Generate auto generated code ..."
+	touch build/Dockerfile 
 	operator-sdk generate k8s --verbose
+	rm build/Dockerfile
 
 operator:
 	@echo "--> Build using operator-sdk ..."
@@ -263,7 +265,6 @@ test: format vet
 	@go test -v --cover $(PACKAGES)
 
 
-
 .PHONY: license-check
 license-check:
 	@echo "Checking license header..."
@@ -277,3 +278,11 @@ license-check:
 	@echo "Done checking license."
 
 include Makefile.buildx.mk
+
+.PHONY: crds
+crds:
+	@echo "--> Generate CRDs ..."
+	touch build/Dockerfile 
+	# Install the binary from https://github.com/operator-framework/operator-sdk/releases/tag/v0.17.0
+	operator-sdk generate crds
+	rm build/Dockerfile
