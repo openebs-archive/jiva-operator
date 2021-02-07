@@ -130,7 +130,10 @@ func getdefaultAnnotations(policy string) map[string]string {
 // CreateJivaVolume check whether JivaVolume CR already exists and creates one
 // if it doesn't exist.
 func (cl *Client) CreateJivaVolume(req *csi.CreateVolumeRequest) error {
-	var sizeBytes int64
+	var (
+		sizeBytes  int64
+		accessType string
+	)
 	name := utils.StripName(req.GetName())
 	policyName := req.GetParameters()["policy"]
 	ns, ok := req.GetParameters()["namespace"]
@@ -147,12 +150,23 @@ func (cl *Client) CreateJivaVolume(req *csi.CreateVolumeRequest) error {
 	size := resource.NewQuantity(sizeBytes, resource.BinarySI)
 	volSizeGiB := helpers.RoundUpToGiB(*size)
 	capacity := fmt.Sprintf("%dGi", volSizeGiB)
+
+	caps := req.GetVolumeCapabilities()
+	for _, cap := range caps {
+		switch cap.GetAccessType().(type) {
+		case *csi.VolumeCapability_Block:
+			accessType = "block"
+		case *csi.VolumeCapability_Mount:
+			accessType = "mount"
+		}
+	}
 	jiva := jivavolume.New().WithKindAndAPIVersion("JivaVolume", "openebs.io/v1alpha1").
 		WithNameAndNamespace(name, ns).
 		WithAnnotations(getdefaultAnnotations(policyName)).
 		WithLabels(getDefaultLabels(name)).
 		WithPV(name).
 		WithCapacity(capacity).
+		WithAccessType(accessType).
 		WithVersionDetails()
 
 	if jiva.Errs != nil {

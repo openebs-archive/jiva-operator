@@ -19,6 +19,7 @@ package driver
 import (
 	"fmt"
 	"net"
+	"os"
 	"time"
 
 	"github.com/openebs/jiva-operator/pkg/kubernetes/client"
@@ -244,6 +245,10 @@ func (n *NodeMounter) MonitorMounts() {
 					vol.Spec.MountInfo.TargetPath == "" {
 					continue
 				}
+				// ignore monitoring the mount for a block device
+				if vol.Spec.AccessType == "block" {
+					continue
+				}
 				// Search the volume in the list of mounted volumes at the node
 				// retrieved above
 				stagingMountPoint, stagingPathExists := listContains(
@@ -348,4 +353,25 @@ func (n *NodeMounter) remountVolume(
 
 func (m *NodeMounter) ExistsPath(pathname string) (bool, error) {
 	return utilpath.Exists(utilpath.CheckFollowSymlink, pathname)
+}
+
+func (m *NodeMounter) MakeFile(pathname string) error {
+	f, err := os.OpenFile(pathname, os.O_CREATE, os.FileMode(0644))
+	if err != nil {
+		if !os.IsExist(err) {
+			return err
+		}
+	}
+	defer f.Close()
+	return nil
+}
+
+func (m *NodeMounter) MakeDir(pathname string) error {
+	err := os.MkdirAll(pathname, os.FileMode(0755))
+	if err != nil {
+		if !os.IsExist(err) {
+			return err
+		}
+	}
+	return nil
 }

@@ -19,6 +19,7 @@ package driver
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
@@ -114,6 +115,7 @@ func (ns *node) attachDisk(instance *jv.JivaVolume) (string, error) {
 }
 
 func (ns *node) validateStagingReq(req *csi.NodeStageVolumeRequest) (nodeStageRequest, error) {
+	var fsType string
 	volumeID := req.GetVolumeId()
 	if len(volumeID) == 0 {
 		return nodeStageRequest{}, status.Error(codes.InvalidArgument, "Volume ID not provided")
@@ -130,13 +132,16 @@ func (ns *node) validateStagingReq(req *csi.NodeStageVolumeRequest) (nodeStageRe
 	}
 
 	mount := volCap.GetMount()
-	if mount == nil {
-		return nodeStageRequest{}, status.Error(codes.InvalidArgument, "NodeStageVolume: mount is nil within volume capability")
-	}
-
-	fsType := mount.GetFsType()
-	if len(fsType) == 0 {
-		fsType = defaultFsType
+	if mount != nil {
+		fsType = mount.GetFsType()
+		if len(fsType) == 0 {
+			fsType = defaultFsType
+		}
+	} else {
+		switch req.GetVolumeCapability().GetAccessType().(type) {
+		case *csi.VolumeCapability_Mount:
+			return nodeStageRequest{}, status.Error(codes.InvalidArgument, "NodeStageVolume: mount is nil within volume capability")
+		}
 	}
 
 	stagingPath := req.GetStagingTargetPath()
@@ -212,6 +217,12 @@ func (ns *node) NodeStageVolume(
 	instance.Labels["nodeID"] = ns.driver.config.NodeID
 	if err := ns.client.UpdateJivaVolume(instance); err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	// If the access type is block, do nothing for stage
+	switch req.GetVolumeCapability().GetAccessType().(type) {
+	case *csi.VolumeCapability_Block:
+		return &csi.NodeStageVolumeResponse{}, nil
 	}
 
 	if err := os.MkdirAll(reqParam.stagingPath, 0750); err != nil {
@@ -391,6 +402,11 @@ func (ns *node) NodePublishVolume(
 
 	defer request.RemoveVolumeFromTransitionList(volumeID)
 
+	instance, err := doesVolumeExist(volumeID, ns.client)
+	if err != nil {
+		return nil, err
+	}
+
 	// Volume may be mounted at targetPath (bind mount in NodePublish)
 	if err := ns.isAlreadyMounted(volumeID, target); err != nil {
 		return nil, err
@@ -402,16 +418,13 @@ func (ns *node) NodePublishVolume(
 	}
 	switch mode := volCap.GetAccessType().(type) {
 	case *csi.VolumeCapability_Block:
-		return &csi.NodePublishVolumeResponse{}, status.Error(codes.Unimplemented, "doesn't support block device provisioning")
+		if err := ns.nodePublishVolumeForBlock(req, instance.Spec.MountInfo.DevicePath, mountOptions); err != nil {
+			return nil, err
+		}
 	case *csi.VolumeCapability_Mount:
 		if err := ns.nodePublishVolumeForFileSystem(req, mountOptions, mode); err != nil {
 			return nil, err
 		}
-	}
-
-	instance, err := doesVolumeExist(volumeID, ns.client)
-	if err != nil {
-		return nil, err
 	}
 
 	instance.Spec.MountInfo.TargetPath = target
@@ -420,6 +433,46 @@ func (ns *node) NodePublishVolume(
 	}
 
 	return &csi.NodePublishVolumeResponse{}, nil
+}
+
+func (ns *node) nodePublishVolumeForBlock(req *csi.NodePublishVolumeRequest, source string, mountOptions []string) error {
+	target := req.GetTargetPath()
+
+	logrus.Debugf("NodePublishVolume [block]: find device path %s -> %s", source, source)
+
+	globalMountPath := filepath.Dir(target)
+
+	// create the global mount path if it is missing
+	// Path in the form of /var/lib/kubelet/plugins/kubernetes.io/csi/volumeDevices/publish/{volumeName}
+	exists, err := ns.mounter.ExistsPath(globalMountPath)
+	if err != nil {
+		return status.Errorf(codes.Internal, "Could not check if path exists %q: %v", globalMountPath, err)
+	}
+
+	if !exists {
+		if err := ns.mounter.MakeDir(globalMountPath); err != nil {
+			return status.Errorf(codes.Internal, "Could not create dir %q: %v", globalMountPath, err)
+		}
+	}
+
+	// Create the mount point as a file since bind mount device node requires it to be a file
+	logrus.Debugf("NodePublishVolume [block]: making target file %s", target)
+	err = ns.mounter.MakeFile(target)
+	if err != nil {
+		if removeErr := os.Remove(target); removeErr != nil {
+			return status.Errorf(codes.Internal, "Could not remove mount target %q: %v", target, removeErr)
+		}
+		return status.Errorf(codes.Internal, "Could not create file %q: %v", target, err)
+	}
+
+	logrus.Debugf("NodePublishVolume [block]: mounting %s at %s", source, target)
+	if err := ns.mounter.Mount(source, target, "", mountOptions); err != nil {
+		if removeErr := os.Remove(target); removeErr != nil {
+			return status.Errorf(codes.Internal, "Could not remove mount target %q: %v", target, removeErr)
+		}
+		return status.Errorf(codes.Internal, "Could not mount %q at %q: %v", source, target, err)
+	}
+	return nil
 }
 
 func (ns *node) nodePublishVolumeForFileSystem(req *csi.NodePublishVolumeRequest, mountOptions []string, mode *csi.VolumeCapability_Mount) error {
@@ -681,6 +734,25 @@ func (ns *node) NodeGetVolumeStats(
 
 	if !mounted {
 		return nil, status.Errorf(codes.NotFound, "Volume path {%q} is not mounted", volumePath)
+	}
+
+	isBlock, err := IsBlockDevice(volumePath)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to determine whether %s is block device: %v", req.VolumePath, err)
+	}
+	if isBlock {
+		bcap, err := ns.getBlockSizeBytes(volumePath)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "failed to get block capacity on path %s: %v", req.VolumePath, err)
+		}
+		return &csi.NodeGetVolumeStatsResponse{
+			Usage: []*csi.VolumeUsage{
+				{
+					Unit:  csi.VolumeUsage_BYTES,
+					Total: bcap,
+				},
+			},
+		}, nil
 	}
 
 	stats, err := getStatistics(volumePath)

@@ -128,6 +128,12 @@ func (j *Jiva) WithPV(pvName string) *Jiva {
 	return j
 }
 
+// WithAccessType defines the AccessType field of JivaVolumeSpec
+func (j *Jiva) WithAccessType(accessType string) *Jiva {
+	j.jvObj.Spec.AccessType = accessType
+	return j
+}
+
 // WithCapacity defines the Capacity field of JivaVolumeSpec
 func (j *Jiva) WithCapacity(capacity string) *Jiva {
 	j.jvObj.Spec.Capacity = capacity

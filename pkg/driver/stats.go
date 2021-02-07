@@ -17,6 +17,10 @@ limitations under the License.
 package driver
 
 import (
+	"fmt"
+	"strconv"
+	"strings"
+
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"golang.org/x/sys/unix"
 )
@@ -51,4 +55,17 @@ func getStatistics(volumePath string) ([]*csi.VolumeUsage, error) {
 		&inInodes,
 	}
 	return volStats, nil
+}
+
+func (ns *node) getBlockSizeBytes(devicePath string) (int64, error) {
+	output, err := ns.mounter.Exec.Command("blockdev", "--getsize64", devicePath).CombinedOutput()
+	if err != nil {
+		return -1, fmt.Errorf("error when getting size of block volume at path %s: output: %s, err: %v", devicePath, string(output), err)
+	}
+	strOut := strings.TrimSpace(string(output))
+	gotSizeBytes, err := strconv.ParseInt(strOut, 10, 64)
+	if err != nil {
+		return -1, fmt.Errorf("failed to parse size %s into int size, err: %s", strOut, err)
+	}
+	return gotSizeBytes, nil
 }
