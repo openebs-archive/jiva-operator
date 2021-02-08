@@ -92,7 +92,7 @@ func (cs *controller) CreateVolume(
 	logrus.Infof("CreateVolume: volume: {%v} is created", req.GetName())
 	return &csi.CreateVolumeResponse{
 		Volume: &csi.Volume{
-			VolumeId:      req.GetName(),
+			VolumeId:      utils.StripName(req.GetName()),
 			CapacityBytes: req.GetCapacityRange().GetRequiredBytes(),
 		},
 	}, nil
