@@ -26,6 +26,7 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 
+	"github.com/google/uuid"
 	"github.com/kubernetes-csi/csi-lib-utils/protosanitizer"
 	"github.com/sirupsen/logrus"
 
@@ -45,14 +46,33 @@ func parseEndpoint(ep string) (string, string, error) {
 
 // logGRPC logs all the grpc related errors, i.e the final errors
 // which are returned to the grpc clients
-func logGRPC(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-	logrus.Debugf("GRPC call: %s", info.FullMethod)
-	logrus.Debugf("GRPC request: %s", protosanitizer.StripSecrets(req))
+func logGRPC(
+	ctx context.Context, req interface{},
+	info *grpc.UnaryServerInfo, handler grpc.UnaryHandler,
+) (interface{}, error) {
+
+	var printlog bool
+	id := uuid.New()
+	if strings.Contains(info.FullMethod, "NodeGetCapabilities") ||
+		strings.Contains(info.FullMethod, "NodeGetVolumeStats") ||
+		strings.Contains(info.FullMethod, "ControllerGetCapabilities") ||
+		strings.Contains(info.FullMethod, "GetPluginInfo") ||
+		strings.Contains(info.FullMethod, "GetPluginCapabilities") ||
+		strings.Contains(info.FullMethod, "Probe") {
+		printlog = true
+	}
+	if !printlog {
+		preq := strings.ReplaceAll(fmt.Sprintf("%v", protosanitizer.StripSecrets(req)), "\"", "")
+		logrus.Infof("Req %v: %v %v", id, info.FullMethod, preq)
+	}
 	resp, err := handler(ctx, req)
 	if err != nil {
 		logrus.Errorf("GRPC error: %v", err)
 	} else {
-		logrus.Debugf("GRPC response: %s", protosanitizer.StripSecrets(resp))
+		if !printlog {
+			presp := strings.ReplaceAll(fmt.Sprintf("%v", protosanitizer.StripSecrets(resp)), "\"", "")
+			logrus.Infof("Resp %v: %v", id, presp)
+		}
 	}
 	return resp, err
 }
