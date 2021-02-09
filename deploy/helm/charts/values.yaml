@@ -5,6 +5,11 @@
 release:
   version: "2.6.0"
 
+
+# If false, openebs localpv sub-chart will not be installed
+openebsLocalpv:
+  enabled: true
+
 rbac:
   # rbac.create: `true` if rbac resources should be created
   create: true

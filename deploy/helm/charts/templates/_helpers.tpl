@@ -55,16 +55,16 @@ openebs.io/version: {{ .Values.release.version | quote }}
 Create match labels for jiva operator
 */}}
 {{- define "jiva.operator.matchLabels" -}}
-name: {{ .Values.operator.componentName | quote }}
+name: {{ .Values.jivaOperator.componentName | quote }}
 release: {{ .Release.Name }}
-component: {{ .Values.operator.componentName | quote }}
+component: {{ .Values.jivaOperator.componentName | quote }}
 {{- end -}}
 
 {{/*
 Create component labels jiva operator
 */}}
 {{- define "jiva.operator.componentLabels" -}}
-openebs.io/component-name: {{ .Values.operator.componentName | quote }}
+openebs.io/component-name: {{ .Values.jivaOperator.componentName | quote }}
 {{- end -}}
 
 

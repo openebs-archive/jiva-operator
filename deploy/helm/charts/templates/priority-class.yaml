@@ -4,7 +4,7 @@ metadata:
   name: openebs-csi-controller-critical
 value: 900000000
 globalDefault: false
-description: "This priority class should be used for the CStor CSI driver controller deployment only."
+description: "This priority class should be used for the OpenEBS CSI driver controller deployment only."
 ---
 apiVersion: scheduling.k8s.io/v1
 kind: PriorityClass
@@ -12,4 +12,4 @@ metadata:
   name: openebs-csi-node-critical
 value: 900001000
 globalDefault: false
-description: "This priority class should be used for the CStor CSI driver node deployment only."
+description: "This priority class should be used for the OpenEBS CSI driver node deployment only."

@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ template "jiva.fullname" . }}-operator
-  {{- with .Values.operator.annotations }}
+  {{- with .Values.jivaOperator.annotations }}
   annotations: {{ toYaml . | nindent 4 }}
   {{- end }}
   labels:
@@ -34,7 +34,7 @@ spec:
           - "--zap-time-encoding=iso8601"
           - "--zap-sample=false"
           resources:
-{{ toYaml .Values.operator.resources | indent 12 }}
+{{ toYaml .Values.jivaOperator.resources | indent 12 }}
           env:
             - name: WATCH_NAMESPACE
               valueFrom:
@@ -62,15 +62,15 @@ spec:
       imagePullSecrets:
 {{ toYaml .Values.imagePullSecrets | indent 2 }}
 {{- end }}
-{{- if .Values.operator.nodeSelector }}
+{{- if .Values.jivaOperator.nodeSelector }}
       nodeSelector:
-{{ toYaml .Values.operator.nodeSelector | indent 8 }}
+{{ toYaml .Values.jivaOperator.nodeSelector | indent 8 }}
 {{- end }}
-{{- if .Values.operator.securityContext }}
+{{- if .Values.jivaOperator.securityContext }}
       securityContext:
-{{ toYaml .Values.operator.securityContext | indent 8 }}
+{{ toYaml .Values.jivaOperator.securityContext | indent 8 }}
 {{- end }}
-{{- if .Values.operator.tolerations }}
+{{- if .Values.jivaOperator.tolerations }}
       tolerations:
-{{ toYaml .Values.operator.tolerations | indent 8 }}
+{{ toYaml .Values.jivaOperator.tolerations | indent 8 }}
 {{- end }}

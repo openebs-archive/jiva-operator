@@ -39,6 +39,16 @@ _See [configuration](#configuration) below._
 _See [helm install](https://helm.sh/docs/helm/helm_install/) for command documentation._
 
 
+## Dependencies
+
+By default this chart installs additional, dependent charts:
+
+| Repository | Name | Version |
+|------------|------|---------|
+| https://openebs.github.io/dynamic-localpv-provisioner | localpv-provisioner | 2.6.0 |
+
+
+
 ## Uninstall Chart
 
 ```console
@@ -96,7 +106,7 @@ The following table lists the configurable parameters of the OpenEBS Jiva chart 
 | csiController.securityContext | object | `{}` | CSI controller security context |
 | csiController.tolerations | list | `[]` | CSI controller pod tolerations |
 | csiNode.annotations | object | `{}` | CSI Node annotations |
-| csiNode.componentName | string | `"openebs-cstor-csi-node"` | CSI Node component name |
+| csiNode.componentName | string | `"openebs-jiva-csi-node"` | CSI Node component name |
 | csiNode.driverRegistrar.image.pullPolicy | string | `"IfNotPresent"` | CSI Node driver registrar image pull policy|
 | csiNode.driverRegistrar.image.registry | string | `"k8s.gcr.io/"` | CSI Node driver registrar image registry |
 | csiNode.driverRegistrar.image.repository | string | `"k8scsi/csi-node-driver-registrar"` | CSI Node driver registrar image repository |
@@ -129,5 +139,5 @@ The following table lists the configurable parameters of the OpenEBS Jiva chart 
 | jivaCSIPlugin.image.pullPolicy | string | `"IfNotPresent"` | Jiva CSI driver image pull policy |
 | jivaCSIPlugin.image.registry | string | `nil` | Jiva CSI driver image registry |
 | jivaCSIPlugin.image.repository | string | `"openebs/jiva-csi"` |  Jiva CSI driver image repository |
-| jivaCSIPlugin.image.tag | string | `"2.5.0"` | Jiva CSI driver image tag |
+| jivaCSIPlugin.image.tag | string | `"2.6.0"` | Jiva CSI driver image tag |
 | jivaCSIPlugin.name | string | `"jiva-csi-plugin"` | Jiva CSI driver container name |
