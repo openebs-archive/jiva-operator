@@ -28,6 +28,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/types"
@@ -227,4 +228,15 @@ func (cl *Client) DeleteJivaVolume(volumeID string) error {
 		return err
 	}
 	return nil
+}
+
+// GetNode gets the node which satisfies the topology info
+func (cl *Client) GetNode(nodeName string) (*corev1.Node, error) {
+	node := &corev1.Node{}
+
+	if err := cl.client.Get(context.TODO(), types.NamespacedName{Name: nodeName, Namespace: ""}, node); err != nil {
+		return node, err
+	}
+	return node, nil
+
 }
