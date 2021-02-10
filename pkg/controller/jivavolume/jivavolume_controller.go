@@ -238,15 +238,13 @@ func (r *ReconcileJivaVolume) shouldReconcile(cr *jv.JivaVolume) (bool, error) {
 // 2. Create controller deploy
 // 3. Create replica statefulset
 func (r *ReconcileJivaVolume) bootstrapJiva(cr *jv.JivaVolume, reqLog logr.Logger) (err error) {
-	defer r.finally(err, cr, reqLog)
-
 	for _, f := range installFuncs {
 		if err = f(r, cr, reqLog); err != nil {
-			return err
+			break
 		}
 	}
-
-	return nil
+	r.finally(err, cr, reqLog)
+	return err
 }
 
 // TODO: add logic to create disruption budget for replicas
