@@ -18,6 +18,7 @@ package volume
 
 import (
 	"fmt"
+
 	. "github.com/onsi/ginkgo"
 )
 
@@ -26,11 +27,11 @@ var _ = Describe("[csi] [jiva] TEST VOLUME RESIZE", func() {
 	AfterEach(cleanupAfterVolumeResizeTest)
 
 	Context("App is deployed with volume replica count 1 and pvc is resized", func() {
-		It("Should run Volume Resize Test", volumeResizeTest)
+		It("Should run Volume Resize Test", func() { volumeResizeTest(PVCName, PVCYAML, DeploymentName, DeployYAML) })
 	})
 })
 
-func volumeResizeTest() {
+func volumeResizeTest(pvcName, pvcYAML, deployName, deployYAML string) {
 	currentK8sVersion := getCurrentK8sMinorVersion()
 	if currentK8sVersion < 16 {
 		fmt.Printf(
@@ -39,12 +40,13 @@ func volumeResizeTest() {
 		)
 		return
 	}
-	By("creating and verifying PVC bound status", createAndVerifyPVC)
-	By("Creating and deploying app pod", createDeployVerifyApp)
-	By("Expanding PVC", expandPVC)
-	By("Verifying updated size in application pod", verifyIncreasedSizeInAppPod)
-	By("Deleting application deployment", deleteAppDeployment)
-	By("Deleting pvc", deletePVC)
+	By("creating and verifying PVC bound status", func() { createAndVerifyPVC(pvcName, pvcYAML) })
+	By("Creating and deploying app pod", func() { createDeployVerifyApp(deployName, deployYAML) })
+	By("Expanding PVC", func() { expandPVC(ExpandedPVCYAML) })
+	By("Verifying updated size in application pod", func() { verifyIncreasedSizeInAppPod(deployName) })
+
+	By("Deleting application deployment", func() { deleteAppDeployment(deployName, deployYAML) })
+	By("Deleting pvc", func() { deletePVC(pvcName, pvcYAML) })
 }
 
 func prepareForVolumeResizeTest() {

@@ -50,12 +50,12 @@ func deleteJivaVolumePolicy() {
 	Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 }
 
-func deletePVC() {
-	stdout, stderr, err := KubectlWithInput([]byte(PVCYAML), "delete", "-n", NSName, "-f", "-")
+func deletePVC(pvcName, pvcYAML string) {
+	stdout, stderr, err := KubectlWithInput([]byte(pvcYAML), "delete", "-n", NSName, "-f", "-")
 	Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 	By("verifying pvc is deleted")
-	verifyPVCDeleted(NSName, PVCName)
+	verifyPVCDeleted(NSName, pvcName)
 
 }
 
@@ -74,16 +74,16 @@ func verifyPVCDeleted(ns, pvc string) {
 	Expect(err).NotTo(BeNil(), "not able to delete pvc")
 }
 
-func createAndVerifyPVC() {
+func createAndVerifyPVC(pvcName, pvcYAML string) {
 	var (
 		err error
 	)
 	By("creating pvc")
-	stdout, stderr, err := KubectlWithInput([]byte(PVCYAML), "apply", "-n", NSName, "-f", "-")
+	stdout, stderr, err := KubectlWithInput([]byte(pvcYAML), "apply", "-n", NSName, "-f", "-")
 	Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 	By("verifying pv is bound")
-	verifyVolumeCreated(NSName, PVCName)
+	verifyVolumeCreated(NSName, pvcName)
 }
 
 func verifyVolumeCreated(ns, pvc string) {
@@ -101,26 +101,26 @@ func verifyVolumeCreated(ns, pvc string) {
 	Expect(pvName).NotTo(BeEmpty(), "not able to get pv name from PVC.Spec.VolumeName")
 }
 
-func createDeployVerifyApp() {
-	By("creating and deploying app pod", createAndDeployAppPod)
+func createDeployVerifyApp(deployName, deployYAML string) {
+	By("creating and deploying app pod", func() { createAndDeployAppPod(deployYAML) })
 	time.Sleep(30 * time.Second)
-	By("verifying app pod is running", func() { verifyAppPodState("Running") })
+	By("verifying app pod is running", func() { verifyAppPodState(deployName, "Running") })
 }
 
-func createAndDeployAppPod() {
+func createAndDeployAppPod(deployYAML string) {
 	var err error
-	By("building a busybox app pod deployment using above csi jiva volume")
-	stdout, stderr, err := KubectlWithInput([]byte(DeployYAML), "apply", "-n", NSName, "-f", "-")
+	By("building an ubuntu app pod deployment using above csi jiva volume")
+	stdout, stderr, err := KubectlWithInput([]byte(deployYAML), "apply", "-n", NSName, "-f", "-")
 	Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 }
 
-func deleteAppDeployment() {
-	stdout, stderr, err := KubectlWithInput([]byte(DeployYAML), "delete", "-n", NSName, "-f", "-")
+func deleteAppDeployment(deployName, deployYAML string) {
+	stdout, stderr, err := KubectlWithInput([]byte(deployYAML), "delete", "-n", NSName, "-f", "-")
 	Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 	By("verifying deployment is deleted")
 	maxRetries := 10
 	for i := 0; i < maxRetries; i++ {
-		_, _, err := Kubectl("get", "deploy", DeploymentName, "-n", NSName)
+		_, _, err := Kubectl("get", "deploy", deployName, "-n", NSName)
 		if err == nil {
 			continue
 		}
@@ -129,11 +129,11 @@ func deleteAppDeployment() {
 	Expect(err).To(BeNil(), "not able to delete deployment")
 }
 
-func verifyAppPodState(expState string) {
+func verifyAppPodState(deployName, expState string) {
 	var state string
 	maxRetries := 60
 	for i := 0; i < maxRetries; i++ {
-		stdout, stderr, err := Kubectl("get", "po", "--selector=name=ubuntu", "-n", NSName, "-o", "jsonpath={.items[*].status.phase}")
+		stdout, stderr, err := Kubectl("get", "po", "--selector=name="+deployName, "-n", NSName, "-o", "jsonpath={.items[*].status.phase}")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 		fmt.Println("STATE: ", string(stdout))
 		state = strings.TrimSpace(string(stdout))
@@ -147,16 +147,16 @@ func verifyAppPodState(expState string) {
 	Expect(state).To(Equal(expState), "while checking status of pod {%s}", "ubuntu")
 }
 
-func restartAppPodAndVerifyRunningStatus() {
+func restartAppPodAndVerifyRunningStatus(deployName string) {
 	By("deleting app pod")
-	stdout, stderr, err := Kubectl("delete", "po", "--selector=name=ubuntu", "-n", NSName)
+	stdout, stderr, err := Kubectl("delete", "po", "--selector=name="+deployName, "-n", NSName)
 	Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 	By("verifying app pod has restarted")
-	verifyAppPodState("Running")
+	verifyAppPodState(deployName, "Running")
 
 }
 
-func verifyJivaVolumeCRCreated() {
+func verifyJivaVolumeCRCreated(pvcName string) {
 	var err error
 	maxRetries := 10
 	for i := 0; i < maxRetries; i++ {
@@ -171,7 +171,7 @@ func verifyJivaVolumeCRCreated() {
 	Expect(err).To(BeNil(), "verifyJivaVolumeCreated failed")
 }
 
-func verifyJivaVolumeCRDeleted() {
+func verifyJivaVolumeCRDeleted(pvcName string) {
 	var err error
 	maxRetries := 10
 	for i := 0; i < maxRetries; i++ {
@@ -186,17 +186,17 @@ func verifyJivaVolumeCRDeleted() {
 	Expect(err).NotTo(BeNil(), "verifyJivaVolumeDeleted failed")
 }
 
-func expandPVC() {
+func expandPVC(expandedPVCYAML string) {
 	By("expand pvc")
-	stdout, stderr, err := KubectlWithInput([]byte(ExpandedPVCYAML), "apply", "-n", NSName, "-f", "-")
+	stdout, stderr, err := KubectlWithInput([]byte(expandedPVCYAML), "apply", "-n", NSName, "-f", "-")
 	Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 }
 
-func verifyIncreasedSizeInAppPod() {
+func verifyIncreasedSizeInAppPod(deployName string) {
 	By("confirming that the specified device is resized in the Pod")
 	timeout := time.Minute * 5
 	mntPath := "/test1"
-	pod := getAppPodName()
+	pod := getAppPodName(deployName)
 	Eventually(func() error {
 		stdout, stderr, err := Kubectl("exec", "-n", NSName, pod, "--", "df", "--output=size", mntPath)
 		if err != nil {
@@ -214,8 +214,8 @@ func verifyIncreasedSizeInAppPod() {
 	}, timeout).Should(Succeed())
 }
 
-func getAppPodName() string {
-	stdout, stderr, err := Kubectl("get", "po", "--selector=name=ubuntu", "-n", NSName, "-o", "jsonpath={.items[*].metadata.name}")
+func getAppPodName(deployName string) string {
+	stdout, stderr, err := Kubectl("get", "po", "--selector=name="+deployName, "-n", NSName, "-o", "jsonpath={.items[*].metadata.name}")
 	Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 	return strings.TrimSpace(string(stdout))
 }
@@ -261,10 +261,10 @@ func scaleUpControllerPod() {
 	Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 }
 
-func verifyCrashLoopBackOffStateOfAppPod(expState bool) {
+func verifyCrashLoopBackOffStateOfAppPod(deployName string, expState bool) {
 	var state bool
 	maxRetries := 60
-	podName := getAppPodName()
+	podName := getAppPodName(deployName)
 	for i := 0; i < maxRetries; i++ {
 		stdout, stderr, err := Kubectl("get", "po", podName, "-n", NSName, "-o", "yaml")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
