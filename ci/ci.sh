@@ -53,11 +53,12 @@ function dumpLogs() {
 function dumpAllLogs() {
 	echo "========================= Dump All logs ========================"
 	kubectl get pods -n openebs
-	kubectl describe pods -n openebs
+	kubectl get jivavolume -n openebs -oyaml
 	kubectl describe pods -n openebs
 	dumpLogs "ds" "openebs-jiva-csi-node" "openebs" "app=openebs-jiva-csi-node" "openebs-jiva-csi-plugin"
 	dumpLogs "sts" "openebs-jiva-csi-controller" "openebs" "app=openebs-jiva-csi-controller" "openebs-jiva-csi-plugin"
 	dumpLogs "deploy" "openebs-localpv-provisioner" "openebs" "name=openebs-localpv-provisioner"
+	dumpLogs "deploy" "jiva-operator" "openebs" "name=jiva-operator"
 }
 
 function waitForComponent() {
@@ -122,7 +123,7 @@ function waitForAllComponentsToBeReady() {
 
 function startTestSuite() {
 	echo "================== Start csi-sanity test suite ================="
-	./csi-sanity --ginkgo.v --csi.controllerendpoint=///tmp/csi.sock --csi.endpoint=/var/lib/kubelet/plugins/jiva.csi.openebs.io/csi.sock --csi.testvolumeparameters=/tmp/parameters.json
+	./csi-sanity --ginkgo.v -ginkgo.failFast --csi.controllerendpoint=///tmp/csi.sock --csi.endpoint=/var/lib/kubelet/plugins/jiva.csi.openebs.io/csi.sock --csi.testvolumeparameters=/tmp/parameters.json
 	if [ $? -ne 0 ];
 	then
 		dumpAllLogs
