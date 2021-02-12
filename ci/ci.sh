@@ -25,7 +25,8 @@ function initializeTestEnv() {
 	cat <<EOT >> /tmp/parameters.json
 {
         "cas-type": "jiva",
-        "policy": "example-jivavolumepolicy"
+        "policy": "example-jivavolumepolicy",
+        "wait": "yes"
 }
 EOT
     sudo rm -rf /tmp/csi.sock

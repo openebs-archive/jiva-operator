@@ -132,7 +132,7 @@ func getdefaultAnnotations(policy string) map[string]string {
 
 // CreateJivaVolume check whether JivaVolume CR already exists and creates one
 // if it doesn't exist.
-func (cl *Client) CreateJivaVolume(req *csi.CreateVolumeRequest) error {
+func (cl *Client) CreateJivaVolume(req *csi.CreateVolumeRequest) (string, error) {
 	var (
 		sizeBytes  int64
 		accessType string
@@ -173,7 +173,7 @@ func (cl *Client) CreateJivaVolume(req *csi.CreateVolumeRequest) error {
 		WithVersionDetails()
 
 	if jiva.Errs != nil {
-		return status.Errorf(codes.Internal, "Failed to build JivaVolume CR, err: {%v}", jiva.Errs)
+		return "", status.Errorf(codes.Internal, "Failed to build JivaVolume CR, err: {%v}", jiva.Errs)
 	}
 
 	obj := jiva.Instance()
@@ -183,18 +183,18 @@ func (cl *Client) CreateJivaVolume(req *csi.CreateVolumeRequest) error {
 		logrus.Infof("Creating a new JivaVolume CR {name: %v, namespace: %v}", name, ns)
 		err = cl.client.Create(context.TODO(), obj)
 		if err != nil {
-			return status.Errorf(codes.Internal, "Failed to create JivaVolume CR, err: {%v}", err)
+			return "", status.Errorf(codes.Internal, "Failed to create JivaVolume CR, err: {%v}", err)
 		}
-		return nil
+		return name, nil
 	} else if err != nil {
-		return status.Errorf(codes.Internal, "Failed to get the JivaVolume details, err: {%v}", err)
+		return "", status.Errorf(codes.Internal, "Failed to get the JivaVolume details, err: {%v}", err)
 	}
 
 	if objExists.Spec.Capacity != obj.Spec.Capacity {
-		return status.Errorf(codes.AlreadyExists, "Failed to create JivaVolume CR, volume with different size already exists")
+		return "", status.Errorf(codes.AlreadyExists, "Failed to create JivaVolume CR, volume with different size already exists")
 	}
 
-	return nil
+	return name, nil
 }
 
 // ListJivaVolume returns the list of JivaVolume resources
