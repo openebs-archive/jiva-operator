@@ -299,10 +299,19 @@ func (cs *controller) ControllerExpandVolume(
 	if err = cs.client.Set(); err != nil {
 		return nil, status.Errorf(codes.Internal, "DeleteVolume: failed to set client, err: %v", err)
 	}
-
+update:
 	jivaVolume.Spec.Capacity = capacity
-	err = cs.client.UpdateJivaVolume(jivaVolume)
+	conflict, err := cs.client.UpdateJivaVolume(jivaVolume)
 	if err != nil {
+		if conflict {
+			logrus.Infof("Failed to update JivaVolume CR, err: %v. Retrying", err)
+			time.Sleep(time.Second)
+			jivaVolume, err = doesVolumeExist(volumeID, cs.client)
+			if err != nil {
+				return nil, err
+			}
+			goto update
+		}
 		return nil, err
 	}
 

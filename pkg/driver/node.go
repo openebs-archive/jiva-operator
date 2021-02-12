@@ -21,6 +21,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/kubernetes-csi/csi-lib-iscsi/iscsi"
@@ -205,6 +206,7 @@ func (ns *node) NodeStageVolume(
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
+update:
 	// JivaVolume CR may be updated by jiva-operator
 	instance, err = ns.client.GetJivaVolume(reqParam.volumeID)
 	if err != nil {
@@ -215,7 +217,12 @@ func (ns *node) NodeStageVolume(
 	instance.Spec.MountInfo.DevicePath = devicePath
 	instance.Spec.MountInfo.StagingPath = reqParam.stagingPath
 	instance.Labels["nodeID"] = ns.driver.config.NodeID
-	if err := ns.client.UpdateJivaVolume(instance); err != nil {
+	if conflict, err := ns.client.UpdateJivaVolume(instance); err != nil {
+		if conflict {
+			logrus.Infof("Failed to update JivaVolume CR, err: %v. Retrying", err)
+			time.Sleep(time.Second)
+			goto update
+		}
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
@@ -323,10 +330,20 @@ func (ns *node) NodeUnstageVolume(
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
+update:
 	// Setting to empty
 	instance.Spec.MountInfo.StagingPath = ""
 	instance.Labels["nodeID"] = ""
-	if err := ns.client.UpdateJivaVolume(instance); err != nil {
+	if conflict, err := ns.client.UpdateJivaVolume(instance); err != nil {
+		if conflict {
+			logrus.Infof("Failed to update JivaVolume CR, err: %v. Retrying", err)
+			time.Sleep(time.Second)
+			instance, err = doesVolumeExist(volID, ns.client)
+			if err != nil {
+				return nil, err
+			}
+			goto update
+		}
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
@@ -427,11 +444,20 @@ func (ns *node) NodePublishVolume(
 		}
 	}
 
+update:
 	instance.Spec.MountInfo.TargetPath = target
-	if err := ns.client.UpdateJivaVolume(instance); err != nil {
+	if conflict, err := ns.client.UpdateJivaVolume(instance); err != nil {
+		if conflict {
+			logrus.Infof("Failed to update JivaVolume CR, err: %v. Retrying", err)
+			time.Sleep(time.Second)
+			instance, err = doesVolumeExist(volumeID, ns.client)
+			if err != nil {
+				return nil, err
+			}
+			goto update
+		}
 		return nil, status.Error(codes.Internal, err.Error())
 	}
-
 	return &csi.NodePublishVolumeResponse{}, nil
 }
 
@@ -550,13 +576,18 @@ func (ns *node) NodeUnpublishVolume(
 		return nil, err
 	}
 
+update:
 	instance, err := doesVolumeExist(volumeID, ns.client)
 	if err != nil {
 		return nil, err
 	}
-
 	instance.Spec.MountInfo.TargetPath = ""
-	if err := ns.client.UpdateJivaVolume(instance); err != nil {
+	if conflict, err := ns.client.UpdateJivaVolume(instance); err != nil {
+		if conflict {
+			logrus.Infof("Failed to update JivaVolume CR, err: %v. Retrying", err)
+			time.Sleep(time.Second)
+			goto update
+		}
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 

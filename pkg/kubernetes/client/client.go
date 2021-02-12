@@ -103,13 +103,16 @@ func (cl *Client) GetJivaVolume(name string) (*jv.JivaVolume, error) {
 }
 
 // UpdateJivaVolume update the JivaVolume CR
-func (cl *Client) UpdateJivaVolume(cr *jv.JivaVolume) error {
+func (cl *Client) UpdateJivaVolume(cr *jv.JivaVolume) (bool, error) {
 	err := cl.client.Update(context.TODO(), cr)
 	if err != nil {
+		if errors.IsConflict(err) {
+			return true, err
+		}
 		logrus.Errorf("Failed to update JivaVolume CR: {%v}, err: {%v}", cr.Name, err)
-		return err
+		return false, err
 	}
-	return nil
+	return false, nil
 }
 
 func getDefaultLabels(pv string) map[string]string {
