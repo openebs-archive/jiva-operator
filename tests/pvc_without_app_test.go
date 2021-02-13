@@ -25,15 +25,15 @@ var _ = Describe("[csi] [jiva] TEST PVC CREATION DELETION WITHOUT APP", func() {
 	AfterEach(cleanupAfterPVCCreationDeletionWithoutAppTest)
 
 	Context("PVC is created and deleted", func() {
-		It("Should run PVC creation and deletion test", pvcCreationDeletionWithoutAppTest)
+		It("Should run PVC creation and deletion test", func() { pvcCreationDeletionWithoutAppTest(PVCName, PVCYAML) })
 	})
 })
 
-func pvcCreationDeletionWithoutAppTest() {
-	By("creating and verifying PVC bound status", createAndVerifyPVC)
-	By("should verify jivaVolumeCR has been created", func() { verifyJivaVolumeCRCreated() })
-	By("Deleting pvc", deletePVC)
-	By("should verify jivaVolumeCR has been deleted", func() { verifyJivaVolumeCRDeleted() })
+func pvcCreationDeletionWithoutAppTest(pvcName, pvcYAML string) {
+	By("creating and verifying PVC bound status", func() { createAndVerifyPVC(pvcName, pvcYAML) })
+	By("should verify jivaVolumeCR has been created", func() { verifyJivaVolumeCRCreated(pvcName) })
+	By("Deleting pvc", func() { deletePVC(pvcName, pvcYAML) })
+	By("should verify jivaVolumeCR has been deleted", func() { verifyJivaVolumeCRDeleted(pvcName) })
 }
 
 func preparePVCCreationDeletionWithoutAppTest() {

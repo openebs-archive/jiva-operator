@@ -76,23 +76,45 @@ func (cs *controller) CreateVolume(
 	req *csi.CreateVolumeRequest,
 ) (*csi.CreateVolumeResponse, error) {
 
-	if err := cs.validateVolumeCreateReq(req); err != nil {
+	var (
+		volumeID string
+		err      error
+	)
+	if err = cs.validateVolumeCreateReq(req); err != nil {
 		return nil, err
 	}
 
 	// set client each time to avoid caching issue
-	if err := cs.client.Set(); err != nil {
+	if err = cs.client.Set(); err != nil {
 		return nil, status.Errorf(codes.Internal, "DeleteVolume: failed to set client, err: {%v}", err)
 	}
 
-	if err := cs.client.CreateJivaVolume(req); err != nil {
+	if volumeID, err = cs.client.CreateJivaVolume(req); err != nil {
 		return nil, err
+	}
+	if _, ok := req.GetParameters()["wait"]; ok {
+		// Check if volume is ready to serve IOs,
+		// info is fetched from the JivaVolume CR
+		instance, err := waitForVolumeToBeReady(volumeID, cs.client)
+		if err != nil {
+			return nil, status.Error(codes.Internal, err.Error())
+		}
+
+		// A temporary TCP connection is made to the volume to check if its
+		// reachable
+		if err := waitForVolumeToBeReachable(
+			fmt.Sprintf("%v:%v", instance.Spec.ISCSISpec.TargetIP,
+				instance.Spec.ISCSISpec.TargetPort),
+		); err != nil {
+			return nil,
+				status.Error(codes.Internal, err.Error())
+		}
 	}
 
 	logrus.Infof("CreateVolume: volume: {%v} is created", req.GetName())
 	return &csi.CreateVolumeResponse{
 		Volume: &csi.Volume{
-			VolumeId:      req.GetName(),
+			VolumeId:      volumeID,
 			CapacityBytes: req.GetCapacityRange().GetRequiredBytes(),
 		},
 	}, nil
@@ -299,10 +321,19 @@ func (cs *controller) ControllerExpandVolume(
 	if err = cs.client.Set(); err != nil {
 		return nil, status.Errorf(codes.Internal, "DeleteVolume: failed to set client, err: %v", err)
 	}
-
+update:
 	jivaVolume.Spec.Capacity = capacity
-	err = cs.client.UpdateJivaVolume(jivaVolume)
+	conflict, err := cs.client.UpdateJivaVolume(jivaVolume)
 	if err != nil {
+		if conflict {
+			logrus.Infof("Failed to update JivaVolume CR, err: %v. Retrying", err)
+			time.Sleep(time.Second)
+			jivaVolume, err = doesVolumeExist(volumeID, cs.client)
+			if err != nil {
+				return nil, err
+			}
+			goto update
+		}
 		return nil, err
 	}
 

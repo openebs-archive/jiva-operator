@@ -25,19 +25,19 @@ var _ = Describe("[csi] [jiva] TEST Remount when volume goes into RO mode", func
 	AfterEach(cleanupAfterRemountTest)
 
 	Context("App is deployed and restarted on pvc with replica count 1", func() {
-		It("Should run Volume Creation Test", remountTest)
+		It("Should run Volume Creation Test", func() { remountTest(PVCName, PVCYAML, DeploymentName, DeployYAML) })
 	})
 })
 
-func remountTest() {
-	By("creating and verifying PVC bound status", createAndVerifyPVC)
-	By("Creating and deploying app pod", createDeployVerifyApp)
+func remountTest(pvcName, pvcYAML, deployName, deployYAML string) {
+	By("creating and verifying PVC bound status", func() { createAndVerifyPVC(pvcName, pvcYAML) })
+	By("Creating and deploying app pod", func() { createDeployVerifyApp(deployName, deployYAML) })
 	By("scale down jiva controller pod", scaleDownControllerPod)
-	By("Verify app state as CrashLoopBackOff", func() { verifyCrashLoopBackOffStateOfAppPod(true) })
+	By("Verify app state as CrashLoopBackOff", func() { verifyCrashLoopBackOffStateOfAppPod(deployName, true) })
 	By("Scale up jiva controller pod", scaleUpControllerPod)
-	By("Verify app state as not CrashLoopBackOff", func() { verifyCrashLoopBackOffStateOfAppPod(false) })
-	By("Deleting application deployment", deleteAppDeployment)
-	By("Deleting pvc", deletePVC)
+	By("Verify app state as not CrashLoopBackOff", func() { verifyCrashLoopBackOffStateOfAppPod(deployName, false) })
+	By("Deleting application deployment", func() { deleteAppDeployment(deployName, deployYAML) })
+	By("Deleting pvc", func() { deletePVC(pvcName, pvcYAML) })
 }
 
 func prepareForRemountTest() {

@@ -39,7 +39,7 @@ spec:
     spec:
       containers:
       - name: ubuntu
-        image: prateek14/ubuntu:18.04
+        image: quay.io/payesanand/ubuntu:18.04
         command: ["/usr/local/bin/pause"]
         livenessProbe:
           exec:
@@ -83,6 +83,56 @@ spec:
   resources:
     requests:
       storage: 10Gi
+  storageClassName: jiva-csi-sc
+`
+
+var BlockDeploymentName = "ubuntu-block"
+var BlockDeployYAML = `
+apiVersion: apps/v1                                                                                                   
+kind: Deployment                                                                                          
+metadata:                                                                                                                                   
+  name: ubuntu-block                                                                                                                        
+  labels:                                                                                                                                   
+    app.kubernetes.io/name: ubuntu-block
+spec:
+  selector:
+    matchLabels:
+      name: ubuntu-block
+  replicas: 1
+  strategy:
+    type: Recreate
+    rollingUpdate: null
+  template:
+    metadata:
+      labels:
+        name: ubuntu-block
+    spec:
+      containers:
+      - name: ubuntu-block
+        image: quay.io/payesanand/ubuntu:18.04
+        command: ["/usr/local/bin/pause"]
+        volumeDevices:
+        - devicePath: /dev/e2etest
+          name: my-volume
+      volumes:
+      - name: my-volume
+        persistentVolumeClaim:
+          claimName: jiva-block-pvc
+`
+
+var BlockPVCName = "jiva-block-pvc"
+var BlockPVCYAML = `
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: jiva-block-pvc
+spec:
+  volumeMode: Block
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
   storageClassName: jiva-csi-sc
 `
 

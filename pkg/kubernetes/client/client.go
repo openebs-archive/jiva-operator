@@ -104,13 +104,16 @@ func (cl *Client) GetJivaVolume(name string) (*jv.JivaVolume, error) {
 }
 
 // UpdateJivaVolume update the JivaVolume CR
-func (cl *Client) UpdateJivaVolume(cr *jv.JivaVolume) error {
+func (cl *Client) UpdateJivaVolume(cr *jv.JivaVolume) (bool, error) {
 	err := cl.client.Update(context.TODO(), cr)
 	if err != nil {
+		if errors.IsConflict(err) {
+			return true, err
+		}
 		logrus.Errorf("Failed to update JivaVolume CR: {%v}, err: {%v}", cr.Name, err)
-		return err
+		return false, err
 	}
-	return nil
+	return false, nil
 }
 
 func getDefaultLabels(pv string) map[string]string {
@@ -130,8 +133,11 @@ func getdefaultAnnotations(policy string) map[string]string {
 
 // CreateJivaVolume check whether JivaVolume CR already exists and creates one
 // if it doesn't exist.
-func (cl *Client) CreateJivaVolume(req *csi.CreateVolumeRequest) error {
-	var sizeBytes int64
+func (cl *Client) CreateJivaVolume(req *csi.CreateVolumeRequest) (string, error) {
+	var (
+		sizeBytes  int64
+		accessType string
+	)
 	name := utils.StripName(req.GetName())
 	policyName := req.GetParameters()["policy"]
 	ns, ok := req.GetParameters()["namespace"]
@@ -148,16 +154,27 @@ func (cl *Client) CreateJivaVolume(req *csi.CreateVolumeRequest) error {
 	size := resource.NewQuantity(sizeBytes, resource.BinarySI)
 	volSizeGiB := helpers.RoundUpToGiB(*size)
 	capacity := fmt.Sprintf("%dGi", volSizeGiB)
+
+	caps := req.GetVolumeCapabilities()
+	for _, cap := range caps {
+		switch cap.GetAccessType().(type) {
+		case *csi.VolumeCapability_Block:
+			accessType = "block"
+		case *csi.VolumeCapability_Mount:
+			accessType = "mount"
+		}
+	}
 	jiva := jivavolume.New().WithKindAndAPIVersion("JivaVolume", "openebs.io/v1alpha1").
 		WithNameAndNamespace(name, ns).
 		WithAnnotations(getdefaultAnnotations(policyName)).
 		WithLabels(getDefaultLabels(name)).
 		WithPV(name).
 		WithCapacity(capacity).
+		WithAccessType(accessType).
 		WithVersionDetails()
 
 	if jiva.Errs != nil {
-		return status.Errorf(codes.Internal, "Failed to build JivaVolume CR, err: {%v}", jiva.Errs)
+		return "", status.Errorf(codes.Internal, "Failed to build JivaVolume CR, err: {%v}", jiva.Errs)
 	}
 
 	obj := jiva.Instance()
@@ -167,18 +184,18 @@ func (cl *Client) CreateJivaVolume(req *csi.CreateVolumeRequest) error {
 		logrus.Infof("Creating a new JivaVolume CR {name: %v, namespace: %v}", name, ns)
 		err = cl.client.Create(context.TODO(), obj)
 		if err != nil {
-			return status.Errorf(codes.Internal, "Failed to create JivaVolume CR, err: {%v}", err)
+			return "", status.Errorf(codes.Internal, "Failed to create JivaVolume CR, err: {%v}", err)
 		}
-		return nil
+		return name, nil
 	} else if err != nil {
-		return status.Errorf(codes.Internal, "Failed to get the JivaVolume details, err: {%v}", err)
+		return "", status.Errorf(codes.Internal, "Failed to get the JivaVolume details, err: {%v}", err)
 	}
 
 	if objExists.Spec.Capacity != obj.Spec.Capacity {
-		return status.Errorf(codes.AlreadyExists, "Failed to create JivaVolume CR, volume with different size already exists")
+		return "", status.Errorf(codes.AlreadyExists, "Failed to create JivaVolume CR, volume with different size already exists")
 	}
 
-	return nil
+	return name, nil
 }
 
 // ListJivaVolume returns the list of JivaVolume resources

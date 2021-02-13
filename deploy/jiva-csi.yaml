@@ -374,8 +374,6 @@ spec:
             - "--nodeid=$(OPENEBS_NODE_ID)"
             - "--endpoint=$(OPENEBS_CSI_ENDPOINT)"
             - "--plugin=$(OPENEBS_NODE_DRIVER)"
-            # enableiscsidebug is used to enable debug logs for iscsi operations
-            - "--enableiscsidebug=true"
             # logging level for klog library used in k8s packages
             #- "--v=5"
             # retrycount is the max number of retries per nodeStaging rpc

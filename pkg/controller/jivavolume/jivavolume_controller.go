@@ -646,13 +646,13 @@ func updateJivaVolumeWithServiceInfo(r *ReconcileJivaVolume, cr *jv.JivaVolume, 
 	reqLog.V(2).Info("Updating JivaVolume with iscsi spec", "ISCSISpec", cr.Spec.ISCSISpec)
 	cr.Status.Phase = jv.JivaVolumePhasePending
 	if err := r.client.Update(context.TODO(), cr); err != nil {
-		return fmt.Errorf("%s, err: %v, JivaVolume CR: {%+v}", updateErrMsg, err, cr)
+		return fmt.Errorf("%s, err: %v", updateErrMsg, err)
 	}
 
 	// Update cr with the updated fields so that we don't get
 	// resourceVersion changed error in next steps
 	if err := r.getJivaVolume(cr); err != nil {
-		return fmt.Errorf("%s, err: %v, JivaVolume CR: {%+v}", updateErrMsg, err, cr)
+		return fmt.Errorf("%s, err: %v", updateErrMsg, err)
 	}
 
 	return nil
@@ -917,8 +917,12 @@ func deleteResource(name, ns string, r *ReconcileJivaVolume, obj runtime.Object)
 
 func (r *ReconcileJivaVolume) updateJivaVolume(cr *jv.JivaVolume) error {
 	if err := r.client.Update(context.TODO(), cr); err != nil {
-		return fmt.Errorf("failed to update JivaVolume CR: {%+v}, err: %v", cr, err)
+		return fmt.Errorf("failed to update JivaVolume, err: %v", err)
 	}
+	if err := r.getJivaVolume(cr); err != nil {
+		return fmt.Errorf("failed to get JivaVolume, err: %v", err)
+	}
+
 	return nil
 }
 
@@ -951,6 +955,9 @@ func (r *ReconcileJivaVolume) updateStatus(err error, cr *jv.JivaVolume, reqLog 
 	}
 	if err := r.updateJivaVolume(cr); err != nil {
 		reqLog.Error(err, "failed to update status")
+	}
+	if err := r.getJivaVolume(cr); err != nil {
+		reqLog.Error(err, "failed to get JivaVolume")
 	}
 }
 
@@ -1019,7 +1026,7 @@ func (r *ReconcileJivaVolume) reconcileVersion(cr *jv.JivaVolume) error {
 		// Update cr with the updated fields so that we don't get
 		// resourceVersion changed error in next steps
 		if err := r.getJivaVolume(cr); err != nil {
-			return fmt.Errorf("%s, err: %v, JivaVolume CR: {%+v}", updateErrMsg, err, cr)
+			return fmt.Errorf("%s, err: %v", updateErrMsg, err)
 		}
 		// As no other steps are required just change current version to
 		// desired version
@@ -1046,7 +1053,7 @@ func (r *ReconcileJivaVolume) reconcileVersion(cr *jv.JivaVolume) error {
 		// Update cr with the updated fields so that we don't get
 		// resourceVersion changed error in next steps
 		if err := r.getJivaVolume(cr); err != nil {
-			return fmt.Errorf("%s, err: %v, JivaVolume CR: {%+v}", updateErrMsg, err, cr)
+			return fmt.Errorf("%s, err: %v", updateErrMsg, err)
 		}
 		return nil
 	}
