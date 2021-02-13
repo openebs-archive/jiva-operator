@@ -5,7 +5,7 @@ go 1.13
 require (
 	github.com/container-storage-interface/spec v1.2.0
 	github.com/docker/go-units v0.4.0
-	github.com/go-logr/logr v0.1.0
+	github.com/go-logr/logr v0.1.0 // indirect
 	github.com/go-openapi/spec v0.19.4
 	github.com/google/go-cmp v0.4.0 // indirect
 	github.com/google/uuid v1.1.1

@@ -25,7 +25,6 @@ import (
 	"time"
 
 	"github.com/docker/go-units"
-	"github.com/go-logr/logr"
 	jv "github.com/openebs/jiva-operator/pkg/apis/openebs/v1alpha1"
 	"github.com/openebs/jiva-operator/pkg/jiva"
 	"github.com/openebs/jiva-operator/pkg/kubernetes/container"
@@ -33,6 +32,7 @@ import (
 	"github.com/openebs/jiva-operator/pkg/volume"
 	"github.com/openebs/jiva-operator/version"
 	operr "github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 
 	deploy "github.com/openebs/jiva-operator/pkg/kubernetes/deployment"
 	pvc "github.com/openebs/jiva-operator/pkg/kubernetes/pvc"
@@ -80,8 +80,7 @@ const (
 type policyOptFuncs func(*jv.JivaVolumePolicySpec, jv.JivaVolumePolicySpec)
 
 var (
-	installFuncs = []func(r *ReconcileJivaVolume, cr *jv.JivaVolume,
-		reqLog logr.Logger) error{
+	installFuncs = []func(r *ReconcileJivaVolume, cr *jv.JivaVolume) error{
 		populateJivaVolumePolicy,
 		createControllerService,
 		createControllerDeployment,
@@ -163,7 +162,6 @@ type ReconcileJivaVolume struct {
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileJivaVolume) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 
 	// Fetch the JivaVolume instance
 	instance := &jv.JivaVolume{}
@@ -195,22 +193,22 @@ func (r *ReconcileJivaVolume) Reconcile(request reconcile.Request) (reconcile.Re
 	// to syncing which will be changed to Ready later when volume becomes RW
 	switch instance.Status.Phase {
 	case jv.JivaVolumePhaseReady, jv.JivaVolumePhaseSyncing:
-		return reconcile.Result{}, r.getAndUpdateVolumeStatus(instance, reqLogger)
+		return reconcile.Result{}, r.getAndUpdateVolumeStatus(instance)
 	case jv.JivaVolumePhaseDeleting:
-		reqLogger.Info("start tearing down jiva components", "JivaVolume: ", instance)
+		logrus.Info("start tearing down jiva components", "JivaVolume: ", instance.Name)
 		return reconcile.Result{}, nil
 	case jv.JivaVolumePhasePending, jv.JivaVolumePhaseFailed:
 		if ok {
-			reqLogger.Info("start bootstraping jiva components", "JivaVolume: ", instance)
-			return reconcile.Result{}, r.bootstrapJiva(instance, reqLogger)
+			logrus.Info("start bootstraping jiva components", "JivaVolume: ", instance.Name)
+			return reconcile.Result{}, r.bootstrapJiva(instance)
 		}
 	}
 
-	reqLogger.Info("start bootstraping jiva components")
-	return reconcile.Result{}, r.bootstrapJiva(instance, reqLogger)
+	logrus.Info("start bootstraping jiva components")
+	return reconcile.Result{}, r.bootstrapJiva(instance)
 }
 
-func (r *ReconcileJivaVolume) finally(err error, cr *jv.JivaVolume, reqLog logr.Logger) {
+func (r *ReconcileJivaVolume) finally(err error, cr *jv.JivaVolume) {
 	if err != nil {
 		cr.Status.Phase = jv.JivaVolumePhaseFailed
 	} else {
@@ -218,7 +216,7 @@ func (r *ReconcileJivaVolume) finally(err error, cr *jv.JivaVolume, reqLog logr.
 	}
 
 	if err := r.updateJivaVolume(cr); err != nil {
-		reqLog.Error(err, "failed to update JivaVolume phase")
+		logrus.Error(err, "failed to update JivaVolume phase")
 	}
 }
 
@@ -237,18 +235,18 @@ func (r *ReconcileJivaVolume) shouldReconcile(cr *jv.JivaVolume) (bool, error) {
 // 1. Create controller svc
 // 2. Create controller deploy
 // 3. Create replica statefulset
-func (r *ReconcileJivaVolume) bootstrapJiva(cr *jv.JivaVolume, reqLog logr.Logger) (err error) {
+func (r *ReconcileJivaVolume) bootstrapJiva(cr *jv.JivaVolume) (err error) {
 	for _, f := range installFuncs {
-		if err = f(r, cr, reqLog); err != nil {
+		if err = f(r, cr); err != nil {
 			break
 		}
 	}
-	r.finally(err, cr, reqLog)
+	r.finally(err, cr)
 	return err
 }
 
 // TODO: add logic to create disruption budget for replicas
-func createReplicaPodDisruptionBudget(r *ReconcileJivaVolume, cr *jv.JivaVolume, reqLog logr.Logger) error {
+func createReplicaPodDisruptionBudget(r *ReconcileJivaVolume, cr *jv.JivaVolume) error {
 	min := cr.Spec.Policy.Target.ReplicationFactor
 	pdbObj := &policyv1beta1.PodDisruptionBudget{
 		TypeMeta: metav1.TypeMeta{
@@ -278,7 +276,7 @@ func createReplicaPodDisruptionBudget(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 			return err
 		}
 
-		reqLog.V(2).Info("Creating a new pod disruption budget", "Pdb.Namespace", pdbObj.Namespace, "Pdb.Name", pdbObj.Name)
+		logrus.Info("Creating a new pod disruption budget", "Pdb.Namespace", pdbObj.Namespace, "Pdb.Name", pdbObj.Name)
 		err = r.client.Create(context.TODO(), pdbObj)
 		if err != nil {
 			return err
@@ -292,8 +290,7 @@ func createReplicaPodDisruptionBudget(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 	return nil
 }
 
-func createControllerDeployment(r *ReconcileJivaVolume, cr *jv.JivaVolume,
-	reqLog logr.Logger) error {
+func createControllerDeployment(r *ReconcileJivaVolume, cr *jv.JivaVolume) error {
 	reps := int32(1)
 
 	dep, err := deploy.NewBuilder().WithName(cr.Name + "-jiva-ctrl").
@@ -380,7 +377,7 @@ func createControllerDeployment(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 			return err
 		}
 
-		reqLog.V(2).Info("Creating a new deployment", "Deploy.Namespace", dep.Namespace, "Deploy.Name", dep.Name)
+		logrus.Info("Creating a new deployment", "Deploy.Namespace", dep.Namespace, "Deploy.Name", dep.Name)
 		err = r.client.Create(context.TODO(), dep)
 		if err != nil {
 			return err
@@ -492,8 +489,7 @@ func defaultServiceLabels(pv string) map[string]string {
 }
 
 // TODO: Add code to configure resource limits, nodeAffinity etc.
-func createReplicaStatefulSet(r *ReconcileJivaVolume, cr *jv.JivaVolume,
-	reqLog logr.Logger) error {
+func createReplicaStatefulSet(r *ReconcileJivaVolume, cr *jv.JivaVolume) error {
 
 	var (
 		err                            error
@@ -606,7 +602,7 @@ func createReplicaStatefulSet(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 			return err
 		}
 
-		reqLog.V(2).Info("Creating a new Statefulset", "Statefulset.Namespace", stsObj.Namespace, "Sts.Name", stsObj.Name)
+		logrus.Info("Creating a new Statefulset", "Statefulset.Namespace", stsObj.Namespace, "Sts.Name", stsObj.Name)
 		err = r.client.Create(context.TODO(), stsObj)
 		if err != nil {
 			return err
@@ -620,7 +616,7 @@ func createReplicaStatefulSet(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 	return nil
 }
 
-func updateJivaVolumeWithServiceInfo(r *ReconcileJivaVolume, cr *jv.JivaVolume, reqLog logr.Logger) error {
+func updateJivaVolumeWithServiceInfo(r *ReconcileJivaVolume, cr *jv.JivaVolume) error {
 	ctrlSVC := &v1.Service{}
 	if err := r.client.Get(context.TODO(),
 		types.NamespacedName{
@@ -643,7 +639,7 @@ func updateJivaVolumeWithServiceInfo(r *ReconcileJivaVolume, cr *jv.JivaVolume, 
 		return fmt.Errorf("%s, err: can't find targetPort in target service spec: {%+v}", updateErrMsg, ctrlSVC)
 	}
 
-	reqLog.V(2).Info("Updating JivaVolume with iscsi spec", "ISCSISpec", cr.Spec.ISCSISpec)
+	logrus.Info("Updating JivaVolume with iscsi spec", "ISCSISpec", cr.Spec.ISCSISpec)
 	cr.Status.Phase = jv.JivaVolumePhasePending
 	if err := r.client.Update(context.TODO(), cr); err != nil {
 		return fmt.Errorf("%s, err: %v", updateErrMsg, err)
@@ -832,8 +828,7 @@ func validatePolicySpec(policy *jv.JivaVolumePolicySpec) {
 	}
 }
 
-func populateJivaVolumePolicy(r *ReconcileJivaVolume, cr *jv.JivaVolume,
-	reqLog logr.Logger) error {
+func populateJivaVolumePolicy(r *ReconcileJivaVolume, cr *jv.JivaVolume) error {
 	policyName := cr.Annotations["openebs.io/volume-policy"]
 	policySpec := getDefaultPolicySpec()
 	// if policy name is provided via annotation get and validate the
@@ -855,8 +850,7 @@ func populateJivaVolumePolicy(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 	return nil
 }
 
-func createControllerService(r *ReconcileJivaVolume, cr *jv.JivaVolume,
-	reqLog logr.Logger) error {
+func createControllerService(r *ReconcileJivaVolume, cr *jv.JivaVolume) error {
 
 	// By default type is clusterIP
 	svcObj, err := svc.NewBuilder().
@@ -882,20 +876,20 @@ func createControllerService(r *ReconcileJivaVolume, cr *jv.JivaVolume,
 			return err
 		}
 
-		reqLog.V(2).Info("Creating a new service", "Service.Namespace", svcObj.Namespace, "Service.Name", svcObj.Name)
+		logrus.Info("Creating a new service", "Service.Namespace", svcObj.Namespace, "Service.Name", svcObj.Name)
 		err = r.client.Create(context.TODO(), svcObj)
 		if err != nil {
 			return err
 		}
 		// Wait for service to get created
 		time.Sleep(1 * time.Second)
-		return updateJivaVolumeWithServiceInfo(r, cr, reqLog)
+		return updateJivaVolumeWithServiceInfo(r, cr)
 	} else if err != nil {
 		return operr.Wrapf(err, "failed to get the service details: %v", svcObj.Name)
 
 	}
 
-	return updateJivaVolumeWithServiceInfo(r, cr, reqLog)
+	return updateJivaVolumeWithServiceInfo(r, cr)
 
 }
 
@@ -949,19 +943,19 @@ func setdefaults(cr *jv.JivaVolume) {
 	}
 }
 
-func (r *ReconcileJivaVolume) updateStatus(err error, cr *jv.JivaVolume, reqLog logr.Logger) {
+func (r *ReconcileJivaVolume) updateStatus(err error, cr *jv.JivaVolume) {
 	if err != nil {
 		setdefaults(cr)
 	}
 	if err := r.updateJivaVolume(cr); err != nil {
-		reqLog.Error(err, "failed to update status")
+		logrus.Error(err, "failed to update status")
 	}
 	if err := r.getJivaVolume(cr); err != nil {
-		reqLog.Error(err, "failed to get JivaVolume")
+		logrus.Error(err, "failed to get JivaVolume")
 	}
 }
 
-func (r *ReconcileJivaVolume) getAndUpdateVolumeStatus(cr *jv.JivaVolume, reqLog logr.Logger) (err error) {
+func (r *ReconcileJivaVolume) getAndUpdateVolumeStatus(cr *jv.JivaVolume) (err error) {
 	var (
 		cli *jiva.ControllerClient
 	)
@@ -970,7 +964,7 @@ func (r *ReconcileJivaVolume) getAndUpdateVolumeStatus(cr *jv.JivaVolume, reqLog
 		return fmt.Errorf("Failed to getAndUpdateVolumeStatus, err: %v", err)
 	}
 
-	defer r.updateStatus(err, cr, reqLog)
+	defer r.updateStatus(err, cr)
 	addr := cr.Spec.ISCSISpec.TargetIP + ":9501"
 	if len(addr) == 0 {
 		return fmt.Errorf("Failed to get volume stats: target address is empty")
@@ -981,10 +975,8 @@ func (r *ReconcileJivaVolume) getAndUpdateVolumeStatus(cr *jv.JivaVolume, reqLog
 	if err != nil {
 		// log err only, as controller must be in container creating state
 		// don't return err as it will dump stack trace unneccesary
-		reqLog.V(2).Info("Failed to get volume stats", "err", err)
+		logrus.Info("Failed to get volume stats", "err", err)
 	}
-
-	reqLog.V(2).Info("Update status", "Stats", stats)
 
 	cr.Status.Status = stats.TargetStatus
 	cr.Status.ReplicaCount = len(stats.Replicas)
