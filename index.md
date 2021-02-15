@@ -156,6 +156,7 @@ The following table lists the configurable parameters of the OpenEBS Jiva chart 
 | jivaCSIPlugin.image.repository | string | `"openebs/jiva-csi"` |  Jiva CSI driver image repository |
 | jivaCSIPlugin.image.tag | string | `"2.6.0"` | Jiva CSI driver image tag |
 | jivaCSIPlugin.name | string | `"jiva-csi-plugin"` | Jiva CSI driver container name |
+| jivaCSIPlugin.remount | string | `"true"` | Jiva CSI driver remount feature, enabled by default |
 
 
 Specify each parameter using the `--set key=value[,key=value]` argument to `helm install`.
