@@ -151,6 +151,16 @@ The following table lists the configurable parameters of the OpenEBS Jiva chart 
 | jivaCSIPlugin.image.tag | string | `"2.6.0"` | Jiva CSI driver image tag |
 | jivaCSIPlugin.name | string | `"jiva-csi-plugin"` | Jiva CSI driver container name |
 | jivaCSIPlugin.remount | string | `"true"` | Jiva CSI driver remount feature, enabled by default |
+| rbac.create | bool | `true` | Enable RBAC |
+| rbac.pspEnabled | bool | `false` | Enable PodSecurityPolicy |
+| release.version | string | `"2.6.0"` | Openebs CStor release version |
+| serviceAccount.annotations | object | `{}` | Service Account annotations |
+| serviceAccount.csiController.create | bool | `true` | Enable CSI Controller ServiceAccount |
+| serviceAccount.csiController.name | string | `"openebs-jiva-csi-controller-sa"` | CSI Controller ServiceAccount name |
+| serviceAccount.csiNode.create | bool | `true` | Enable CSI Node ServiceAccount |
+| serviceAccount.csiNode.name | string | `"openebs-jiva-csi-node-sa"` | CSI Node ServiceAccount name |
+| serviceAccount.jivaOperator.create | bool | `true` | Enable Jiva Operator Node ServiceAccount |
+| serviceAccount.jivaOperator.name | string | `"openebs-jiva-operator"` | Jiva Operator ServiceAccount name |
 
 Specify each parameter using the `--set key=value[,key=value]` argument to `helm install`.
 
