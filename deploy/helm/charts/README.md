@@ -48,6 +48,15 @@ By default this chart installs additional, dependent charts:
 | https://openebs.github.io/dynamic-localpv-provisioner | localpv-provisioner | 2.6.0 |
 
 
+To disable the dependency during installation, set `openebsLocalpv.enabled` to `false`.
+
+```bash
+helm install <your-relase-name> openebs-jiva/jiva --set openebsLocalpv.enabled=false
+```
+
+For more details on dependency see [Jiva chart readme](https://github.com/openebs/jiva-operator/blob/master/deploy/helm/charts/README.md).
+
+_See [helm dependency](https://helm.sh/docs/helm/helm_dependency/) for command documentation._
 
 ## Uninstall Chart
 
@@ -141,3 +150,14 @@ The following table lists the configurable parameters of the OpenEBS Jiva chart 
 | jivaCSIPlugin.image.repository | string | `"openebs/jiva-csi"` |  Jiva CSI driver image repository |
 | jivaCSIPlugin.image.tag | string | `"2.6.0"` | Jiva CSI driver image tag |
 | jivaCSIPlugin.name | string | `"jiva-csi-plugin"` | Jiva CSI driver container name |
+| jivaCSIPlugin.remount | string | `"true"` | Jiva CSI driver remount feature, enabled by default |
+
+Specify each parameter using the `--set key=value[,key=value]` argument to `helm install`.
+
+Alternatively, a YAML file that specifies the values for the parameters can be provided while installing the chart. For example,
+
+```bash
+helm install  <your-relase-name> -f values.yaml  openebs-jiva/jiva
+```
+
+> **Tip**: You can use the default [values.yaml](values.yaml)
