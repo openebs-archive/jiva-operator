@@ -295,7 +295,10 @@ func (cs *controller) ControllerExpandVolume(
 	}
 
 	size := resource.NewQuantity(updatedSize, resource.BinarySI)
-	volSizeGiB := helpers.RoundUpToGiB(*size)
+	volSizeGiB, err := helpers.RoundUpToGiB(*size)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "Failed to round up volume size, err: %v", err)
+	}
 	capacity := fmt.Sprintf("%dGi", volSizeGiB)
 
 	input := volume.ResizeInput{

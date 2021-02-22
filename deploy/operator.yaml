@@ -3266,13 +3266,9 @@ spec:
           image: openebs/jiva-operator:ci
           command:
           - jiva-operator
-          args:
-          # supported options: epoch, iso8601, millis, nano
-          - "--zap-time-encoding=iso8601"
-          - "--zap-sample=false"
           imagePullPolicy: IfNotPresent
           env:
-            - name: WATCH_NAMESPACE
+            - name: OPENEBS_NAMESPACE
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
@@ -3286,3 +3282,24 @@ spec:
               value: "openebs/jiva:ci"
             - name: OPENEBS_IO_JIVA_REPLICA_IMAGE
               value: "openebs/jiva:ci"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8282
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8282
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            limits:
+              cpu: 100m
+              memory: 30Mi
+            requests:
+              cpu: 100m
+              memory: 20Mi
+      terminationGracePeriodSeconds: 10
+

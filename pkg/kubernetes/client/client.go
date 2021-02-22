@@ -152,7 +152,10 @@ func (cl *Client) CreateJivaVolume(req *csi.CreateVolumeRequest) (string, error)
 	}
 
 	size := resource.NewQuantity(sizeBytes, resource.BinarySI)
-	volSizeGiB := helpers.RoundUpToGiB(*size)
+	volSizeGiB, err := helpers.RoundUpToGiB(*size)
+	if err != nil {
+		return "", status.Errorf(codes.Internal, "Failed to round up volume size, err: %v", err)
+	}
 	capacity := fmt.Sprintf("%dGi", volSizeGiB)
 
 	caps := req.GetVolumeCapabilities()
@@ -179,7 +182,7 @@ func (cl *Client) CreateJivaVolume(req *csi.CreateVolumeRequest) (string, error)
 
 	obj := jiva.Instance()
 	objExists := &jv.JivaVolume{}
-	err := cl.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: ns}, objExists)
+	err = cl.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: ns}, objExists)
 	if err != nil && errors.IsNotFound(err) {
 		logrus.Infof("Creating a new JivaVolume CR {name: %v, namespace: %v}", name, ns)
 		err = cl.client.Create(context.TODO(), obj)
