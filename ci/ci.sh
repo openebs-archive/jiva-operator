@@ -56,8 +56,8 @@ function dumpAllLogs() {
 	kubectl get pods -n openebs
 	kubectl get jivavolume -n openebs -oyaml
 	kubectl describe pods -n openebs
-	dumpLogs "ds" "openebs-jiva-csi-node" "openebs" "app=openebs-jiva-csi-node" "openebs-jiva-csi-plugin"
-	dumpLogs "sts" "openebs-jiva-csi-controller" "openebs" "app=openebs-jiva-csi-controller" "openebs-jiva-csi-plugin"
+	dumpLogs "ds" "openebs-jiva-csi-node" "openebs" "app=openebs-jiva-csi-node" "jiva-csi-plugin"
+	dumpLogs "sts" "openebs-jiva-csi-controller" "openebs" "app=openebs-jiva-csi-controller" "jiva-csi-plugin"
 	dumpLogs "deploy" "openebs-localpv-provisioner" "openebs" "name=openebs-localpv-provisioner"
 	dumpLogs "deploy" "jiva-operator" "openebs" "name=jiva-operator"
 }

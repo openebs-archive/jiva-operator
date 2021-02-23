@@ -6,11 +6,16 @@ require (
 	github.com/container-storage-interface/spec v1.2.0
 	github.com/docker/go-units v0.4.0
 	github.com/go-openapi/spec v0.19.4
+	github.com/google/go-cmp v0.4.0 // indirect
 	github.com/google/uuid v1.1.2
+	github.com/jpillora/go-ogle-analytics v0.0.0-20161213085824-14b04e0594ef
+	github.com/kr/pretty v0.2.0 // indirect
 	github.com/kubernetes-csi/csi-lib-iscsi v0.0.0-20191120152119-1430b53a1741
 	github.com/kubernetes-csi/csi-lib-utils v0.6.1
 	github.com/onsi/ginkgo v1.14.1
 	github.com/onsi/gomega v1.10.2
+	github.com/openebs/lib-csi v0.2.0
+	github.com/operator-framework/operator-sdk v0.0.0-00010101000000-000000000000
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/cobra v1.1.1

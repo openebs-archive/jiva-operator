@@ -18,6 +18,7 @@ package driver
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -25,6 +26,7 @@ import (
 	jv "github.com/openebs/jiva-operator/pkg/apis/openebs/v1alpha1"
 	"github.com/openebs/jiva-operator/pkg/jiva"
 	"github.com/openebs/jiva-operator/pkg/kubernetes/client"
+	analytics "github.com/openebs/jiva-operator/pkg/usage"
 	"github.com/openebs/jiva-operator/pkg/utils"
 	"github.com/openebs/jiva-operator/pkg/volume"
 	"github.com/sirupsen/logrus"
@@ -137,11 +139,20 @@ func (cs *controller) DeleteVolume(
 		return nil, status.Errorf(codes.Internal, "DeleteVolume: failed to set client, err: {%v}", err)
 	}
 
-	if err := cs.client.DeleteJivaVolume(volID); err != nil {
+	// verify if the volume has already been deleted
+	jv, err := cs.client.GetJivaVolume(volID)
+	if jv != nil && jv.DeletionTimestamp != nil {
+		return &csi.DeleteVolumeResponse{}, nil
+	}
+
+	if err = cs.client.DeleteJivaVolume(volID); err != nil {
 		return nil, status.Errorf(codes.Internal, "DeleteVolume: failed to delete volume {%v}, err: {%v}", req.VolumeId, err)
 	}
 
 	logrus.Infof("DeleteVolume: volume {%s} is deleted", req.VolumeId)
+
+	client.SendEventOrIgnore("", volID, jv.Spec.Capacity, strconv.Itoa(jv.Spec.Policy.Target.ReplicationFactor), "jiva-csi", analytics.VolumeDeprovision)
+
 	return &csi.DeleteVolumeResponse{}, nil
 }
 
