@@ -286,3 +286,26 @@ crds:
 	# Install the binary from https://github.com/operator-framework/operator-sdk/releases/tag/v0.17.0
 	operator-sdk generate crds
 	rm build/Dockerfile
+
+
+# find or download controller-gen
+controller-gen:
+ifneq ($(shell controller-gen --version 2> /dev/null), Version: v0.4.1)
+	@(cd /tmp; GO111MODULE=on go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.4.1)
+CONTROLLER_GEN=$(GOBIN)/controller-gen
+else
+CONTROLLER_GEN=$(shell which controller-gen)
+endif
+
+manifests: controller-gen
+	$(CONTROLLER_GEN) crd:trivialVersions=true,preserveUnknownFields=false paths="./pkg/apis/..." output:crd:artifacts:config=deploy/crds
+
+
+.PHONY: kubegen
+# code generation for custom resources
+kubegen:
+	./hack/update-codegen.sh
+
+.PHONY: verify_kubegen
+verify_kubegen:
+	./hack/verify-codegen.sh

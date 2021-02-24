@@ -58,6 +58,11 @@ jobs:
     - name: verify dependencies
       run: make deps
 
+    - name: verify kubegen
+      run: make verify_kubegen
+      env:
+        GOPATH: /home/runner/work/jiva-operator/go
+
     - name: verify tests
       run: make test
 
