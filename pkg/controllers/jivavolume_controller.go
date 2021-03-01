@@ -366,6 +366,7 @@ func defaultReplicaLabels(pv string) map[string]string {
 		"openebs.io/cas-type":          "jiva",
 		"openebs.io/component":         "jiva-replica",
 		"openebs.io/persistent-volume": pv,
+		"openebs.io/version":           version.Version,
 	}
 }
 
@@ -374,6 +375,7 @@ func defaultControllerLabels(pv string) map[string]string {
 		"openebs.io/cas-type":          "jiva",
 		"openebs.io/component":         "jiva-controller",
 		"openebs.io/persistent-volume": pv,
+		"openebs.io/version":           version.Version,
 	}
 }
 
@@ -442,6 +444,7 @@ func defaultServiceLabels(pv string) map[string]string {
 		"openebs.io/cas-type":          "jiva",
 		"openebs.io/component":         "jiva-controller-service",
 		"openebs.io/persistent-volume": pv,
+		"openebs.io/version":           version.Version,
 	}
 }
 
