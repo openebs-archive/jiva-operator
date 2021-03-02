@@ -47,6 +47,15 @@ const (
 	// pvcNameKey holds the name of the PVC which is passed as a parameter
 	// in CreateVolume request
 	pvcNameKey = "csi.storage.k8s.io/pvc/name"
+
+	// OpenEBSNamespace is the environment variable to get openebs namespace
+	// This environment variable is set via kubernetes downward API
+	OpenEBSNamespace = "OPENEBS_NAMESPACE"
+)
+
+var (
+	// openebsNamespace is the namespace where jiva operator is deployed
+	openebsNamespace string
 )
 
 // Client is the wrapper over the k8s client that will be used by
@@ -223,6 +232,18 @@ func (cl *Client) ListJivaVolume(volumeID string) (*jv.JivaVolumeList, error) {
 	return obj, nil
 }
 
+// GetJivaVolume returns the list of JivaVolume resources
+func (cl *Client) GetJivaVolumeResource(volumeID string) (*jv.JivaVolume, error) {
+	volumeID = utils.StripName(volumeID)
+	obj := &jv.JivaVolume{}
+
+	if err := cl.client.Get(context.TODO(), types.NamespacedName{Name: volumeID, Namespace: GetOpenEBSNamespace()}, obj); err != nil {
+		return nil, err
+	}
+
+	return obj, nil
+}
+
 // ListJivaVolumeWithOpts returns the list of JivaVolume resources
 func (cl *Client) ListJivaVolumeWithOpts(opts map[string]string) (*jv.JivaVolumeList, error) {
 	obj := &jv.JivaVolumeList{}
@@ -266,6 +287,15 @@ func (cl *Client) GetNode(nodeName string) (*corev1.Node, error) {
 	}
 	return node, nil
 
+}
+
+// GetOpenEBSNamespace returns namespace where
+// jiva operator is running
+func GetOpenEBSNamespace() string {
+	if openebsNamespace == "" {
+		openebsNamespace = env.Get(OpenEBSNamespace)
+	}
+	return openebsNamespace
 }
 
 // sendEventOrIgnore sends anonymous cstor provision/delete events

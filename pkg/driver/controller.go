@@ -33,6 +33,7 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/cloud-provider/volume/helpers"
 )
@@ -140,9 +141,17 @@ func (cs *controller) DeleteVolume(
 	}
 
 	// verify if the volume has already been deleted
-	jv, err := cs.client.GetJivaVolume(volID)
-	if jv != nil && jv.DeletionTimestamp != nil {
+	jv, err := cs.client.GetJivaVolumeResource(volID)
+	switch {
+	case err != nil && errors.IsNotFound(err):
 		return &csi.DeleteVolumeResponse{}, nil
+
+	case err != nil:
+		return nil, status.Errorf(codes.Internal, "DeleteVolume: failed to get volume {%v}, err: {%v}", req.VolumeId, err)
+
+	case jv != nil && jv.DeletionTimestamp != nil:
+		return &csi.DeleteVolumeResponse{}, nil
+
 	}
 
 	if err = cs.client.DeleteJivaVolume(volID); err != nil {

@@ -45,13 +45,9 @@ function dumpLogs() {
 	local POD=$(kubectl get pod -n $NS -l $LABEL -o jsonpath='{range .items[*]}{@.metadata.name}')
 	if [ -z $CONTAINER ];
 	then
-		kubectl logs $POD -n $NS
-	        echo "========================== Previous Logs ==========================="
-		kubectl logs $POD -n $NS  -p
+		kubectl logs "$POD" -n "$NS"
 	else
-		kubectl logs $POD -n $NS -c $CONTAINER
-	        echo "========================== Previous Logs ==========================="
-		kubectl logs $POD -n $NS -c $CONTAINER -p
+		kubectl logs "$POD" -n "$NS" -c "$CONTAINER"
 	fi
 }
 
