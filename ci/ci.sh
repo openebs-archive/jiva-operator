@@ -46,8 +46,12 @@ function dumpLogs() {
 	if [ -z $CONTAINER ];
 	then
 		kubectl logs $POD -n $NS
+	        echo "========================== Previous Logs ==========================="
+		kubectl logs $POD -n $NS  -p
 	else
 		kubectl logs $POD -n $NS -c $CONTAINER
+	        echo "========================== Previous Logs ==========================="
+		kubectl logs $POD -n $NS -c $CONTAINER -p
 	fi
 }
 
@@ -115,8 +119,6 @@ function initializeCSISanitySuite() {
 }
 
 function waitForAllComponentsToBeReady() {
-	waitForComponent "deploy" "openebs-ndm-operator" "openebs"
-	waitForComponent "ds" "openebs-ndm" "openebs"
 	waitForComponent "deploy" "openebs-localpv-provisioner" "openebs"
 	waitForComponent "sts" "openebs-jiva-csi-controller" "openebs" "openebs-jiva-csi-plugin"
 	waitForComponent "ds" "openebs-jiva-csi-node" "openebs" "openebs-jiva-csi-plugin"
