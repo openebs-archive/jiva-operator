@@ -216,7 +216,7 @@ func createReplicaPodDisruptionBudget(r *JivaVolumeReconciler, cr *openebsiov1al
 		},
 		Spec: policyv1beta1.PodDisruptionBudgetSpec{
 			Selector: &metav1.LabelSelector{
-				MatchLabels: defaultReplicaLabels(cr.Spec.PV),
+				MatchLabels: defaultReplicaMatchLabels(cr.Spec.PV),
 			},
 			MinAvailable: &intstr.IntOrString{
 				Type:   intstr.Int,
@@ -255,7 +255,7 @@ func createControllerDeployment(r *JivaVolumeReconciler, cr *openebsiov1alpha1.J
 		WithLabels(defaultControllerLabels(cr.Spec.PV)).
 		WithReplicas(&reps).
 		WithStrategyType(appsv1.RecreateDeploymentStrategyType).
-		WithSelectorMatchLabelsNew(defaultControllerLabels(cr.Spec.PV)).
+		WithSelectorMatchLabelsNew(defaultControllerMatchLabels(cr.Spec.PV)).
 		WithPodTemplateSpecBuilder(
 			func() *pts.Builder {
 				ptsBuilder := pts.NewBuilder().
@@ -353,29 +353,39 @@ func getImage(key, component string) string {
 	if !present {
 		switch component {
 		case "jiva-controller", "jiva-replica":
-			image = "quay.io/openebs/jiva:ci"
+			image = "openebs/jiva:ci"
 		case "exporter":
-			image = "quay.io/openebs/m-exporter:ci"
+			image = "openebs/m-exporter:ci"
 		}
 	}
 	return image
 }
 
 func defaultReplicaLabels(pv string) map[string]string {
+	labels := defaultReplicaMatchLabels(pv)
+	labels["openebs.io/version"] = version.Version
+	return labels
+}
+
+func defaultReplicaMatchLabels(pv string) map[string]string {
 	return map[string]string{
 		"openebs.io/cas-type":          "jiva",
 		"openebs.io/component":         "jiva-replica",
 		"openebs.io/persistent-volume": pv,
-		"openebs.io/version":           version.Version,
 	}
 }
 
 func defaultControllerLabels(pv string) map[string]string {
+	labels := defaultControllerMatchLabels(pv)
+	labels["openebs.io/version"] = version.Version
+	return labels
+}
+
+func defaultControllerMatchLabels(pv string) map[string]string {
 	return map[string]string{
 		"openebs.io/cas-type":          "jiva",
 		"openebs.io/component":         "jiva-controller",
 		"openebs.io/persistent-volume": pv,
-		"openebs.io/version":           version.Version,
 	}
 }
 
@@ -475,7 +485,7 @@ func createReplicaStatefulSet(r *JivaVolumeReconciler, cr *openebsiov1alpha1.Jiv
 		WithPodManagementPolicy(appsv1.ParallelPodManagement).
 		WithStrategyType(appsv1.RollingUpdateStatefulSetStrategyType).
 		WithReplicas(&replicaCount).
-		WithSelectorMatchLabels(defaultReplicaLabels(cr.Spec.PV)).
+		WithSelectorMatchLabels(defaultReplicaMatchLabels(cr.Spec.PV)).
 		WithPodTemplateSpecBuilder(
 			func() *pts.Builder {
 				ptsBuilder := pts.NewBuilder().
@@ -485,7 +495,7 @@ func createReplicaStatefulSet(r *JivaVolumeReconciler, cr *openebsiov1alpha1.Jiv
 							RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
 								{
 									LabelSelector: &metav1.LabelSelector{
-										MatchLabels: defaultReplicaLabels(cr.Spec.PV),
+										MatchLabels: defaultReplicaMatchLabels(cr.Spec.PV),
 									},
 									TopologyKey: "kubernetes.io/hostname",
 								},
@@ -852,22 +862,6 @@ func createControllerService(r *JivaVolumeReconciler, cr *openebsiov1alpha1.Jiva
 	return updateJivaVolumeWithServiceInfo(r, cr)
 
 }
-
-// func deleteResource(name, ns string, r *JivaVolumeReconciler, obj runtime.Object) error {
-// 	err := r.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: ns}, obj)
-// 	if err != nil && errors.IsNotFound(err) {
-// 		return nil
-// 	} else if err != nil {
-// 		return err
-// 	}
-
-// 	err = r.Delete(context.TODO(), obj)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	return nil
-// }
 
 func (r *JivaVolumeReconciler) updateJivaVolume(cr *openebsiov1alpha1.JivaVolume) error {
 	if err := r.Update(context.TODO(), cr); err != nil {
