@@ -78,6 +78,7 @@ const (
 	pdbAPIVersion            = "policyv1beta1"
 	defaultStorageClass      = "openebs-hostpath"
 	defaultReplicationFactor = 3
+	jivaOperator             = "jiva-operator"
 )
 
 type policyOptFuncs func(*openebsiov1alpha1.JivaVolumePolicySpec, openebsiov1alpha1.JivaVolumePolicySpec)
@@ -260,6 +261,7 @@ func createControllerDeployment(r *JivaVolumeReconciler, cr *openebsiov1alpha1.J
 			func() *pts.Builder {
 				ptsBuilder := pts.NewBuilder().
 					WithLabels(defaultControllerLabels(cr.Spec.PV)).
+					WithServiceAccountName(jivaOperator).
 					WithAnnotations(defaultAnnotations()).
 					WithTolerations(cr.Spec.Policy.Target.Tolerations...).
 					WithContainerBuilders(
@@ -465,7 +467,7 @@ func createReplicaStatefulSet(r *JivaVolumeReconciler, cr *openebsiov1alpha1.Jiv
 		err                            error
 		replicaCount                   int32
 		stsObj                         *appsv1.StatefulSet
-		blockOwnerDeletion, controller = true, true
+		blockOwnerDeletion, controller = false, true
 	)
 	rc := cr.Spec.Policy.Target.ReplicationFactor
 	replicaCount = int32(rc)
@@ -490,6 +492,7 @@ func createReplicaStatefulSet(r *JivaVolumeReconciler, cr *openebsiov1alpha1.Jiv
 			func() *pts.Builder {
 				ptsBuilder := pts.NewBuilder().
 					WithLabels(defaultReplicaLabels(cr.Spec.PV)).
+					WithServiceAccountName(jivaOperator).
 					WithAffinity(&corev1.Affinity{
 						PodAntiAffinity: &corev1.PodAntiAffinity{
 							RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
