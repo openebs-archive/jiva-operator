@@ -1,5 +1,7 @@
+// +build tools
+
 /*
-Copyright © 2019 The OpenEBS Authors
+Copyright 2020 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,13 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controller
+// This package imports things required by build scripts, to force `go mod` to see them as dependencies
+package tools
 
-import (
-	"github.com/openebs/jiva-operator/pkg/controller/jivavolume"
-)
-
-func init() {
-	// AddToManagerFuncs is a list of functions to create controllers and add them to a manager.
-	AddToManagerFuncs = append(AddToManagerFuncs, jivavolume.Add)
-}
+import _ "k8s.io/code-generator"
