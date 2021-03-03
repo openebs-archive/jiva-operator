@@ -213,7 +213,7 @@ func (cl *Client) CreateJivaVolume(req *csi.CreateVolumeRequest) (string, error)
 		return "", status.Errorf(codes.AlreadyExists, "Failed to create JivaVolume CR, volume with different size already exists")
 	}
 
-	SendEventOrIgnore(pvcName, name, size.String(), "", "jiva-csi", analytics.VolumeDeprovision)
+	SendEventOrIgnore(pvcName, name, size.String(), "", "jiva-csi", analytics.VolumeProvision)
 	return name, nil
 }
 
