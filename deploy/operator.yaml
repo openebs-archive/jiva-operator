@@ -3222,7 +3222,6 @@ rules:
   - jiva-operator
   resources:
   - deployments/finalizers
-  - statefulsets/finalizers
   verbs:
   - update
 - apiGroups:

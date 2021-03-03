@@ -146,7 +146,7 @@ spec:
           volumeMounts:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
-        - name: openebs-jiva-csi-plugin
+        - name: jiva-csi-plugin
           image: openebs/jiva-csi:ci
           env:
             - name: OPENEBS_JIVA_CSI_CONTROLLER
