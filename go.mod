@@ -32,7 +32,7 @@ require (
 )
 
 replace (
-	github.com/jpillora/go-ogle-analytics => github.com/openebs/go-ogle-analytics v0.0.0-20181114182623-694492144d73
+	github.com/jpillora/go-ogle-analytics => github.com/openebs/go-ogle-analytics v0.1.0
 	k8s.io/api => k8s.io/api v0.20.2
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.20.2
 	k8s.io/apimachinery => k8s.io/apimachinery v0.20.2
