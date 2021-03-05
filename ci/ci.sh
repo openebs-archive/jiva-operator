@@ -45,9 +45,9 @@ function dumpLogs() {
 	local POD=$(kubectl get pod -n $NS -l $LABEL -o jsonpath='{range .items[*]}{@.metadata.name}')
 	if [ -z $CONTAINER ];
 	then
-		kubectl logs $POD -n $NS
+		kubectl logs "$POD" -n "$NS"
 	else
-		kubectl logs $POD -n $NS -c $CONTAINER
+		kubectl logs "$POD" -n "$NS" -c "$CONTAINER"
 	fi
 }
 
@@ -115,8 +115,6 @@ function initializeCSISanitySuite() {
 }
 
 function waitForAllComponentsToBeReady() {
-	waitForComponent "deploy" "openebs-ndm-operator" "openebs"
-	waitForComponent "ds" "openebs-ndm" "openebs"
 	waitForComponent "deploy" "openebs-localpv-provisioner" "openebs"
 	waitForComponent "sts" "openebs-jiva-csi-controller" "openebs" "openebs-jiva-csi-plugin"
 	waitForComponent "ds" "openebs-jiva-csi-node" "openebs" "openebs-jiva-csi-plugin"

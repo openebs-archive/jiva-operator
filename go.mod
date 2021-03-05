@@ -7,10 +7,13 @@ require (
 	github.com/docker/go-units v0.4.0
 	github.com/go-openapi/spec v0.19.4
 	github.com/google/uuid v1.1.2
+	github.com/jpillora/go-ogle-analytics v0.0.0-20161213085824-14b04e0594ef
+	github.com/kr/pretty v0.2.0 // indirect
 	github.com/kubernetes-csi/csi-lib-iscsi v0.0.0-20191120152119-1430b53a1741
 	github.com/kubernetes-csi/csi-lib-utils v0.6.1
 	github.com/onsi/ginkgo v1.14.1
 	github.com/onsi/gomega v1.10.2
+	github.com/openebs/lib-csi v0.3.0
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/cobra v1.1.1
@@ -29,6 +32,7 @@ require (
 )
 
 replace (
+	github.com/jpillora/go-ogle-analytics => github.com/openebs/go-ogle-analytics v0.1.0
 	k8s.io/api => k8s.io/api v0.20.2
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.20.2
 	k8s.io/apimachinery => k8s.io/apimachinery v0.20.2

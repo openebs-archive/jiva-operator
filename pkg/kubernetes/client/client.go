@@ -24,12 +24,14 @@ import (
 	"github.com/openebs/jiva-operator/pkg/apis"
 	jv "github.com/openebs/jiva-operator/pkg/apis/openebs/v1alpha1"
 	"github.com/openebs/jiva-operator/pkg/jivavolume"
+	analytics "github.com/openebs/jiva-operator/pkg/usage"
 	"github.com/openebs/jiva-operator/pkg/utils"
+	env "github.com/openebs/lib-csi/pkg/common/env"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
@@ -42,6 +44,18 @@ const (
 	defaultReplicaSC = "openebs-hostpath"
 	defaultNS        = "openebs"
 	defaultSizeBytes = 5 * helpers.GiB
+	// pvcNameKey holds the name of the PVC which is passed as a parameter
+	// in CreateVolume request
+	pvcNameKey = "csi.storage.k8s.io/pvc/name"
+
+	// OpenEBSNamespace is the environment variable to get openebs namespace
+	// This environment variable is set via kubernetes downward API
+	OpenEBSNamespace = "OPENEBS_NAMESPACE"
+)
+
+var (
+	// openebsNamespace is the namespace where jiva operator is deployed
+	openebsNamespace string
 )
 
 // Client is the wrapper over the k8s client that will be used by
@@ -107,7 +121,7 @@ func (cl *Client) GetJivaVolume(name string) (*jv.JivaVolume, error) {
 func (cl *Client) UpdateJivaVolume(cr *jv.JivaVolume) (bool, error) {
 	err := cl.client.Update(context.TODO(), cr)
 	if err != nil {
-		if errors.IsConflict(err) {
+		if k8serrors.IsConflict(err) {
 			return true, err
 		}
 		logrus.Errorf("Failed to update JivaVolume CR: {%v}, err: {%v}", cr.Name, err)
@@ -140,6 +154,7 @@ func (cl *Client) CreateJivaVolume(req *csi.CreateVolumeRequest) (string, error)
 	)
 	name := utils.StripName(req.GetName())
 	policyName := req.GetParameters()["policy"]
+	pvcName := req.GetParameters()[pvcNameKey]
 	ns, ok := req.GetParameters()["namespace"]
 	if !ok {
 		ns = defaultNS
@@ -183,7 +198,7 @@ func (cl *Client) CreateJivaVolume(req *csi.CreateVolumeRequest) (string, error)
 	obj := jiva.Instance()
 	objExists := &jv.JivaVolume{}
 	err = cl.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: ns}, objExists)
-	if err != nil && errors.IsNotFound(err) {
+	if err != nil && k8serrors.IsNotFound(err) {
 		logrus.Infof("Creating a new JivaVolume CR {name: %v, namespace: %v}", name, ns)
 		err = cl.client.Create(context.TODO(), obj)
 		if err != nil {
@@ -198,6 +213,7 @@ func (cl *Client) CreateJivaVolume(req *csi.CreateVolumeRequest) (string, error)
 		return "", status.Errorf(codes.AlreadyExists, "Failed to create JivaVolume CR, volume with different size already exists")
 	}
 
+	SendEventOrIgnore(pvcName, name, size.String(), "", "jiva-csi", analytics.VolumeProvision)
 	return name, nil
 }
 
@@ -210,6 +226,18 @@ func (cl *Client) ListJivaVolume(volumeID string) (*jv.JivaVolumeList, error) {
 	}
 
 	if err := cl.client.List(context.TODO(), obj, opts...); err != nil {
+		return nil, err
+	}
+
+	return obj, nil
+}
+
+// GetJivaVolume returns the list of JivaVolume resources
+func (cl *Client) GetJivaVolumeResource(volumeID string) (*jv.JivaVolume, error) {
+	volumeID = utils.StripName(volumeID)
+	obj := &jv.JivaVolume{}
+
+	if err := cl.client.Get(context.TODO(), types.NamespacedName{Name: volumeID, Namespace: GetOpenEBSNamespace()}, obj); err != nil {
 		return nil, err
 	}
 
@@ -259,4 +287,27 @@ func (cl *Client) GetNode(nodeName string) (*corev1.Node, error) {
 	}
 	return node, nil
 
+}
+
+// GetOpenEBSNamespace returns namespace where
+// jiva operator is running
+func GetOpenEBSNamespace() string {
+	if openebsNamespace == "" {
+		openebsNamespace = env.Get(OpenEBSNamespace)
+	}
+	return openebsNamespace
+}
+
+// sendEventOrIgnore sends anonymous cstor provision/delete events
+func SendEventOrIgnore(pvcName, pvName, capacity, replicaCount, stgType, method string) {
+	if env.Truthy(analytics.OpenEBSEnableAnalytics) {
+		analytics.New().Build().ApplicationBuilder().
+			SetVolumeType(stgType, method).
+			SetDocumentTitle(pvName).
+			SetCampaignName(pvcName).
+			SetLabel(analytics.EventLabelCapacity).
+			SetReplicaCount(replicaCount, method).
+			SetCategory(method).
+			SetVolumeCapacity(capacity).Send()
+	}
 }
