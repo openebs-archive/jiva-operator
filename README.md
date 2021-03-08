@@ -4,7 +4,7 @@
 [![Slack channel #openebs](https://img.shields.io/badge/slack-openebs-brightgreen.svg?logo=slack)](https://kubernetes.slack.com/messages/openebs)
 [![Twitter](https://img.shields.io/twitter/follow/openebs.svg?style=social&label=Follow)](https://twitter.com/intent/follow?screen_name=openebs)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](https://github.com/openebs/openebs/blob/master/CONTRIBUTING.md)
-
+[![Build Status](https://github.com/openebs/jiva-operator/actions/workflows/build.yaml/badge.svg)](https://github.com/openebs/jiva-operator/actions/workflows/build.yaml)
 
 https://openebs.org/
 

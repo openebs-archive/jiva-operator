@@ -126,11 +126,11 @@ ifeq ($(GIT_TAG),)
 	GIT_TAG := $(COMMIT)
 endif
 
-ifeq (${TRAVIS_TAG}, )
+ifeq (${RELEASE_TAGS}, )
   GIT_TAG = $(COMMIT)
 	export GIT_TAG
 else
-  GIT_TAG = ${TRAVIS_TAG}
+  GIT_TAG = ${RELEASE_TAG}
 	export GIT_TAG
 endif
 
