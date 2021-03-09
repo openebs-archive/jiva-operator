@@ -54,7 +54,8 @@ type JivaVolumeSpec struct {
 	// Policy is the configuration used for creating target
 	// and replica pods during volume provisioning
 	// +nullable
-	Policy JivaVolumePolicySpec `json:"policy,omitempty"`
+	Policy                   JivaVolumePolicySpec `json:"policy,omitempty"`
+	DesiredReplicationFactor int                  `json:"desiredReplicationFactor,omitempty"`
 }
 
 // JivaVolumeStatus defines the observed state of JivaVolume
