@@ -148,6 +148,7 @@ func (r *JivaVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 					instance.Name, err.Error())
 			}
 		}
+		return reconcile.Result{}, r.getAndUpdateVolumeStatus(instance)
 	case openebsiov1alpha1.JivaVolumePhaseSyncing:
 		return reconcile.Result{}, r.getAndUpdateVolumeStatus(instance)
 	case openebsiov1alpha1.JivaVolumePhaseDeleting:
@@ -166,13 +167,13 @@ func (r *JivaVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 func isScaleup(cr *openebsiov1alpha1.JivaVolume) bool {
 	if cr.Spec.DesiredReplicationFactor > cr.Spec.Policy.Target.ReplicationFactor {
 		if cr.Spec.DesiredReplicationFactor-cr.Spec.Policy.Target.ReplicationFactor != 1 {
-			logrus.Errorf("Failed to scaleup, only single replica scaleup is allowed, desired: %v actual: %v",
+			logrus.Errorf("failed to scaleup, only single replica scaleup is allowed, desired: %v actual: %v",
 				cr.Spec.DesiredReplicationFactor, cr.Spec.Policy.Target.ReplicationFactor)
 			return false
 		}
 		if cr.Spec.Policy.Target.ReplicationFactor != cr.Status.ReplicaCount {
-			logrus.Errorf("Failed to scaleup, replica count: %v in status not equal to replicationfatcor: %v",
-				cr.Spec.DesiredReplicationFactor, cr.Spec.Policy.Target.ReplicationFactor)
+			logrus.Errorf("failed to scaleup, replica count: %v in status not equal to replicationfactor: %v",
+				cr.Status.ReplicaCount, cr.Spec.Policy.Target.ReplicationFactor)
 			return false
 		}
 		return true
@@ -229,9 +230,6 @@ func (r *JivaVolumeReconciler) bootstrapJiva(cr *openebsiov1alpha1.JivaVolume) (
 
 // TODO: add logic to create disruption budget for replicas
 func createReplicaPodDisruptionBudget(r *JivaVolumeReconciler, cr *openebsiov1alpha1.JivaVolume) error {
-	if cr.Spec.Policy.Target.ReplicationFactor < 3 {
-		return nil
-	}
 	min := cr.Spec.Policy.Target.ReplicationFactor
 	pdbObj := &policyv1beta1.PodDisruptionBudget{
 		TypeMeta: metav1.TypeMeta{
