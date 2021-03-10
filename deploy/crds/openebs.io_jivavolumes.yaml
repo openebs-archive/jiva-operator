@@ -55,6 +55,8 @@ spec:
                 type: string
               capacity:
                 type: string
+              desiredReplicationFactor:
+                type: integer
               iscsiSpec:
                 nullable: true
                 properties:
