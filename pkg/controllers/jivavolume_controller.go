@@ -149,7 +149,7 @@ func (r *JivaVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			}
 		}
 		return reconcile.Result{}, r.getAndUpdateVolumeStatus(instance)
-	case openebsiov1alpha1.JivaVolumePhaseSyncing:
+	case openebsiov1alpha1.JivaVolumePhaseSyncing, openebsiov1alpha1.JivaVolumePhaseUnkown:
 		return reconcile.Result{}, r.getAndUpdateVolumeStatus(instance)
 	case openebsiov1alpha1.JivaVolumePhaseDeleting:
 		logrus.Info("start tearing down jiva components", "JivaVolume: ", instance.Name)
@@ -166,14 +166,20 @@ func (r *JivaVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 func isScaleup(cr *openebsiov1alpha1.JivaVolume) bool {
 	if cr.Spec.DesiredReplicationFactor > cr.Spec.Policy.Target.ReplicationFactor {
-		if cr.Spec.DesiredReplicationFactor-cr.Spec.Policy.Target.ReplicationFactor != 1 {
-			logrus.Errorf("failed to scaleup, only single replica scaleup is allowed, desired: %v actual: %v",
-				cr.Spec.DesiredReplicationFactor, cr.Spec.Policy.Target.ReplicationFactor)
-			return false
-		}
 		if cr.Spec.Policy.Target.ReplicationFactor != cr.Status.ReplicaCount {
 			logrus.Errorf("failed to scaleup, replica count: %v in status not equal to replicationfactor: %v",
 				cr.Status.ReplicaCount, cr.Spec.Policy.Target.ReplicationFactor)
+			return false
+		}
+		for _, rep := range cr.Status.ReplicaStatuses {
+			if rep.Mode != "RW" {
+				logrus.Errorf("failed to scaleup, all replicas for volume %v should be in RW state", cr.Name)
+				return false
+			}
+		}
+		if cr.Spec.DesiredReplicationFactor-cr.Spec.Policy.Target.ReplicationFactor != 1 {
+			logrus.Errorf("failed to scaleup, only single replica scaleup is allowed, desired: %v actual: %v",
+				cr.Spec.DesiredReplicationFactor, cr.Spec.Policy.Target.ReplicationFactor)
 			return false
 		}
 		return true
@@ -311,12 +317,11 @@ func (r *JivaVolumeReconciler) performScaleup(cr *openebsiov1alpha1.JivaVolume) 
 		return err
 	}
 
-	if err := r.getJivaVolume(cr); err != nil {
-		return fmt.Errorf("%s, err: %v", updateErrMsg, err)
-	}
 	cr.Spec.Policy.Target.ReplicationFactor = int(desiredReplicas)
 	cr.Status.Phase = openebsiov1alpha1.JivaVolumePhaseSyncing
-	r.finally(nil, cr)
+	if err := r.updateJivaVolume(cr); err != nil {
+		return fmt.Errorf("failed to update JivaVolume phase: %s", err.Error())
+	}
 	return nil
 }
 
@@ -1021,6 +1026,8 @@ func (r *JivaVolumeReconciler) getAndUpdateVolumeStatus(cr *openebsiov1alpha1.Ji
 		cr.Status.Phase = openebsiov1alpha1.JivaVolumePhaseReady
 	} else if stats.TargetStatus == "RO" {
 		cr.Status.Phase = openebsiov1alpha1.JivaVolumePhaseSyncing
+	} else {
+		cr.Status.Phase = openebsiov1alpha1.JivaVolumePhaseUnkown
 	}
 
 	return nil

@@ -119,6 +119,10 @@ const (
 	// has failed
 	JivaVolumePhaseFailed JivaVolumePhase = "Failed"
 
+	// JivaVolumePhaseUnkown indicates that the jivavolume status get
+	// failed as controller was not reachable
+	JivaVolumePhaseUnkown JivaVolumePhase = "Unknown"
+
 	// JivaVolumePhaseReady indicates that the jivavolume provisioning
 	// has Created
 	JivaVolumePhaseReady JivaVolumePhase = "Ready"
