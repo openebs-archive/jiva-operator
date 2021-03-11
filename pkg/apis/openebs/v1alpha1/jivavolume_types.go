@@ -54,7 +54,8 @@ type JivaVolumeSpec struct {
 	// Policy is the configuration used for creating target
 	// and replica pods during volume provisioning
 	// +nullable
-	Policy JivaVolumePolicySpec `json:"policy,omitempty"`
+	Policy                   JivaVolumePolicySpec `json:"policy,omitempty"`
+	DesiredReplicationFactor int                  `json:"desiredReplicationFactor,omitempty"`
 }
 
 // JivaVolumeStatus defines the observed state of JivaVolume
@@ -117,6 +118,10 @@ const (
 	// JivaVolumePhaseFailed indicates that the jivavolume provisioning
 	// has failed
 	JivaVolumePhaseFailed JivaVolumePhase = "Failed"
+
+	// JivaVolumePhaseUnkown indicates that the jivavolume status get
+	// failed as controller was not reachable
+	JivaVolumePhaseUnkown JivaVolumePhase = "Unknown"
 
 	// JivaVolumePhaseReady indicates that the jivavolume provisioning
 	// has Created

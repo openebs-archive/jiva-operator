@@ -139,21 +139,52 @@ func (r *JivaVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// depends upon the error. If bootstrap is successful it will set the Phase
 	// to syncing which will be changed to Ready later when volume becomes RW
 	switch instance.Status.Phase {
-	case openebsiov1alpha1.JivaVolumePhaseReady, openebsiov1alpha1.JivaVolumePhaseSyncing:
+	case openebsiov1alpha1.JivaVolumePhaseReady:
+		if isScaleup(instance) {
+			logrus.Info("performing scaleup operation on " + instance.Name)
+			err = r.performScaleup(instance)
+			if err != nil {
+				return reconcile.Result{}, fmt.Errorf("failed to scaleup volume %s: %s",
+					instance.Name, err.Error())
+			}
+		}
+		return reconcile.Result{}, r.getAndUpdateVolumeStatus(instance)
+	case openebsiov1alpha1.JivaVolumePhaseSyncing, openebsiov1alpha1.JivaVolumePhaseUnkown:
 		return reconcile.Result{}, r.getAndUpdateVolumeStatus(instance)
 	case openebsiov1alpha1.JivaVolumePhaseDeleting:
 		logrus.Info("start tearing down jiva components", "JivaVolume: ", instance.Name)
 		return reconcile.Result{}, nil
-	case openebsiov1alpha1.JivaVolumePhasePending, openebsiov1alpha1.JivaVolumePhaseFailed:
+	case "", openebsiov1alpha1.JivaVolumePhasePending, openebsiov1alpha1.JivaVolumePhaseFailed:
 		if ok {
 			logrus.Info("start bootstraping jiva components", "JivaVolume: ", instance.Name)
 			return reconcile.Result{}, r.bootstrapJiva(instance)
 		}
 	}
 
-	logrus.Info("start bootstraping jiva components", "JivaVolume: ", instance.Name)
-	return reconcile.Result{}, r.bootstrapJiva(instance)
+	return reconcile.Result{}, nil
+}
 
+func isScaleup(cr *openebsiov1alpha1.JivaVolume) bool {
+	if cr.Spec.DesiredReplicationFactor > cr.Spec.Policy.Target.ReplicationFactor {
+		if cr.Spec.Policy.Target.ReplicationFactor != cr.Status.ReplicaCount {
+			logrus.Errorf("failed to scaleup, replica count: %v in status not equal to replicationfactor: %v",
+				cr.Status.ReplicaCount, cr.Spec.Policy.Target.ReplicationFactor)
+			return false
+		}
+		for _, rep := range cr.Status.ReplicaStatuses {
+			if rep.Mode != "RW" {
+				logrus.Errorf("failed to scaleup, all replicas for volume %v should be in RW state", cr.Name)
+				return false
+			}
+		}
+		if cr.Spec.DesiredReplicationFactor-cr.Spec.Policy.Target.ReplicationFactor != 1 {
+			logrus.Errorf("failed to scaleup, only single replica scaleup is allowed, desired: %v actual: %v",
+				cr.Spec.DesiredReplicationFactor, cr.Spec.Policy.Target.ReplicationFactor)
+			return false
+		}
+		return true
+	}
+	return false
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -245,6 +276,52 @@ func createReplicaPodDisruptionBudget(r *JivaVolumeReconciler, cr *openebsiov1al
 		return operr.Wrapf(err, "failed to get the pod disruption budget details: %v", pdbObj.Name)
 	}
 
+	return nil
+}
+
+func (r *JivaVolumeReconciler) performScaleup(cr *openebsiov1alpha1.JivaVolume) error {
+	// update the replica sts with the desired replica count
+	// this will bring a new hostpath pvc on a new node and a
+	// new pod
+	replicaName := cr.Name + "-jiva-rep"
+	replicaSTS := &appsv1.StatefulSet{}
+	err := r.Get(context.TODO(),
+		types.NamespacedName{Name: replicaName, Namespace: cr.Namespace}, replicaSTS)
+	if err != nil {
+		return err
+	}
+	desiredReplicas := int32(cr.Spec.DesiredReplicationFactor)
+	newReplicaSTS := replicaSTS.DeepCopy()
+	newReplicaSTS.Spec.Replicas = &desiredReplicas
+	err = r.Patch(context.TODO(), newReplicaSTS, client.MergeFrom(replicaSTS))
+	if err != nil {
+		return err
+	}
+
+	// update the controller envs to the desired replica count
+	controllerName := cr.Name + "-jiva-ctrl"
+	ctrlDeploy := &appsv1.Deployment{}
+	err = r.Get(context.TODO(),
+		types.NamespacedName{Name: controllerName, Namespace: cr.Namespace}, ctrlDeploy)
+	if err != nil {
+		return err
+	}
+	newCtrlDeploy := ctrlDeploy.DeepCopy()
+	for i, con := range newCtrlDeploy.Spec.Template.Spec.Containers {
+		if con.Name == "jiva-controller" {
+			newCtrlDeploy.Spec.Template.Spec.Containers[i].Env[0].Value = strconv.Itoa(cr.Spec.DesiredReplicationFactor)
+		}
+	}
+	err = r.Patch(context.TODO(), newCtrlDeploy, client.MergeFrom(ctrlDeploy))
+	if err != nil {
+		return err
+	}
+
+	cr.Spec.Policy.Target.ReplicationFactor = int(desiredReplicas)
+	cr.Status.Phase = openebsiov1alpha1.JivaVolumePhaseSyncing
+	if err := r.updateJivaVolume(cr); err != nil {
+		return fmt.Errorf("failed to update JivaVolume phase: %s", err.Error())
+	}
 	return nil
 }
 
@@ -820,6 +897,7 @@ func populateJivaVolumePolicy(r *JivaVolumeReconciler, cr *openebsiov1alpha1.Jiv
 		validatePolicySpec(&policySpec)
 	}
 	cr.Spec.Policy = policySpec
+	cr.Spec.DesiredReplicationFactor = policySpec.Target.ReplicationFactor
 	return nil
 }
 
@@ -948,6 +1026,8 @@ func (r *JivaVolumeReconciler) getAndUpdateVolumeStatus(cr *openebsiov1alpha1.Ji
 		cr.Status.Phase = openebsiov1alpha1.JivaVolumePhaseReady
 	} else if stats.TargetStatus == "RO" {
 		cr.Status.Phase = openebsiov1alpha1.JivaVolumePhaseSyncing
+	} else {
+		cr.Status.Phase = openebsiov1alpha1.JivaVolumePhaseUnkown
 	}
 
 	return nil
