@@ -20,6 +20,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	env "runtime"
 	"strings"
 	"time"
 
@@ -37,6 +38,8 @@ import (
 
 	openebsiov1alpha1 "github.com/openebs/jiva-operator/pkg/apis/openebs/v1alpha1"
 	"github.com/openebs/jiva-operator/pkg/controllers"
+	"github.com/openebs/jiva-operator/version"
+	"github.com/sirupsen/logrus"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -50,6 +53,12 @@ func init() {
 
 	utilruntime.Must(openebsiov1alpha1.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
+}
+
+func printVersion() {
+	logrus.Info(fmt.Sprintf("Go Version: %s", env.Version()))
+	logrus.Info(fmt.Sprintf("Go OS/Arch: %s/%s", env.GOOS, env.GOARCH))
+	logrus.Info(fmt.Sprintf("Version of jiva-operator: %v", version.Version))
 }
 
 func main() {
@@ -87,13 +96,15 @@ func main() {
 	}
 
 	if err = (&controllers.JivaVolumeReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:   mgr.GetClient(),
+		Scheme:   mgr.GetScheme(),
+		Recorder: mgr.GetEventRecorderFor("jivavolume-controller"),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "JivaVolume")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder
+	printVersion()
 
 	if err := mgr.AddHealthzCheck("health", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")
@@ -110,6 +121,7 @@ func main() {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
+
 }
 
 // getOpenebsNamespace gets the namespace OPENEBS_NAMESPACE env value which is

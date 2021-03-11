@@ -47,6 +47,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -58,7 +59,8 @@ import (
 // JivaVolumeReconciler reconciles a JivaVolume object
 type JivaVolumeReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme   *runtime.Scheme
+	Recorder record.EventRecorder
 }
 
 type upgradeParams struct {
@@ -140,10 +142,12 @@ func (r *JivaVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// to syncing which will be changed to Ready later when volume becomes RW
 	switch instance.Status.Phase {
 	case openebsiov1alpha1.JivaVolumePhaseReady:
-		if isScaleup(instance) {
+		if r.isScaleup(instance) {
 			logrus.Info("performing scaleup operation on " + instance.Name)
 			err = r.performScaleup(instance)
 			if err != nil {
+				r.Recorder.Eventf(instance, corev1.EventTypeWarning,
+					"ReplicaScaleup", "failed to scaleup volume, due to error: %v", err)
 				return reconcile.Result{}, fmt.Errorf("failed to scaleup volume %s: %s",
 					instance.Name, err.Error())
 			}
@@ -164,20 +168,28 @@ func (r *JivaVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	return reconcile.Result{}, nil
 }
 
-func isScaleup(cr *openebsiov1alpha1.JivaVolume) bool {
+func (r *JivaVolumeReconciler) isScaleup(cr *openebsiov1alpha1.JivaVolume) bool {
 	if cr.Spec.DesiredReplicationFactor > cr.Spec.Policy.Target.ReplicationFactor {
 		if cr.Spec.Policy.Target.ReplicationFactor != cr.Status.ReplicaCount {
+			r.Recorder.Eventf(cr, corev1.EventTypeWarning,
+				"ReplicaScaleup", "failed to scaleup volume, replica count: %v in status not equal to replicationfactor: %v",
+				cr.Status.ReplicaCount, cr.Spec.Policy.Target.ReplicationFactor)
 			logrus.Errorf("failed to scaleup, replica count: %v in status not equal to replicationfactor: %v",
 				cr.Status.ReplicaCount, cr.Spec.Policy.Target.ReplicationFactor)
 			return false
 		}
 		for _, rep := range cr.Status.ReplicaStatuses {
 			if rep.Mode != "RW" {
+				r.Recorder.Eventf(cr, corev1.EventTypeWarning,
+					"ReplicaScaleup", "failed to scaleup volume, all replicas for volume %v should be in RW state", cr.Name)
 				logrus.Errorf("failed to scaleup, all replicas for volume %v should be in RW state", cr.Name)
 				return false
 			}
 		}
 		if cr.Spec.DesiredReplicationFactor-cr.Spec.Policy.Target.ReplicationFactor != 1 {
+			r.Recorder.Eventf(cr, corev1.EventTypeWarning,
+				"ReplicaScaleup", "failed to scaleup volume, only single replica scaleup is allowed, desired: %v actual: %v",
+				cr.Spec.DesiredReplicationFactor, cr.Spec.Policy.Target.ReplicationFactor)
 			logrus.Errorf("failed to scaleup, only single replica scaleup is allowed, desired: %v actual: %v",
 				cr.Spec.DesiredReplicationFactor, cr.Spec.Policy.Target.ReplicationFactor)
 			return false
@@ -200,6 +212,7 @@ func (r *JivaVolumeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *JivaVolumeReconciler) finally(err error, cr *openebsiov1alpha1.JivaVolume) {
 	if err != nil {
 		cr.Status.Phase = openebsiov1alpha1.JivaVolumePhaseFailed
+		logrus.Errorf("failed to bootstrap volume %s, due to error: %v", cr.Name, err)
 	} else {
 		cr.Status.Phase = openebsiov1alpha1.JivaVolumePhaseSyncing
 	}
@@ -227,6 +240,8 @@ func (r *JivaVolumeReconciler) shouldReconcile(cr *openebsiov1alpha1.JivaVolume)
 func (r *JivaVolumeReconciler) bootstrapJiva(cr *openebsiov1alpha1.JivaVolume) (err error) {
 	for _, f := range installFuncs {
 		if err = f(r, cr); err != nil {
+			r.Recorder.Eventf(cr, corev1.EventTypeWarning,
+				"Bootstrap", "failed to bootstrap volume, due to error: %v", err)
 			break
 		}
 	}
