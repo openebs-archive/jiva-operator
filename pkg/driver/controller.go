@@ -329,7 +329,8 @@ func (cs *controller) ControllerExpandVolume(
 	retryCount = 0
 	for retryCount < httpReqRetryCount {
 		httpErr = cli.Post(vol.Data[0].Actions["resize"], input, nil)
-		if httpErr == nil {
+		if httpErr == nil || strings.Contains(httpErr.Error(), "Volume size same as size mentioned") {
+			httpErr = nil
 			break
 		}
 		time.Sleep(httpReqRetryInterval)
