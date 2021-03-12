@@ -141,7 +141,6 @@ jobs:
           IMAGE_ORG: ${{ secrets.IMAGE_ORG}}
         run: |
           make docker.buildx.csi-driver
-          make buildx.push.csi-driver
 
   jiva-operator:
     runs-on: ubuntu-latest
@@ -182,4 +181,3 @@ jobs:
           IMAGE_ORG: ${{ secrets.IMAGE_ORG}}
         run: |
           make docker.buildx.jiva-operator
-          make buildx.push.jiva-operator
