@@ -118,8 +118,6 @@ jobs:
           version: v0.5.1
 
       - name: Build Image
-        env:
-          IMG_RESULT: cache
         run: make docker.buildx.csi-driver
 
   jiva-operator:
@@ -141,6 +139,4 @@ jobs:
           version: v0.5.1
 
       - name: Build Image
-        env:
-          IMG_RESULT: cache
         run: make docker.buildx.jiva-operator
