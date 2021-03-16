@@ -1,0 +1,1 @@
+fix(resize): respond success if volume is already of same size

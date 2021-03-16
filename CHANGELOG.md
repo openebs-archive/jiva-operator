@@ -1,3 +1,29 @@
+v2.7.0 / 2021-03-16
+========================
+
+ * feat(analytics): add google analytics for jiva csi volumes ([#49](https://github.com//pull/49),[@prateekpandey14](https://github.com/prateekpandey14))
+ * feat(operator): add ability to scale up replicas via JivaVolume resource ([#54](https://github.com//pull/54),[@shubham14bajpai](https://github.com/shubham14bajpai))
+ * fix(build): add missing docker login and set tag stages ([#60](https://github.com//pull/60),[@prateekpandey14](https://github.com/prateekpandey14))
+ * fix(resize): respond success if volume is already of same size ([#57](https://github.com//pull/57),[@payes](https://github.com/payes))
+ * fix(operator): add serviceAccountName to replica sts to set the ownerreference permission ([#51](https://github.com//pull/51),[@payes](https://github.com/payes))
+ * refact(operator): move operator to latest operator-sdk version ([#48](https://github.com//pull/48),[@shubham14bajpai](https://github.com/shubham14bajpai))
+ * feat(operator): add events to the jivavolume controller ([#56](https://github.com//pull/56),[@shubham14bajpai](https://github.com/shubham14bajpai))
+
+v2.7.0-RC2 / 2021-03-11
+========================
+
+ * feat(operator): add ability to scale up replicas via JivaVolume resource ([#54](https://github.com//pull/54),[@shubham14bajpai](https://github.com/shubham14bajpai))
+ * fix(build): add missing docker login and set tag stages ([#60](https://github.com//pull/60),[@prateekpandey14](https://github.com/prateekpandey14))
+ * fix(resize): respond success if volume is already of same size ([#57](https://github.com//pull/57),[@payes](https://github.com/payes))
+ * feat(operator): add events to the jivavolume controller ([#56](https://github.com//pull/56),[@shubham14bajpai](https://github.com/shubham14bajpai))
+
+v2.7.0-RC1 / 2021-03-09
+========================
+
+ * fix(operator): add serviceAccountName to replica sts to set the ownerreference permission ([#51](https://github.com//pull/51),[@payes](https://github.com/payes))
+ * feat(analytics): add google analytics for jiva csi volumes ([#49](https://github.com//pull/49),[@prateekpandey14](https://github.com/prateekpandey14))
+ * refact(operator): move operator to latest operator-sdk version ([#48](https://github.com//pull/48),[@shubham14bajpai](https://github.com/shubham14bajpai))
+
 v2.6.0 / 2021-02-15
 ========================
 
