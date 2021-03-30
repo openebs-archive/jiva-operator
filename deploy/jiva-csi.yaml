@@ -8,7 +8,7 @@
 # 2) Check which files are already present in the openebs-csi-plugin container present in csi node pod.
 # 3) Mount the required missing files inside the node-plugin container.
 
-apiVersion: storage.k8s.io/v1beta1
+apiVersion: storage.k8s.io/v1
 kind: CSIDriver
 metadata:
   name: jiva.csi.openebs.io
