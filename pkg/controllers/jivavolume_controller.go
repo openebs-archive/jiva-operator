@@ -631,7 +631,7 @@ func createReplicaStatefulSet(r *JivaVolumeReconciler, cr *openebsiov1alpha1.Jiv
 				if len(cr.Spec.Policy.PriorityClassName) != 0 {
 					ptsBuilder = ptsBuilder.WithPriorityClassName(cr.Spec.Policy.PriorityClassName)
 				}
-				if cr.Spec.Policy.Target.NodeSelector != nil {
+				if cr.Spec.Policy.Replica.NodeSelector != nil {
 					ptsBuilder = ptsBuilder.WithNodeSelector(cr.Spec.Policy.Replica.NodeSelector)
 				}
 				return ptsBuilder
