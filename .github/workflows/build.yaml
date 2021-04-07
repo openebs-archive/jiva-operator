@@ -14,7 +14,13 @@
 
 name: build
 
-on: ['push']
+on:
+  push:
+    paths-ignore:
+    # The line below will be required once docs/ directory is created
+    # - 'docs/**'
+    - 'deploy/helm/**'
+    - 'changelogs/**'
 
 jobs:
   lint:
