@@ -6,7 +6,6 @@ and we have to mention the `JivaVolumePolicy` name in StorageClass parameters to
 Following are list of policies that can be configured based on the requirements.
 
 - [replicationFactor](#replication-factor)
-- [Replica Affinity](#replica-affinity)
 - [Target pod Affinity](#target-pod-affinity)
 - [Resource Request and Limits](#resource-request-and-limits)
 - [Priority Class](#priority-class)
@@ -39,40 +38,6 @@ metadata:
 spec:
   target:
     replicationFactor: 3
-```
-
-### Replica Affinity:
-
-For StatefulSet applications, to distribute single replica volume on specific node we can use the `replicaAffinity` enabled scheduling.
-This feature should be used with delay volume binding i.e. `volumeBindingMode: WaitForFirstConsumer` in StorageClass as shown below.
-
-If `WaitForFirstConsumer` volumeBindingMode is set, then the jiva-csi-provisioner will wait for the scheduler to pick a node. The topology of that selected node will then be set as the first entry in preferred list and will be used  by the jiva-operator to create the volume
-replica on the preferred Node.
-
-```yaml
-apiVersion: storage.k8s.io/v1
-kind: StorageClass
-metadata:
-  name: openebs-jiva-csi-sc
-provisioner: jiva.csi.openebs.io
-allowVolumeExpansion: true
-volumeBindingMode: WaitForFirstConsumer
-parameters:
-  cas-type: "jiva"
-  jivaVolumePolicy: "example-jivavolumepolicy"      // policy created with replicaAffinity set to true
-```
-
-This is required to be enabled via volume policy before provisioning the volume
-
-```yaml
-apiVersion: openebs.io/v1alpha1
-kind: JivaVolumePolicy
-metadata:
-  name: example-jivavolumepolicy
-  namespace: openebs
-spec:
-  replica:
-    affinity: true
 ```
 
 ### Target Pod Affinity:
