@@ -45,7 +45,7 @@ By default this chart installs additional, dependent charts:
 
 | Repository | Name | Version |
 |------------|------|---------|
-| https://openebs.github.io/dynamic-localpv-provisioner | localpv-provisioner | 2.7.0 |
+| https://openebs.github.io/dynamic-localpv-provisioner | localpv-provisioner | 2.8.0 |
 
 
 To disable the dependency during installation, set `openebsLocalpv.enabled` to `false`.
@@ -139,7 +139,7 @@ The following table lists the configurable parameters of the OpenEBS Jiva chart 
 | jivaOperator.image.pullPolicy | string | `"IfNotPresent"` | Jiva operator image pull policy |
 | jivaOperator.image.registry | string | `nil` | Jiva operator image registry |
 | jivaOperator.image.repository | string | `"openebs/jiva-operator"` | Jiva operator image repository |
-| jivaOperator.image.tag | string | `"2.7.0"` |  Jiva operator image tag |
+| jivaOperator.image.tag | string | `"2.8.0"` |  Jiva operator image tag |
 | jivaOperator.nodeSelector | object | `{}` |  Jiva operator pod nodeSelector|
 | jivaOperator.podAnnotations | object | `{}` | Jiva operator pod annotations |
 | jivaOperator.resources | object | `{}` | Jiva operator pod resources |
@@ -148,12 +148,12 @@ The following table lists the configurable parameters of the OpenEBS Jiva chart 
 | jivaCSIPlugin.image.pullPolicy | string | `"IfNotPresent"` | Jiva CSI driver image pull policy |
 | jivaCSIPlugin.image.registry | string | `nil` | Jiva CSI driver image registry |
 | jivaCSIPlugin.image.repository | string | `"openebs/jiva-csi"` |  Jiva CSI driver image repository |
-| jivaCSIPlugin.image.tag | string | `"2.7.0"` | Jiva CSI driver image tag |
+| jivaCSIPlugin.image.tag | string | `"2.8.0"` | Jiva CSI driver image tag |
 | jivaCSIPlugin.name | string | `"jiva-csi-plugin"` | Jiva CSI driver container name |
 | jivaCSIPlugin.remount | string | `"true"` | Jiva CSI driver remount feature, enabled by default |
 | rbac.create | bool | `true` | Enable RBAC |
 | rbac.pspEnabled | bool | `false` | Enable PodSecurityPolicy |
-| release.version | string | `"2.7.0"` | Openebs CStor release version |
+| release.version | string | `"2.8.0"` | Openebs CStor release version |
 | serviceAccount.annotations | object | `{}` | Service Account annotations |
 | serviceAccount.csiController.create | bool | `true` | Enable CSI Controller ServiceAccount |
 | serviceAccount.csiController.name | string | `"openebs-jiva-csi-controller-sa"` | CSI Controller ServiceAccount name |
