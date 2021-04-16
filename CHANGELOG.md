@@ -1,3 +1,18 @@
+v2.8.0 / 2021-04-14
+========================
+
+* fix(controller): fix node selector for replica sts ([#65](https://github.com//pull/65),[@shubham14bajpai](https://github.com/shubham14bajpai))
+* chore(k8s): updated csi driver version to v1 ([#64](https://github.com//pull/64),[@shubham14bajpai](https://github.com/shubham14bajpai))
+
+v2.8.0-RC2 / 2021-04-12
+========================
+
+v2.8.0-RC1 / 2021-04-07
+========================
+
+* fix(controller): fix node selector for replica sts ([#65](https://github.com//pull/65),[@shubham14bajpai](https://github.com/shubham14bajpai))
+* chore(k8s): updated csi driver version to v1 ([#64](https://github.com//pull/64),[@shubham14bajpai](https://github.com/shubham14bajpai))
+
 v2.7.0 / 2021-03-16
 ========================
 
