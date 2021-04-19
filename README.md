@@ -19,9 +19,9 @@ A Jiva Volume comprises of the following components:
 
 ### Compatibility and Feature Matrix
 
-| Operator Version | K8s Version | OpenEBS Version | Dynamic Provisioning | Resize (Expansion) | Snapshots | Raw Block | AccessModes | Status |
+| Project Status | Operator Version | K8s Version | OpenEBS Version | Dynamic Provisioning | Resize (Expansion) | Snapshots | Raw Block | AccessModes |
 | ---------------- | --------------- | ------------------- | --------------- | --------------------------- | ----------- | --------- | --------- | ---------- |
-| 2.6.0+ |   1.17+   |   2.6.0+   |   yes   |    yes    |   no   |   yes   |   RWO   | alpha |
+| Beta | 2.6.0+ |   1.18+   |   2.6.0+   |   yes   |    yes    |   no   |   yes   |   RWO   |
 
 
 
@@ -29,7 +29,6 @@ A Jiva Volume comprises of the following components:
 
 - [Quickly deploy it on K8s and get started](docs/quickstart.md)
 - [Policies Tutorial](docs/tutorials/policies.md)
-- [FAQ and Troubleshooting](docs/troubleshooting/troubleshooting.md)
 
 ### Raising Issues And PRs
 
