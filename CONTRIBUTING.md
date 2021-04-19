@@ -87,7 +87,14 @@ git remote -v
 
 ### Make your changes and build them
 
+* To build operator specific changes
  ```
  cd $GOPATH/src/github.com/openebs/jiva-operator
- make build
+ make build.operator
+ ```
+
+* To build CSI driver plugin specific changes
+ ```
+ cd $GOPATH/src/github.com/openebs/jiva-operator
+ make build.plugin
  ```
