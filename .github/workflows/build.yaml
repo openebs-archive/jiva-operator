@@ -15,15 +15,23 @@
 name: build
 
 on:
+  create:
   push:
+    branches:
+      - 'master'
+      - 'v*'
     paths-ignore:
-    # The line below will be required once docs/ directory is created
-    # - 'docs/**'
-    - 'deploy/helm/**'
-    - 'changelogs/**'
+      - '*.md'
+      - 'changelogs/**'
+      - 'deploy/helm/**'
+      - 'docs/**'
+      - 'LICENSE'
+      - 'MAINTAINERS'
 
 jobs:
   lint:
+    # to ignore builds on release
+    if: ${{ (github.event.ref_type != 'tag') }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -39,6 +47,8 @@ jobs:
           exclude: './vendor/*'
 
   unit-tests:
+    # to ignore builds on release
+    if: ${{ (github.event.ref_type != 'tag') }}
     name: unit tests 
     runs-on: ubuntu-latest
     steps:

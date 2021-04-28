@@ -15,7 +15,9 @@
 name: release
 
 on:
-  create:
+  release:
+    types:
+      - 'created'
     tags:
       - 'v*'
 

@@ -16,15 +16,17 @@ name: ci
 
 on:
   pull_request:
-    paths-ignore:
-      # The line below will be required once docs/ directory is created
-      # - 'docs/**'
-      - 'deploy/helm/**'
-      - 'changelogs/**'
     branches:
       # on pull requests to master and release branches
-      - master
+      - 'master'
       - 'v*'
+    paths-ignore:
+      - '*.md'
+      - 'changelogs/**'
+      - 'deploy/helm/**'
+      - 'docs/**'
+      - 'LICENSE'
+      - 'MAINTAINERS'
 
 jobs:
   lint:
