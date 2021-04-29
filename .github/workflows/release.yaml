@@ -166,6 +166,7 @@ jobs:
           password: ${{ secrets.QUAY_TOKEN }}
 
       - name: Build & Push Image
+        uses: docker/build-push-action@v2
         with:
           context: .
           file: ./build/jiva-operator/jiva-operator.Dockerfile
