@@ -849,18 +849,3 @@ func (ns *node) validateNodePublishReq(
 	}
 	return nil
 }
-
-func (ns *node) validateNodeUnpublishReq(
-	req *csi.NodeUnpublishVolumeRequest,
-) error {
-	if req.GetVolumeId() == "" {
-		return status.Error(codes.InvalidArgument,
-			"Volume ID missing in request")
-	}
-
-	if req.GetTargetPath() == "" {
-		return status.Error(codes.InvalidArgument,
-			"Target path missing in request")
-	}
-	return nil
-}
