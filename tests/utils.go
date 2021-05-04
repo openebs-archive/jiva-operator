@@ -234,22 +234,6 @@ func getControllerDeploymentName() string {
 	return strings.TrimSpace(string(stdout))
 }
 
-func initiateNetworkLossAtController() {
-	controllerPod := getControllerPodName()
-	stdout, stderr, err := Kubectl("exec", "-n", "openebs", controllerPod, "-cjiva-controller", "--", "apt-get", "update")
-	Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-	stdout, stderr, err = Kubectl("exec", "-n", "openebs", controllerPod, "-cjiva-controller", "--", "apt-get", "-y", "install", "iproute")
-	Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-	stdout, stderr, err = Kubectl("exec", "-n", "openebs", controllerPod, "-cjiva-controller", "--", "tc", "qdisc", "add", "dev", "eth0", "root", "netem", "loss", "100.00")
-	Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-}
-
-func removeNetworkLossAtController() {
-	controllerPod := getControllerPodName()
-	stdout, stderr, err := Kubectl("exec", "-n", "openebs", controllerPod, "--", "tc", "qdisc", "del", "dev", "eth0")
-	Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-}
-
 func scaleDownControllerPod() {
 	controllerDeploy := getControllerDeploymentName()
 	stdout, stderr, err := Kubectl("scale", "deployment", "-n", "openebs", controllerDeploy, "--replicas=0")
