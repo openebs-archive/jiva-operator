@@ -28,10 +28,6 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
 
-var (
-	openebsNamespace = "openebs"
-)
-
 func TestMtest(t *testing.T) {
 	//  if os.Getenv("E2ETEST") == "" {
 	//  t.Skip("Run under e2e/")
