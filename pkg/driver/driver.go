@@ -25,13 +25,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// volume can only be published once as
-// read/write on a single node, at any
-// given time
-var supportedAccessMode = &csi.VolumeCapability_AccessMode{
-	Mode: csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER,
-}
-
 // CSIDriver defines a common data structure
 // for drivers
 type CSIDriver struct {
