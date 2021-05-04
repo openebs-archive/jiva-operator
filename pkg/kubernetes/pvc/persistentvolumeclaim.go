@@ -102,15 +102,3 @@ func ContainsName(name string) Predicate {
 
 // PredicateList holds a list of predicate
 type PredicateList []Predicate
-
-// all returns true if all the predicates
-// succeed against the provided pvc
-// instance
-func (l PredicateList) all(p *PVC) bool {
-	for _, pred := range l {
-		if !pred(p) {
-			return false
-		}
-	}
-	return true
-}

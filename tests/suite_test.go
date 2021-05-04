@@ -17,16 +17,12 @@ limitations under the License.
 package volume
 
 import (
-	"encoding/json"
-	"errors"
-	"fmt"
 	"math/rand"
 	"testing"
 	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	appsv1 "k8s.io/api/apps/v1"
 
 	// auth plugins
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -48,24 +44,6 @@ func TestMtest(t *testing.T) {
 	SetDefaultEventuallyTimeout(time.Minute)
 
 	RunSpecs(t, "Test on sanity")
-}
-
-func waitKindnet() error {
-	stdout, stderr, err := Kubectl("-n=kube-system", "get", "ds/kindnet", "-o", "json")
-	if err != nil {
-		return errors.New(string(stderr))
-	}
-
-	var ds appsv1.DaemonSet
-	err = json.Unmarshal(stdout, &ds)
-	if err != nil {
-		return err
-	}
-
-	if ds.Status.NumberReady != 4 {
-		return fmt.Errorf("numberReady is not 4: %d", ds.Status.NumberReady)
-	}
-	return nil
 }
 
 var _ = BeforeSuite(func() {
