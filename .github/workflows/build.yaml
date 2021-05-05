@@ -14,10 +14,24 @@
 
 name: build
 
-on: ['push']
+on:
+  create:
+  push:
+    branches:
+      - 'master'
+      - 'v*'
+    paths-ignore:
+      - '*.md'
+      - 'changelogs/**'
+      - 'deploy/helm/**'
+      - 'docs/**'
+      - 'LICENSE'
+      - 'MAINTAINERS'
 
 jobs:
   lint:
+    # to ignore builds on release
+    if: ${{ (github.event.ref_type != 'tag') }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -33,6 +47,8 @@ jobs:
           exclude: './vendor/*'
 
   unit-tests:
+    # to ignore builds on release
+    if: ${{ (github.event.ref_type != 'tag') }}
     name: unit tests 
     runs-on: ubuntu-latest
     steps:
@@ -106,6 +122,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
+      - name: Set Image Org
+        # sets the default IMAGE_ORG to openebs
+        run: |
+          [ -z "${{ secrets.IMAGE_ORG }}" ] && IMAGE_ORG=openebs || IMAGE_ORG=${{ secrets.IMAGE_ORG }}
+          echo "IMAGE_ORG=${IMAGE_ORG}" >> $GITHUB_ENV
+
+      - name: Set Build Date
+        id: date
+        run: |
+          echo "::set-output name=DATE::$(date -u +'%Y-%m-%dT%H:%M:%S%Z')"
+
       - name: Set Tag
         run: |
           BRANCH="${GITHUB_REF##*/}"
@@ -115,11 +142,24 @@ jobs:
           fi
           echo "TAG=${CI_TAG}" >> $GITHUB_ENV
           echo "BRANCH=${BRANCH}" >> $GITHUB_ENV
+      
+      - name: Docker meta
+        id: docker_meta
+        uses: crazy-max/ghaction-docker-meta@v1
+        with:
+          # add each registry to which the image needs to be pushed here
+          images: |
+            ${{ env.IMAGE_ORG }}/jiva-csi
+            quay.io/${{ env.IMAGE_ORG }}/jiva-csi
+          tag-latest: false
+          tag-custom-only: true
+          tag-custom: |
+            ${{ env.TAG }}
 
       - name: Print Tag info
         run: |
           echo "BRANCH: ${BRANCH}"
-          echo "TAG: ${TAG}"
+          echo "${{ steps.docker_meta.outputs.tags }}"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
@@ -138,8 +178,27 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Login to Quay
+        uses: docker/login-action@v1
+        with:
+          registry: quay.io
+          username: ${{ secrets.QUAY_USERNAME }}
+          password: ${{ secrets.QUAY_TOKEN }}
+
       - name: Build and Push Image
-        run: make docker.buildx.csi-driver
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./build/jiva-csi/jiva-csi.Dockerfile
+          push: true
+          platforms: linux/amd64, linux/arm64
+          tags: |
+            ${{ steps.docker_meta.outputs.tags }}
+          build-args: |
+            DBUILD_DATE=${{ steps.date.outputs.DATE }}
+            DBUILD_REPO_URL=https://github.com/openebs/jiva-operator
+            DBUILD_SITE_URL=https://openebs.io
+            BRANCH=${{ env.BRANCH }}
 
   jiva-operator:
     runs-on: ubuntu-latest
@@ -148,6 +207,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
+      - name: Set Image Org
+        # sets the default IMAGE_ORG to openebs
+        run: |
+          [ -z "${{ secrets.IMAGE_ORG }}" ] && IMAGE_ORG=openebs || IMAGE_ORG=${{ secrets.IMAGE_ORG }}
+          echo "IMAGE_ORG=${IMAGE_ORG}" >> $GITHUB_ENV
+
+      - name: Set Build Date
+        id: date
+        run: |
+          echo "::set-output name=DATE::$(date -u +'%Y-%m-%dT%H:%M:%S%Z')"
+
       - name: Set Tag
         run: |
           BRANCH="${GITHUB_REF##*/}"
@@ -158,11 +228,23 @@ jobs:
           echo "TAG=${CI_TAG}" >> $GITHUB_ENV
           echo "BRANCH=${BRANCH}" >> $GITHUB_ENV
 
+      - name: Docker meta
+        id: docker_meta
+        uses: crazy-max/ghaction-docker-meta@v1
+        with:
+          # add each registry to which the image needs to be pushed here
+          images: |
+            ${{ env.IMAGE_ORG }}/jiva-operator
+            quay.io/${{ env.IMAGE_ORG }}/jiva-operator
+          tag-latest: false
+          tag-custom-only: true
+          tag-custom: |
+            ${{ env.TAG }}
+      
       - name: Print Tag info
         run: |
           echo "BRANCH: ${BRANCH}"
-          echo "TAG: ${TAG}"
-
+          echo "${{ steps.docker_meta.outputs.tags }}"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
@@ -181,5 +263,24 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Login to Quay
+        uses: docker/login-action@v1
+        with:
+          registry: quay.io
+          username: ${{ secrets.QUAY_USERNAME }}
+          password: ${{ secrets.QUAY_TOKEN }}
+
       - name: Build and Push Image
-        run: make docker.buildx.jiva-operator
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./build/jiva-operator/jiva-operator.Dockerfile
+          push: true
+          platforms: linux/amd64, linux/arm64
+          tags: |
+            ${{ steps.docker_meta.outputs.tags }}
+          build-args: |
+            DBUILD_DATE=${{ steps.date.outputs.DATE }}
+            DBUILD_REPO_URL=https://github.com/openebs/jiva-operator
+            DBUILD_SITE_URL=https://openebs.io
+            BRANCH=${{ env.BRANCH }}
