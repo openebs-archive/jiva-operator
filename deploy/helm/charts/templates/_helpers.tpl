@@ -126,3 +126,25 @@ Create labels for jiva csi controller
 {{ include "jiva.csiController.matchLabels" . }}
 {{ include "jiva.csiController.componentLabels" . }}
 {{- end -}}
+
+{{/*
+Create the name of the priority class for csi node plugin
+*/}}
+{{- define "jiva.csiNode.priorityClassName" -}}
+{{- if .Values.csiNode.priorityClass.create }}
+{{- printf "%s-%s" .Release.Name .Values.csiNode.priorityClass.name | trunc 63 | trimSuffix "-" }}
+{{- else }}
+{{- printf "%s" .Values.csiNode.priorityClass.name | trunc 63 | trimSuffix "-" }}
+{{- end }}
+{{- end }}
+
+{{/*
+Create the name of the priority class for csi controller plugin
+*/}}
+{{- define "jiva.csiController.priorityClassName" -}}
+{{- if .Values.csiController.priorityClass.create }}
+{{- printf "%s-%s" .Release.Name .Values.csiController.priorityClass.name | trunc 63 | trimSuffix "-" }}
+{{- else }}
+{{- printf "%s" .Values.csiController.priorityClass.name | trunc 63 | trimSuffix "-" }}
+{{- end }}
+{{- end }}
