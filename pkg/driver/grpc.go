@@ -185,6 +185,9 @@ func (s *nonBlockingGRPCServer) serve(endpoint string, ids csi.IdentityServer, c
 	logrus.Infof("Listening for connections on address: %#v", listener.Addr())
 
 	// Start serving requests on the grpc server created
-	server.Serve(listener)
+	err = server.Serve(listener)
+	if err != nil {
+		logrus.Fatal(err.Error())
+	}
 
 }
