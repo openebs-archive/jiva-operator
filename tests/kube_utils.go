@@ -23,7 +23,7 @@ import (
 
 func execAtLocal(cmd string, input []byte, args ...string) ([]byte, []byte, error) {
 	var stdout, stderr bytes.Buffer
-	command := exec.Command(cmd, args...)
+	command := exec.Command(cmd, args...) //nolint:gosec
 	command.Stdout = &stdout
 	command.Stderr = &stderr
 
