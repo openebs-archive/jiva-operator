@@ -362,9 +362,7 @@ func (m *NodeMounter) MakeFile(pathname string) error {
 			return err
 		}
 	}
-	defer func() {
-		f.Close()
-	}()
+	f.Close()
 	return nil
 }
 
