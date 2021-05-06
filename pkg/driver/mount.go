@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/openebs/jiva-operator/pkg/kubernetes/client"
@@ -356,7 +357,7 @@ func (m *NodeMounter) ExistsPath(pathname string) (bool, error) {
 }
 
 func (m *NodeMounter) MakeFile(pathname string) error {
-	f, err := os.OpenFile(pathname, os.O_CREATE, os.FileMode(0644))
+	f, err := os.OpenFile(filepath.Clean(pathname), os.O_CREATE, os.FileMode(0644))
 	if err != nil {
 		if !os.IsExist(err) {
 			return err
