@@ -220,13 +220,6 @@ func getAppPodName(deployName string) string {
 	return strings.TrimSpace(string(stdout))
 }
 
-func getControllerPodName() string {
-	stdout, stderr, err := Kubectl("get", "po", "--selector", fmt.Sprintf("openebs.io/component=jiva-controller,openebs.io/persistent-volume=%s", pvName), "-n", "openebs", "-o", "jsonpath={.items[*].metadata.name}")
-	Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-	fmt.Println(string(stdout))
-	return strings.TrimSpace(string(stdout))
-}
-
 func getControllerDeploymentName() string {
 	stdout, stderr, err := Kubectl("get", "deploy", "--selector", fmt.Sprintf("openebs.io/component=jiva-controller,openebs.io/persistent-volume=%s", pvName), "-n", "openebs", "-o", "jsonpath={.items[*].metadata.name}")
 	Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
