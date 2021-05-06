@@ -834,18 +834,3 @@ func (ns *node) NodeGetVolumeStats(
 		Usage: stats,
 	}, nil
 }
-
-func (ns *node) validateNodePublishReq(
-	req *csi.NodePublishVolumeRequest,
-) error {
-	if req.GetVolumeCapability() == nil {
-		return status.Error(codes.InvalidArgument,
-			"Volume capability missing in request")
-	}
-
-	if len(req.GetVolumeId()) == 0 {
-		return status.Error(codes.InvalidArgument,
-			"Volume ID missing in request")
-	}
-	return nil
-}
