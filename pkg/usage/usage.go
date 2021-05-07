@@ -17,6 +17,7 @@ limitations under the License.
 package usage
 
 import (
+	"fmt"
 	//node "github.com/openebs/jiva-operator/pkg/kubernetes/node"
 	k8sapi "github.com/openebs/lib-csi/pkg/client/k8s"
 )
@@ -196,7 +197,10 @@ func (u *Usage) SetValue(v int64) *Usage {
 func (u *Usage) Build() *Usage {
 	// Default ApplicationID for openebs project is OpenEBS
 	v := NewVersion()
-	v.getVersion(false)
+	v, err := getVersion(false)
+	if err != nil {
+		fmt.Print(err)
+	}
 	u.SetApplicationID(AppName).
 		SetTrackingID(GAclientID).
 		SetClientID(v.id).
@@ -210,7 +214,10 @@ func (u *Usage) Build() *Usage {
 // for non install events
 func (u *Usage) ApplicationBuilder() *Usage {
 	v := NewVersion()
-	v.getVersion(false)
+	v, err := getVersion(false)
+	if err != nil {
+		fmt.Print(err)
+	}
 	u.SetApplicationVersion(v.openebsVersion).
 		SetApplicationName(v.k8sArch).
 		SetApplicationInstallerID(v.k8sVersion).
@@ -252,7 +259,10 @@ func (u *Usage) SetReplicaCount(count, method string) *Usage {
 
 // InstallBuilder is a concrete builder for install events
 func (u *Usage) InstallBuilder(override bool) *Usage {
-	v := NewVersion()
+	v, err := getVersion(false)
+	if err != nil {
+		fmt.Print(err)
+	}
 	clusterSize, _ := k8sapi.NumberOfNodes()
 	v.getVersion(override)
 	u.SetApplicationVersion(v.openebsVersion).
