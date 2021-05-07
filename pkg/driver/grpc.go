@@ -186,8 +186,6 @@ func (s *nonBlockingGRPCServer) serve(endpoint string, ids csi.IdentityServer, c
 
 	// Start serving requests on the grpc server created
 	err = server.Serve(listener)
-	if err != nil {
-		panic(err)
-	}
+	logrus.Fatal(err.Error())
 
 }

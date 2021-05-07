@@ -41,7 +41,6 @@ import (
 )
 
 const (
-	defaultReplicaSC = "openebs-hostpath"
 	defaultNS        = "openebs"
 	defaultSizeBytes = 5 * helpers.GiB
 	// pvcNameKey holds the name of the PVC which is passed as a parameter

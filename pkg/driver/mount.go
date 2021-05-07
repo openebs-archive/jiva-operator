@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/openebs/jiva-operator/pkg/kubernetes/client"
@@ -113,7 +114,9 @@ func isVolumeReady(volID string, cli *client.Client) (bool, error) {
 func isVolumeReachable(targetPortal string) bool {
 	// Create a connection to test if the iSCSI Portal is reachable,
 	if conn, err := net.Dial("tcp", targetPortal); err == nil {
-		conn.Close()
+		if e := conn.Close(); e != nil {
+			logrus.Fatal(err.Error())
+		}
 		logrus.Debugf("Target: {%v} is reachable to create connections", targetPortal)
 		return true
 	}
@@ -163,7 +166,9 @@ func waitForVolumeToBeReachable(targetPortal string) error {
 	for {
 		// Create a connection to test if the iSCSI Portal is reachable,
 		if conn, err = net.Dial("tcp", targetPortal); err == nil {
-			conn.Close()
+			if e := conn.Close(); e != nil {
+				logrus.Fatal(err.Error())
+			}
 			logrus.Debugf("Target: {%v} is reachable to create connections", targetPortal)
 			return nil
 		}
@@ -330,11 +335,17 @@ func (n *NodeMounter) remountVolume(
 	}
 
 	if stagingPathExists {
-		n.Unmount(vol.Spec.MountInfo.StagingPath)
+		err := n.Unmount(vol.Spec.MountInfo.StagingPath)
+		if err != nil {
+			return err
+		}
 	}
 
 	if targetPathExists {
-		n.Unmount(vol.Spec.MountInfo.TargetPath)
+		err := n.Unmount(vol.Spec.MountInfo.TargetPath)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Unmount and mount operation is performed instead of just remount since
@@ -356,13 +367,13 @@ func (m *NodeMounter) ExistsPath(pathname string) (bool, error) {
 }
 
 func (m *NodeMounter) MakeFile(pathname string) error {
-	f, err := os.OpenFile(pathname, os.O_CREATE, os.FileMode(0644))
+	f, err := os.OpenFile(filepath.Clean(pathname), os.O_CREATE, os.FileMode(0644))
 	if err != nil {
 		if !os.IsExist(err) {
 			return err
 		}
 	}
-	defer f.Close()
+	f.Close()
 	return nil
 }
 
