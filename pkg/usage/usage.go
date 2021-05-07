@@ -196,7 +196,10 @@ func (u *Usage) SetValue(v int64) *Usage {
 func (u *Usage) Build() *Usage {
 	// Default ApplicationID for openebs project is OpenEBS
 	v := NewVersion()
-	v.getVersion(false)
+	err := v.getVersion(false)
+	if err != nil {
+		panic(err)
+	}
 	u.SetApplicationID(AppName).
 		SetTrackingID(GAclientID).
 		SetClientID(v.id).
@@ -210,7 +213,10 @@ func (u *Usage) Build() *Usage {
 // for non install events
 func (u *Usage) ApplicationBuilder() *Usage {
 	v := NewVersion()
-	v.getVersion(false)
+	err := v.getVersion(false)
+	if err != nil {
+		panic(err)
+	}
 	u.SetApplicationVersion(v.openebsVersion).
 		SetApplicationName(v.k8sArch).
 		SetApplicationInstallerID(v.k8sVersion).
@@ -254,7 +260,10 @@ func (u *Usage) SetReplicaCount(count, method string) *Usage {
 func (u *Usage) InstallBuilder(override bool) *Usage {
 	v := NewVersion()
 	clusterSize, _ := k8sapi.NumberOfNodes()
-	v.getVersion(override)
+	err := v.getVersion(override)
+	if err != nil {
+		panic(err)
+	}
 	u.SetApplicationVersion(v.openebsVersion).
 		SetApplicationName(v.k8sArch).
 		SetApplicationInstallerID(v.k8sVersion).
