@@ -262,9 +262,7 @@ func (u *Usage) InstallBuilder(override bool) *Usage {
 	v := NewVersion()
 	clusterSize, _ := k8sapi.NumberOfNodes()
 	err := v.getVersion(override)
-	if err != nil {
-		panic(err)
-	}
+	logger.Error(err)
 	u.SetApplicationVersion(v.openebsVersion).
 		SetApplicationName(v.k8sArch).
 		SetApplicationInstallerID(v.k8sVersion).
