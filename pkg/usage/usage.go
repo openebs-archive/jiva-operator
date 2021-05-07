@@ -19,6 +19,7 @@ package usage
 import (
 	//node "github.com/openebs/jiva-operator/pkg/kubernetes/node"
 	k8sapi "github.com/openebs/lib-csi/pkg/client/k8s"
+	"github.com/schemahero/schemahero/pkg/logger"
 )
 
 // Usage struct represents all information about a usage metric sent to
@@ -198,7 +199,7 @@ func (u *Usage) Build() *Usage {
 	v := NewVersion()
 	err := v.getVersion(false)
 	if err != nil {
-		panic(err)
+		logger.Error(err)
 	}
 	u.SetApplicationID(AppName).
 		SetTrackingID(GAclientID).
@@ -215,7 +216,7 @@ func (u *Usage) ApplicationBuilder() *Usage {
 	v := NewVersion()
 	err := v.getVersion(false)
 	if err != nil {
-		panic(err)
+		logger.Error(err)
 	}
 	u.SetApplicationVersion(v.openebsVersion).
 		SetApplicationName(v.k8sArch).
