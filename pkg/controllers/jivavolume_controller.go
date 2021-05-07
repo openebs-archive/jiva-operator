@@ -39,7 +39,6 @@ import (
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -682,7 +681,7 @@ func createReplicaStatefulSet(r *JivaVolumeReconciler, cr *openebsiov1alpha1.Jiv
 }
 
 func updateJivaVolumeWithServiceInfo(r *JivaVolumeReconciler, cr *openebsiov1alpha1.JivaVolume) error {
-	ctrlSVC := &v1.Service{}
+	ctrlSVC := &corev1.Service{}
 	if err := r.Get(context.TODO(),
 		types.NamespacedName{
 			Name:      cr.Name + "-jiva-ctrl-svc",
@@ -934,7 +933,7 @@ func createControllerService(r *JivaVolumeReconciler, cr *openebsiov1alpha1.Jiva
 		return fmt.Errorf("failed to build service object, err: %v", err)
 	}
 
-	instance := &v1.Service{}
+	instance := &corev1.Service{}
 	err = r.Get(context.TODO(), types.NamespacedName{Name: svcObj.Name, Namespace: svcObj.Namespace}, instance)
 	if err != nil && errors.IsNotFound(err) {
 		// Set JivaVolume instance as the owner and controller

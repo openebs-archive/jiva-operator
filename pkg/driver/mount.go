@@ -219,68 +219,66 @@ func (n *NodeMounter) MonitorMounts() {
 		mountList  []mount.MountPoint
 	)
 	ticker := time.NewTicker(MonitorMountRetryTimeout * time.Second)
-	for {
-		select {
-		case <-ticker.C:
-			request.TransitionVolListLock.Lock()
-			if mountList, err = n.List(); err != nil {
-				request.TransitionVolListLock.Unlock()
-				logrus.Debugf("MonitorMounts: failed to get list of mount paths, err: {%v}", err)
-				break
-			}
+	for range ticker.C {
 
-			// reset the client to avoid caching issue
-			err = n.client.Set()
-			if err != nil {
-				request.TransitionVolListLock.Unlock()
-				logrus.Warningf("MonitorMounts: failed to set client, err: {%v}", err)
-				break
-			}
-
-			if csivolList, err = n.client.ListJivaVolumeWithOpts(map[string]string{
-				"nodeID": n.nodeID,
-			}); err != nil {
-				request.TransitionVolListLock.Unlock()
-				logrus.Debugf("MonitorMounts: failed to get list of jiva volumes attached to this node, err: {%v}", err)
-				break
-			}
-			for _, vol := range csivolList.Items {
-				// ignore remount, since volume must be initializing
-				if vol.Spec.MountInfo.StagingPath == "" ||
-					vol.Spec.MountInfo.TargetPath == "" {
-					continue
-				}
-				// ignore monitoring the mount for a block device
-				if vol.Spec.AccessType == "block" {
-					continue
-				}
-				// Search the volume in the list of mounted volumes at the node
-				// retrieved above
-				stagingMountPoint, stagingPathExists := listContains(
-					vol.Spec.MountInfo.StagingPath, mountList,
-				)
-
-				_, targetPathExists := listContains(
-					vol.Spec.MountInfo.TargetPath, mountList,
-				)
-
-				// If the volume is present in the list verify its state
-				// If stagingPath is in rw then TargetPath will also be in rw
-				// mode
-				if stagingPathExists && targetPathExists && verifyMountOpts(stagingMountPoint.Opts, "rw") {
-					// Continue with remaining volumes since this volume looks
-					// to be in good shape
-					continue
-				}
-
-				if _, ok := request.TransitionVolList[vol.Name]; !ok {
-					request.TransitionVolList[vol.Name] = "Remount"
-					csivol := vol
-					go n.remount(csivol, stagingPathExists, targetPathExists)
-				}
-			}
+		request.TransitionVolListLock.Lock()
+		if mountList, err = n.List(); err != nil {
 			request.TransitionVolListLock.Unlock()
+			logrus.Debugf("MonitorMounts: failed to get list of mount paths, err: {%v}", err)
+			break
 		}
+
+		// reset the client to avoid caching issue
+		err = n.client.Set()
+		if err != nil {
+			request.TransitionVolListLock.Unlock()
+			logrus.Warningf("MonitorMounts: failed to set client, err: {%v}", err)
+			break
+		}
+
+		if csivolList, err = n.client.ListJivaVolumeWithOpts(map[string]string{
+			"nodeID": n.nodeID,
+		}); err != nil {
+			request.TransitionVolListLock.Unlock()
+			logrus.Debugf("MonitorMounts: failed to get list of jiva volumes attached to this node, err: {%v}", err)
+			break
+		}
+		for _, vol := range csivolList.Items {
+			// ignore remount, since volume must be initializing
+			if vol.Spec.MountInfo.StagingPath == "" ||
+				vol.Spec.MountInfo.TargetPath == "" {
+				continue
+			}
+			// ignore monitoring the mount for a block device
+			if vol.Spec.AccessType == "block" {
+				continue
+			}
+			// Search the volume in the list of mounted volumes at the node
+			// retrieved above
+			stagingMountPoint, stagingPathExists := listContains(
+				vol.Spec.MountInfo.StagingPath, mountList,
+			)
+
+			_, targetPathExists := listContains(
+				vol.Spec.MountInfo.TargetPath, mountList,
+			)
+
+			// If the volume is present in the list verify its state
+			// If stagingPath is in rw then TargetPath will also be in rw
+			// mode
+			if stagingPathExists && targetPathExists && verifyMountOpts(stagingMountPoint.Opts, "rw") {
+				// Continue with remaining volumes since this volume looks
+				// to be in good shape
+				continue
+			}
+
+			if _, ok := request.TransitionVolList[vol.Name]; !ok {
+				request.TransitionVolList[vol.Name] = "Remount"
+				csivol := vol
+				go n.remount(csivol, stagingPathExists, targetPathExists)
+			}
+		}
+		request.TransitionVolListLock.Unlock()
 	}
 }
 
