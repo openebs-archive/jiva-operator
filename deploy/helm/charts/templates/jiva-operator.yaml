@@ -40,6 +40,10 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
+            - name: OPENEBS_SERVICEACCOUNT_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.serviceAccountName
             - name: OPERATOR_NAME
               value: "jiva-operator"
             - name: OPENEBS_SERVICEACCOUNT_NAME
