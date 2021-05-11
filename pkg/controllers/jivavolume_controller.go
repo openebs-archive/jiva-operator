@@ -80,7 +80,6 @@ const (
 	pdbAPIVersion            = "policyv1beta1"
 	defaultStorageClass      = "openebs-hostpath"
 	defaultReplicationFactor = 3
-	jivaOperator             = "jiva-operator"
 )
 
 type policyOptFuncs func(*openebsiov1alpha1.JivaVolumePolicySpec, openebsiov1alpha1.JivaVolumePolicySpec)
@@ -95,6 +94,8 @@ var (
 	}
 
 	updateErrMsg = "Failed to update JivaVolume with service info"
+
+	defaultServiceAccountName = os.Getenv("OPENEBS_SERVICEACCOUNT_NAME")
 )
 
 // +kubebuilder:rbac:groups=openebs.io.openebs.io,resources=jivavolumes,verbs=get;list;watch;create;update;patch;delete
@@ -353,7 +354,7 @@ func createControllerDeployment(r *JivaVolumeReconciler, cr *openebsiov1alpha1.J
 			func() *pts.Builder {
 				ptsBuilder := pts.NewBuilder().
 					WithLabels(defaultControllerLabels(cr.Spec.PV)).
-					WithServiceAccountName(jivaOperator).
+					WithServiceAccountName(defaultServiceAccountName).
 					WithAnnotations(defaultAnnotations()).
 					WithTolerations(cr.Spec.Policy.Target.Tolerations...).
 					WithContainerBuilders(
@@ -584,7 +585,7 @@ func createReplicaStatefulSet(r *JivaVolumeReconciler, cr *openebsiov1alpha1.Jiv
 			func() *pts.Builder {
 				ptsBuilder := pts.NewBuilder().
 					WithLabels(defaultReplicaLabels(cr.Spec.PV)).
-					WithServiceAccountName(jivaOperator).
+					WithServiceAccountName(defaultServiceAccountName).
 					WithAffinity(&corev1.Affinity{
 						PodAntiAffinity: &corev1.PodAntiAffinity{
 							RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
