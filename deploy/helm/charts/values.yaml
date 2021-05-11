@@ -50,6 +50,9 @@ jivaOperator:
 
 
 csiController:
+  priorityClass:
+    create: true
+    name: jiva-csi-controller-critical
   componentName: "openebs-jiva-csi-controller"
   attacher:
     name: "csi-attacher"
@@ -112,6 +115,9 @@ jivaCSIPlugin:
   remount: "true"
 
 csiNode:
+  priorityClass:
+    create: true
+    name: jiva-csi-node-critical
   componentName: "openebs-jiva-csi-node"
   driverRegistrar:
     name: "csi-node-driver-registrar"
