@@ -31,7 +31,7 @@ Please visit the [link](https://openebs.github.io/jiva-operator) for install ins
 
 ```console
 # Helm
-$ helm install [RELEASE_NAME] openebs-jiva/jiva
+helm install [RELEASE_NAME] openebs-jiva/jiva --namespace [NAMESPACE] --create-namespace
 ```
 
 _See [configuration](#configuration) below._
@@ -47,11 +47,12 @@ By default this chart installs additional, dependent charts:
 |------------|------|---------|
 | https://openebs.github.io/dynamic-localpv-provisioner | localpv-provisioner | 2.8.0 |
 
+**Note:** Find detailed Dynamic LocalPV Provisioner Helm chart configuration options [here](https://github.com/openebs/dynamic-localpv-provisioner/blob/develop/deploy/helm/charts/README.md).
 
 To disable the dependency during installation, set `openebsLocalpv.enabled` to `false`.
 
-```bash
-helm install <your-relase-name> openebs-jiva/jiva --set openebsLocalpv.enabled=false
+```console
+helm install <your-relase-name> openebs-jiva/jiva --namespace <namespace> --create-namespace --set openebsLocalpv.enabled=false
 ```
 
 For more details on dependency see [Jiva chart readme](https://github.com/openebs/jiva-operator/blob/master/deploy/helm/charts/README.md).
@@ -62,7 +63,7 @@ _See [helm dependency](https://helm.sh/docs/helm/helm_dependency/) for command d
 
 ```console
 # Helm
-$ helm uninstall [RELEASE_NAME]
+helm uninstall [RELEASE_NAME] --namespace [NAMESPACE]
 ```
 
 This removes all the Kubernetes components associated with the chart and deletes the release.
@@ -73,12 +74,37 @@ _See [helm uninstall](https://helm.sh/docs/helm/helm_uninstall/) for command doc
 
 ```console
 # Helm
-$ helm upgrade [RELEASE_NAME] [CHART] --install
+helm upgrade [RELEASE_NAME] [CHART] --install --namespace [NAMESPACE]
 ```
 
 ## Configuration
 
 The following table lists the configurable parameters of the OpenEBS Jiva chart and their default values.
+You can modify different parameters by specifying the desired value in the helm install command by using the `--set` and/or the `--set-string` flag(s). You can modify the parameters of the [Dynamic LocalPV Provisioner chart](https://openebs.github.io/dynamic-localpv-provisioner) by adding `localpv-provisioner` before the desired parameter in the helm install command.
+
+In the following sample command we modify `csiNode.nodeSelector` from the Jiva chart to only use the NodeSelector label `openebs.io/data-plane=true` to schedule the openebs-jiva-csi-node DaemonSet pods, and we also modify `hostpathClass.basePath` from the localpv-provisioner chart to change the BasePath directory to '/data' used by the openebs-hostpath StorageClass.
+
+```console
+helm install openebs-jiva openebs-jiva/jiva -n openebs --create-namespace \
+	--set-string csiNode.nodeSelector."openebs\.io/data-plane"=true \
+	--set-string localpv-provisioner.hostpathClass.basePath="/data"
+```
+
+The Dynamic LocalPV Provisioner helm chart (this is a dependency for the Jiva helm chart) includes the [Node Disk Manager (NDM)](https://openebs.github.io/node-disk-manager/) helm chart. This NDM helm chart is disabled by default. You can enable the NDM chart during installation using flags as shown below:
+
+```console
+helm install openebs-jiva openebs-jiva/jiva -n openebs --create-namespace \
+	--set localpv-provisioner.openebsNDM.enabled=true \
+	--set localpv-provisioner.deviceClass.enabled=true
+```
+
+If you have already installed Jiva without NDM, and would like to enable it after installation, use the following command:
+
+```console
+helm upgrade openebs-jiva openebs-jiva/jiva -n openebs \
+	--set localpv-provisioner.openebsNDM.enabled=true \
+	--set localpv-provisioner.deviceClass.enabled=true
+```
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
