@@ -3,6 +3,37 @@ entries:
   jiva:
   - apiVersion: v2
     appVersion: 2.8.0
+    created: "2021-05-13T07:11:58.285350523Z"
+    dependencies:
+    - condition: openebsLocalpv.enabled
+      name: localpv-provisioner
+      repository: https://openebs.github.io/dynamic-localpv-provisioner
+      version: 2.8.1
+    description: Jiva-Operator helm chart for Kubernetes
+    digest: 8c832790cf975e7bb53df9c032b849d4a31e09f8e896f2c162cc16817997f8e4
+    home: http://www.openebs.io/
+    icon: https://raw.githubusercontent.com/cncf/artwork/master/projects/openebs/icon/color/openebs-icon-color.png
+    keywords:
+    - cloud-native-storage
+    - block-storage
+    - iSCSI
+    - storage
+    - jiva
+    - jiva-operator
+    maintainers:
+    - email: prateek.pandey@mayadata.io
+      name: prateekpandey14
+    - email: shubham.bajpai@mayadata.io
+      name: shubham14bajpai
+    name: jiva
+    sources:
+    - https://github.com/openebs/jiva-operator
+    type: application
+    urls:
+    - https://github.com/openebs/jiva-operator/releases/download/jiva-2.8.3/jiva-2.8.3.tgz
+    version: 2.8.3
+  - apiVersion: v2
+    appVersion: 2.8.0
     created: "2021-05-11T09:12:06.81083192Z"
     dependencies:
     - condition: openebsLocalpv.enabled
