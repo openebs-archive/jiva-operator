@@ -182,3 +182,11 @@ analytics:
   enabled: true
   # Specify in hours the duration after which a ping event needs to be sent.
   pingInterval: "24h"
+
+localpv-provisioner:
+  # Disable installation of node-disk-manager components by default
+  openebsNDM:
+    enabled: false
+  # Disable openebs-device deviceClass by default.
+  deviceClass:
+    enabled: false
