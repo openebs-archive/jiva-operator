@@ -19,6 +19,7 @@ package client
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/openebs/jiva-operator/pkg/apis"
@@ -154,10 +155,8 @@ func (cl *Client) CreateJivaVolume(req *csi.CreateVolumeRequest) (string, error)
 	name := utils.StripName(req.GetName())
 	policyName := req.GetParameters()["policy"]
 	pvcName := req.GetParameters()[pvcNameKey]
-	ns, ok := req.GetParameters()["namespace"]
-	if !ok {
-		ns = defaultNS
-	}
+	ns := os.Getenv("OPENEBS_NAMESPACE")
+
 	if req.GetCapacityRange() == nil {
 		logrus.Warningf("CreateVolume: capacity range is nil, provisioning with default size: {%v (bytes)}", defaultSizeBytes)
 		sizeBytes = defaultSizeBytes
