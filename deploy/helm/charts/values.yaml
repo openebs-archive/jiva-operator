@@ -190,3 +190,24 @@ localpv-provisioner:
   # Disable openebs-device deviceClass by default.
   deviceClass:
     enabled: false
+
+defaultClass:
+  # Name of the default default StorageClass
+  name: openebs-jiva-csi-default
+  # If true, enables creation of the openebs-jiva-csi-default StorageClass
+  enabled: true
+  # Available reclaim policies: Delete/Retain, defaults: Delete.
+  reclaimPolicy: Delete
+  # If true, sets the openebs-jiva-csi-default StorageClass as the default StorageClass
+  isDefaultClass: false
+
+defaultPolicy:
+  # Name of the default default JivaVolumePolicy
+  name: openebs-jiva-default-policy
+  # If true, enables creation of the openebs-jiva-default-policy JivaVolumePolicy
+  enabled: true
+  # replicaSC represents the storage class used for creating
+  # the pvc for the replica sts provisioned by localpv provisioner
+  replicaSC: openebs-hostpath
+  # replicas represent the desired replication factor for the jiva volume
+  replicas: 3
