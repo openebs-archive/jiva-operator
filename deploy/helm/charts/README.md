@@ -160,6 +160,14 @@ helm upgrade openebs-jiva openebs-jiva/jiva -n openebs \
 | csiNode.livenessprobe.image.repository | string | `"k8scsi/livenessprobe"` |  CSI livenessprobe image repo |
 | csiNode.livenessprobe.image.tag | string | `"v2.2.0"` | CSI livenessprobe image tag |
 | csiNode.livenessprobe.name | string | `"liveness-probe"` |  CSI livenessprobe container name|
+| defaultPolicy.name | string | `"openebs-jiva-default-policy"` | Default jiva volume policy |
+| defaultPolicy.enabled | bool | `true`  | Enable default jiva volume policy |
+| defaultPolicy.replicaSC | string | `"openebs-hostpath"` | StorageClass used for creating the PVC for the replica STS |
+| defaultPolicy.replicas | string | `"3"` | The desired replication factor for the jiva volumes |
+| defaultClass.name | string | `"openebs-jiva-csi-default"` | Default jiva csi StorageClass |
+| defaultClass.enabled | bool | `true`  | Enable default jiva csi StorageClass |
+| defaultClass.reclaimPolicy | string | `"Delete"` | Reclaim Policy for the StorageClass |
+| defaultClass.isDefaultClass | bool | `false` | Make jiva csi StorageClass as the default StorageClass |
 | jivaOperator.annotations | object | `{}` | Jiva operator annotations |
 | jivaOperator.componentName | string | `"jiva-operator"` | Jiva operator component name |
 | jivaOperator.image.pullPolicy | string | `"IfNotPresent"` | Jiva operator image pull policy |
