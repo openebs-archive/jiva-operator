@@ -16,11 +16,37 @@
 
 3. Access to install RBAC components into kube-system namespace.
 
-4. OpenEBS localpv version 2.6.0 or higher.
-```
-kubectl apply -f https://openebs.github.io/charts/openebs-operator-lite.yaml
-kubectl apply -f https://openebs.github.io/charts/openebs-lite-sc.yaml
-```
+4. OpenEBS localpv-hostpath version 2.6.0 or higher.
+    ```
+    kubectl apply -f  https://openebs.github.io/charts/hostpath-operator.yaml
+    ```
+    Sample hostpath storage class
+    ```yaml
+    #Sample storage classes for OpenEBS Local PV
+    apiVersion: storage.k8s.io/v1
+    kind: StorageClass
+    metadata:
+      name: openebs-hostpath
+      annotations:
+        openebs.io/cas-type: local
+        cas.openebs.io/config: |
+          # hostpath type will create a PV by 
+          # creating a sub-directory under the
+          # BASEPATH provided below.
+          - name: StorageType
+            value: "hostpath"
+          # Specify the location (directory) where
+          # where PV(volume) data will be saved. 
+          # A sub-directory with pv-name will be 
+          # created. When the volume is deleted, 
+          # the PV sub-directory will be deleted.
+          #Default value is /var/openebs/local
+          - name: BasePath
+            value: "/var/openebs/local/"
+    provisioner: openebs.io/local
+    volumeBindingMode: WaitForFirstConsumer
+    reclaimPolicy: Delete
+    ```
 
 ## Install
 
@@ -43,20 +69,16 @@ $ kubectl get pod -n openebs
 NAME                                           READY   STATUS    RESTARTS   AGE
 jiva-operator-7765cbfffd-vt787                 1/1     Running   0          10s                                                             
 openebs-localpv-provisioner-57b44f4664-klsrw   1/1     Running   0          118s                                                            
-openebs-ndm-6dtjz                              1/1     Running   0          2m1s                                                            
-openebs-ndm-operator-f84848f77-j57vr           1/1     Running   1          2m                                                              
-openebs-ndm-qfrjf                              1/1     Running   0          2m1s                                                            
-openebs-ndm-tgpmk                              1/1     Running   0          2m1s                                                            
 openebs-jiva-csi-controller-0                  4/4     Running   0          6m14s                                                           
 openebs-jiva-csi-node-56t5g                    2/2     Running   0          6m13s                                                           
 openebs-jiva-csi-node-xtyhu                    2/2     Running   0          6m20s                                                           
-openebs-jiva-csi-node-h2unk                    2/2     Running   0          6m38s
+openebs-jiva-csi-node-h2unk                    2/2     Running   0          6m20s
 ```
 ### Steps to provision a Jiva Volume
 
 1. Create Jiva volume policy to set various policies for creating a jiva volume.
    A sample jiva volume policy CR looks like:
-   ```
+   ```yaml
     apiVersion: openebs.io/v1alpha1
     kind: JivaVolumePolicy
     metadata:
@@ -87,7 +109,7 @@ openebs-jiva-csi-node-h2unk                    2/2     Running   0          6m38
     This tutorial can be referred to create replicaSC and make use of various policies.
 
 2. Create a Storage Class to dynamically provision volumes by specifying above policy:
-   ```
+   ```yaml
    apiVersion: storage.k8s.io/v1
    kind: StorageClass
    metadata:
@@ -100,7 +122,7 @@ openebs-jiva-csi-node-h2unk                    2/2     Running   0          6m38
    ```
 
 3. Create PVC by specifying the above Storage Class in the PVC spec
-   ```
+   ```yaml
    kind: PersistentVolumeClaim
    apiVersion: v1
    metadata:
@@ -127,7 +149,7 @@ openebs-jiva-csi-node-h2unk                    2/2     Running   0          6m38
    ```
 
 4. Deploy an application using the above PVC:
-   ```
+   ```yaml
    apiVersion: apps/v1
    kind: Deployment
    metadata:

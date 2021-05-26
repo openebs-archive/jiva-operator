@@ -283,7 +283,9 @@ func (r *JivaVolumeReconciler) removeSTSVolume(pvc *corev1.PersistentVolumeClaim
 	pv := &corev1.PersistentVolume{}
 	err := r.Get(context.TODO(),
 		types.NamespacedName{Name: pvc.Spec.VolumeName}, pv)
-
+	if err != nil {
+		return err
+	}
 	newPV := pv.DeepCopy()
 	newPV.ObjectMeta.Finalizers = []string{}
 	err = r.Patch(context.TODO(), newPV, client.MergeFrom(pv))
