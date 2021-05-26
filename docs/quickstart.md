@@ -16,9 +16,10 @@
 
 3. Access to install RBAC components into kube-system namespace.
 
-4. OpenEBS version 2.6.0 or higher.
+4. OpenEBS localpv version 2.6.0 or higher.
 ```
-kubectl apply -f https://raw.githubusercontent.com/openebs/openebs/master/k8s/openebs-operator.yaml
+kubectl apply -f https://openebs.github.io/charts/openebs-operator-lite.yaml
+kubectl apply -f https://openebs.github.io/charts/openebs-lite-sc.yaml
 ```
 
 ## Install
@@ -41,15 +42,11 @@ $ kubectl get pod -n openebs
 
 NAME                                           READY   STATUS    RESTARTS   AGE
 jiva-operator-7765cbfffd-vt787                 1/1     Running   0          10s                                                             
-maya-apiserver-5c5d944d-fpkfj                  1/1     Running   2          2m5s                                                            
-openebs-admission-server-5959f9f9cd-vcwfw      1/1     Running   0          119s                                                            
 openebs-localpv-provisioner-57b44f4664-klsrw   1/1     Running   0          118s                                                            
 openebs-ndm-6dtjz                              1/1     Running   0          2m1s                                                            
 openebs-ndm-operator-f84848f77-j57vr           1/1     Running   1          2m                                                              
 openebs-ndm-qfrjf                              1/1     Running   0          2m1s                                                            
 openebs-ndm-tgpmk                              1/1     Running   0          2m1s                                                            
-openebs-provisioner-cd5759f96-jfcxb            1/1     Running   0          2m3s                                                            
-openebs-snapshot-operator-5f87bd54bf-mmtlh     2/2     Running   0          2m2s                                                            
 openebs-jiva-csi-controller-0                  4/4     Running   0          6m14s                                                           
 openebs-jiva-csi-node-56t5g                    2/2     Running   0          6m13s                                                           
 openebs-jiva-csi-node-xtyhu                    2/2     Running   0          6m20s                                                           

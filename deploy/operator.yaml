@@ -3183,7 +3183,7 @@ metadata:
   namespace: openebs
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
+kind: ClusterRole
 metadata:
   creationTimestamp: null
   name: jiva-operator
@@ -3196,6 +3196,7 @@ rules:
   - services
   - services/finalizers
   - endpoints
+  - persistentvolumes
   - persistentvolumeclaims
   - events
   - configmaps
@@ -3229,7 +3230,7 @@ rules:
 - apiGroups:
   - ""
   resources:
-  - pods
+  - nodes
   verbs:
   - get
 - apiGroups:
@@ -3251,7 +3252,7 @@ rules:
   verbs:
   - '*'
 ---
-kind: RoleBinding
+kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: jiva-operator
@@ -3260,7 +3261,7 @@ subjects:
 - kind: ServiceAccount
   name: jiva-operator
 roleRef:
-  kind: Role
+  kind: ClusterRole
   name: jiva-operator
   apiGroup: rbac.authorization.k8s.io
 ---

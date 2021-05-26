@@ -43,6 +43,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -152,8 +153,20 @@ func (r *JivaVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 					instance.Name, err.Error())
 			}
 		}
+		if err := r.moveReplicasForMissingNodes(instance); err != nil {
+			r.Recorder.Eventf(instance, corev1.EventTypeWarning,
+				"ReplicaMovement", "failed to move replica, due to error: %v", err)
+			return reconcile.Result{}, fmt.Errorf("failed to move replica %s: %s",
+				instance.Name, err.Error())
+		}
 		return reconcile.Result{}, r.getAndUpdateVolumeStatus(instance)
 	case openebsiov1alpha1.JivaVolumePhaseSyncing, openebsiov1alpha1.JivaVolumePhaseUnkown:
+		if err := r.moveReplicasForMissingNodes(instance); err != nil {
+			r.Recorder.Eventf(instance, corev1.EventTypeWarning,
+				"ReplicaMovement", "failed to move replica, due to error: %v", err)
+			return reconcile.Result{}, fmt.Errorf("failed to move replica %s: %s",
+				instance.Name, err.Error())
+		}
 		return reconcile.Result{}, r.getAndUpdateVolumeStatus(instance)
 	case openebsiov1alpha1.JivaVolumePhaseDeleting:
 		logrus.Info("start tearing down jiva components", "JivaVolume: ", instance.Name)
@@ -197,6 +210,102 @@ func (r *JivaVolumeReconciler) isScaleup(cr *openebsiov1alpha1.JivaVolume) bool 
 		return true
 	}
 	return false
+}
+
+func (r *JivaVolumeReconciler) moveReplicasForMissingNodes(cr *openebsiov1alpha1.JivaVolume) error {
+	var (
+		replicaLabel   = "openebs.io/component=jiva-replica,openebs.io/persistent-volume="
+		nodeAnnotation = "volume.kubernetes.io/selected-node"
+	)
+	labelSelector, err := labels.Parse(
+		replicaLabel + cr.Name)
+	if err != nil {
+		return err
+	}
+	pods := corev1.PodList{}
+	err = r.List(context.TODO(), &pods, &client.ListOptions{
+		Namespace:     cr.Namespace,
+		LabelSelector: labelSelector,
+	})
+	if err != nil {
+		return err
+	}
+	for _, pod := range pods.Items {
+		pvc := &corev1.PersistentVolumeClaim{}
+		err = r.Get(context.TODO(),
+			types.NamespacedName{
+				Name:      pod.Spec.Volumes[0].PersistentVolumeClaim.ClaimName,
+				Namespace: pod.Namespace,
+			}, pvc)
+		if err != nil {
+			// if the PVC is missing then only
+			// restarting the sts pod
+			if errors.IsNotFound(err) {
+				err = r.Delete(context.TODO(), &pod)
+				// wait for pod to get deleted and
+				// recreated
+				time.Sleep(5 * time.Second)
+				if err != nil {
+					return err
+				}
+				continue
+			} else {
+				return err
+			}
+		}
+
+		err = r.Get(context.TODO(), types.NamespacedName{
+			Name: pvc.GetAnnotations()[nodeAnnotation],
+		}, &corev1.Node{})
+		if err != nil {
+			if errors.IsNotFound(err) {
+				err = r.removeSTSVolume(pvc)
+				if err != nil {
+					return err
+				}
+				err = r.Delete(context.TODO(), &pod)
+				if err != nil {
+					return err
+				}
+				// wait for pod to get deleted and
+				// recreated
+				time.Sleep(5 * time.Second)
+			} else {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// remove the stale PVC and PV for the missing node
+func (r *JivaVolumeReconciler) removeSTSVolume(pvc *corev1.PersistentVolumeClaim) error {
+	pv := &corev1.PersistentVolume{}
+	err := r.Get(context.TODO(),
+		types.NamespacedName{Name: pvc.Spec.VolumeName}, pv)
+
+	newPV := pv.DeepCopy()
+	newPV.ObjectMeta.Finalizers = []string{}
+	err = r.Patch(context.TODO(), newPV, client.MergeFrom(pv))
+	if err != nil {
+		return err
+	}
+	newPVC := pvc.DeepCopy()
+	newPVC.ObjectMeta.Finalizers = []string{}
+	err = r.Patch(context.TODO(), newPVC, client.MergeFrom(pvc))
+	if err != nil {
+		return err
+	}
+
+	err = r.Delete(context.TODO(), pvc)
+	if err != nil {
+		return err
+	}
+	err = r.Delete(context.TODO(), pv)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
