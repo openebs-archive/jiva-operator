@@ -3233,6 +3233,8 @@ rules:
   - nodes
   verbs:
   - get
+  - list
+  - watch
 - apiGroups:
   - apps
   resources:
