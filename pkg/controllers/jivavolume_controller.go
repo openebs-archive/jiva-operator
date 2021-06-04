@@ -143,6 +143,12 @@ func (r *JivaVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// to syncing which will be changed to Ready later when volume becomes RW
 	switch instance.Status.Phase {
 	case openebsiov1alpha1.JivaVolumePhaseReady:
+		// fetching the latest status before performing
+		// other operations
+		err = r.getAndUpdateVolumeStatus(instance)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
 		if r.isScaleup(instance) {
 			logrus.Info("performing scaleup operation on " + instance.Name)
 			err = r.performScaleup(instance)
