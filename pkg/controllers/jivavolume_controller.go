@@ -269,7 +269,7 @@ func (r *JivaVolumeReconciler) moveReplicasForMissingNodes(cr *openebsiov1alpha1
 				// wait for pod to get deleted and
 				// recreated
 				time.Sleep(5 * time.Second)
-				if err != nil {
+				if err != nil && !errors.IsNotFound(err) {
 					return err
 				}
 				continue
@@ -293,6 +293,11 @@ func (r *JivaVolumeReconciler) moveReplicasForMissingNodes(cr *openebsiov1alpha1
 				// wait for pod to get deleted and
 				// recreated
 				time.Sleep(5 * time.Second)
+				r.Recorder.Eventf(cr, corev1.EventTypeWarning,
+					"ReplicaMovement",
+					"replica %s and it's corresponding PVC & PV deleted",
+					pod.Name,
+				)
 			} else {
 				return err
 			}
