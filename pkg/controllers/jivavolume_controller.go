@@ -212,7 +212,9 @@ func (r *JivaVolumeReconciler) isScaleup(cr *openebsiov1alpha1.JivaVolume) bool 
 	return false
 }
 
-func shouldMoveReplicas(cr *openebsiov1alpha1.JivaVolume) bool {
+// isHAVolume checks if the volume has atleast
+// qurom number of replicas in RW state
+func isHAVolume(cr *openebsiov1alpha1.JivaVolume) bool {
 	if cr.Spec.Policy.Target.ReplicationFactor < 3 {
 		return false
 	}
@@ -233,7 +235,7 @@ func (r *JivaVolumeReconciler) moveReplicasForMissingNodes(cr *openebsiov1alpha1
 
 	// if the volume does not HA replicas in
 	// RW mode skip the process
-	if !shouldMoveReplicas(cr) {
+	if !isHAVolume(cr) {
 		return nil
 	}
 
@@ -255,6 +257,10 @@ func (r *JivaVolumeReconciler) moveReplicasForMissingNodes(cr *openebsiov1alpha1
 		return err
 	}
 	for _, pod := range pods.Items {
+		// perform steps only if the pod is in pending state
+		if pod.Status.Phase != corev1.PodPending {
+			continue
+		}
 		pvc := &corev1.PersistentVolumeClaim{}
 		err = r.Get(context.TODO(),
 			types.NamespacedName{
