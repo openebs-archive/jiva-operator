@@ -43,6 +43,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -142,6 +143,12 @@ func (r *JivaVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// to syncing which will be changed to Ready later when volume becomes RW
 	switch instance.Status.Phase {
 	case openebsiov1alpha1.JivaVolumePhaseReady:
+		// fetching the latest status before performing
+		// other operations
+		err = r.getAndUpdateVolumeStatus(instance)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
 		if r.isScaleup(instance) {
 			logrus.Info("performing scaleup operation on " + instance.Name)
 			err = r.performScaleup(instance)
@@ -151,6 +158,12 @@ func (r *JivaVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 				return reconcile.Result{}, fmt.Errorf("failed to scaleup volume %s: %s",
 					instance.Name, err.Error())
 			}
+		}
+		if err := r.moveReplicasForMissingNodes(instance); err != nil {
+			r.Recorder.Eventf(instance, corev1.EventTypeWarning,
+				"ReplicaMovement", "failed to move replica, due to error: %v", err)
+			return reconcile.Result{}, fmt.Errorf("failed to move replica %s: %s",
+				instance.Name, err.Error())
 		}
 		return reconcile.Result{}, r.getAndUpdateVolumeStatus(instance)
 	case openebsiov1alpha1.JivaVolumePhaseSyncing, openebsiov1alpha1.JivaVolumePhaseUnkown:
@@ -197,6 +210,147 @@ func (r *JivaVolumeReconciler) isScaleup(cr *openebsiov1alpha1.JivaVolume) bool 
 		return true
 	}
 	return false
+}
+
+// isHAVolume checks if the volume has atleast
+// qurom number of replicas in RW state
+func isHAVolume(cr *openebsiov1alpha1.JivaVolume) bool {
+	if cr.Spec.Policy.Target.ReplicationFactor < 3 {
+		return false
+	}
+	availableReplicas := 0
+	qurom := (cr.Spec.Policy.Target.ReplicationFactor / 2) + 1
+	for _, rep := range cr.Status.ReplicaStatuses {
+		if rep.Mode == "RW" {
+			availableReplicas += 1
+			if availableReplicas == qurom {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func (r *JivaVolumeReconciler) moveReplicasForMissingNodes(cr *openebsiov1alpha1.JivaVolume) error {
+
+	// if the volume does not HA replicas in
+	// RW mode skip the process
+	if !isHAVolume(cr) {
+		return nil
+	}
+
+	var (
+		replicaLabel   = "openebs.io/component=jiva-replica,openebs.io/persistent-volume="
+		nodeAnnotation = "volume.kubernetes.io/selected-node"
+	)
+	labelSelector, err := labels.Parse(
+		replicaLabel + cr.Name)
+	if err != nil {
+		return err
+	}
+	pods := corev1.PodList{}
+	err = r.List(context.TODO(), &pods, &client.ListOptions{
+		Namespace:     cr.Namespace,
+		LabelSelector: labelSelector,
+	})
+	if err != nil {
+		return err
+	}
+	for _, pod := range pods.Items {
+		// perform steps only if the pod is in pending state
+		if pod.Status.Phase != corev1.PodPending {
+			continue
+		}
+		pvc := &corev1.PersistentVolumeClaim{}
+		err = r.Get(context.TODO(),
+			types.NamespacedName{
+				Name:      pod.Spec.Volumes[0].PersistentVolumeClaim.ClaimName,
+				Namespace: pod.Namespace,
+			}, pvc)
+		if err != nil {
+			// if the PVC is missing then only
+			// delete the sts pod
+			if errors.IsNotFound(err) {
+				err = r.Delete(context.TODO(), &pod)
+				// wait for pod to get deleted and
+				// recreated
+				time.Sleep(5 * time.Second)
+				if err != nil && !errors.IsNotFound(err) {
+					return err
+				}
+				continue
+			}
+			return err
+		}
+
+		err = r.Get(context.TODO(), types.NamespacedName{
+			Name: pvc.GetAnnotations()[nodeAnnotation],
+		}, &corev1.Node{})
+		if err != nil {
+			if errors.IsNotFound(err) {
+				err = r.removeSTSVolume(pvc)
+				if err != nil {
+					return err
+				}
+				err = r.Delete(context.TODO(), &pod)
+				if err != nil {
+					return err
+				}
+				// wait for pod to get deleted and
+				// recreated
+				time.Sleep(5 * time.Second)
+				r.Recorder.Eventf(cr, corev1.EventTypeWarning,
+					"ReplicaMovement",
+					"replica %s and it's corresponding PVC & PV deleted",
+					pod.Name,
+				)
+			} else {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// remove the stale PVC and PV for the missing node
+func (r *JivaVolumeReconciler) removeSTSVolume(pvc *corev1.PersistentVolumeClaim) error {
+	pv := &corev1.PersistentVolume{}
+	newPV := &corev1.PersistentVolume{}
+	err := r.Get(context.TODO(),
+		types.NamespacedName{Name: pvc.Spec.VolumeName}, pv)
+	if err != nil {
+		// if PV is not found skip over to PVC deletion
+		if errors.IsNotFound(err) {
+			goto deletepvc
+		}
+		return err
+	}
+	newPV = pv.DeepCopy()
+	newPV.ObjectMeta.Finalizers = []string{}
+	err = r.Patch(context.TODO(), newPV, client.MergeFrom(pv))
+	if err != nil {
+		return err
+	}
+	err = r.Delete(context.TODO(), pv)
+	if err != nil {
+		return err
+	}
+
+deletepvc:
+
+	newPVC := pvc.DeepCopy()
+	newPVC.ObjectMeta.Finalizers = []string{}
+	err = r.Patch(context.TODO(), newPVC, client.MergeFrom(pvc))
+	if err != nil {
+		return err
+	}
+
+	err = r.Delete(context.TODO(), pvc)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

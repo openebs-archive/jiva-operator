@@ -13,7 +13,7 @@ metadata:
 {{- if .Values.rbac.create }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
+kind: ClusterRole
 metadata:
   name: jiva-operator
 rules:
@@ -24,6 +24,7 @@ rules:
   - services
   - services/finalizers
   - endpoints
+  - persistentvolumes
   - persistentvolumeclaims
   - events
   - configmaps
@@ -57,9 +58,11 @@ rules:
 - apiGroups:
   - ""
   resources:
-  - pods
+  - nodes
   verbs:
   - get
+  - list
+  - watch
 - apiGroups:
   - apps
   resources:
@@ -79,7 +82,7 @@ rules:
   verbs:
   - '*'
 ---
-kind: RoleBinding
+kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: openebs-jiva-operator
@@ -93,7 +96,7 @@ subjects:
   name: {{ .Values.serviceAccount.jivaOperator.name }}
   namespace: {{ .Release.Namespace }}
 roleRef:
-  kind: Role
+  kind: ClusterRole
   name: jiva-operator
   apiGroup: rbac.authorization.k8s.io
 {{- end }}
