@@ -1,3 +1,32 @@
+v2.10.0 / 2021-06-14
+========================
+* feat(charts): add default policy and storageclass ([#95](https://github.com/openebs/jiva-operator/pull/95),[@shubham14bajpai](https://github.com/shubham14bajpai))
+* feat(operator): automate movement replicas when node is removed from cluster ([#97](https://github.com/openebs/jiva-operator/pull/97),[@shubham14bajpai](https://github.com/shubham14bajpai))
+
+
+v2.10.0-RC2 / 2021-06-11
+========================
+
+
+v2.10.0-RC1 / 2021-06-08
+========================
+* feat(charts): add default policy and storageclass ([#95](https://github.com/openebs/jiva-operator/pull/95),[@shubham14bajpai](https://github.com/shubham14bajpai))
+* feat(operator): automate movement replicas when node is removed from cluster ([#97](https://github.com/openebs/jiva-operator/pull/97),[@shubham14bajpai](https://github.com/shubham14bajpai))
+
+v2.9.0 / 2021-05-15
+========================
+* fix(operator): use configurable serviceAccount ([#88](https://github.com/openebs/jiva-operator/pull/88),[@shubham14bajpai](https://github.com/shubham14bajpai))
+
+
+v2.9.0-RC2 / 2021-05-11
+========================
+* fix(operator): use configurable serviceAccount ([#88](https://github.com/openebs/jiva-operator/pull/88),[@shubham14bajpai](https://github.com/shubham14bajpai))
+
+
+v2.9.0-RC1 / 2021-05-06
+========================
+
+
 v2.8.0 / 2021-04-14
 ========================
 
