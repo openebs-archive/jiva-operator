@@ -202,6 +202,7 @@ func (cl *Client) CreateJivaVolume(req *csi.CreateVolumeRequest) (string, error)
 		if err != nil {
 			return "", status.Errorf(codes.Internal, "Failed to create JivaVolume CR, err: {%v}", err)
 		}
+		SendEventOrIgnore(pvcName, name, size.String(), "", "jiva-csi", analytics.VolumeProvision)
 		return name, nil
 	} else if err != nil {
 		return "", status.Errorf(codes.Internal, "Failed to get the JivaVolume details, err: {%v}", err)
@@ -211,7 +212,6 @@ func (cl *Client) CreateJivaVolume(req *csi.CreateVolumeRequest) (string, error)
 		return "", status.Errorf(codes.AlreadyExists, "Failed to create JivaVolume CR, volume with different size already exists")
 	}
 
-	SendEventOrIgnore(pvcName, name, size.String(), "", "jiva-csi", analytics.VolumeProvision)
 	return name, nil
 }
 
