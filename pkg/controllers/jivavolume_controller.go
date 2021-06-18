@@ -71,9 +71,7 @@ type upgradeParams struct {
 type upgradeFunc func(u *upgradeParams) (*openebsiov1alpha1.JivaVolume, error)
 
 var (
-	// log           = logf.Log.WithName("controller_jivavolume")
-	svcNameFormat = "%s-jiva-ctrl-svc.%s.svc.cluster.local"
-	upgradeMap    = map[string]upgradeFunc{}
+	upgradeMap = map[string]upgradeFunc{}
 )
 
 const (
@@ -714,7 +712,20 @@ func createReplicaStatefulSet(r *JivaVolumeReconciler, cr *openebsiov1alpha1.Jiv
 		replicaCount                   int32
 		stsObj                         *appsv1.StatefulSet
 		blockOwnerDeletion, controller = false, true
+		svcName                        = cr.Name + "-jiva-ctrl-svc"
 	)
+
+	svc := &corev1.Service{}
+	err = r.Get(context.TODO(),
+		types.NamespacedName{
+			Name:      svcName,
+			Namespace: cr.Namespace,
+		},
+		svc)
+	if err != nil {
+		return fmt.Errorf("failed to get svc %s, err: %v", svcName, err)
+	}
+
 	rc := cr.Spec.Policy.Target.ReplicationFactor
 	replicaCount = int32(rc)
 	prev := true
@@ -763,7 +774,7 @@ func createReplicaStatefulSet(r *JivaVolumeReconciler, cr *openebsiov1alpha1.Jiv
 							WithArgumentsNew([]string{
 								"replica",
 								"--frontendIP",
-								fmt.Sprintf(svcNameFormat, cr.Name, cr.Namespace),
+								svc.Spec.ClusterIP,
 								"--size",
 								fmt.Sprint(capacity),
 								"openebs",
