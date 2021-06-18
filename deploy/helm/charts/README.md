@@ -173,7 +173,7 @@ helm upgrade openebs-jiva openebs-jiva/jiva -n openebs \
 | jivaOperator.image.pullPolicy | string | `"IfNotPresent"` | Jiva operator image pull policy |
 | jivaOperator.image.registry | string | `nil` | Jiva operator image registry |
 | jivaOperator.image.repository | string | `"openebs/jiva-operator"` | Jiva operator image repository |
-| jivaOperator.image.tag | string | `"2.10.0"` |  Jiva operator image tag |
+| jivaOperator.image.tag | string | `"2.10.1"` |  Jiva operator image tag |
 | jivaOperator.nodeSelector | object | `{}` |  Jiva operator pod nodeSelector|
 | jivaOperator.podAnnotations | object | `{}` | Jiva operator pod annotations |
 | jivaOperator.resources | object | `{}` | Jiva operator pod resources |
@@ -182,12 +182,12 @@ helm upgrade openebs-jiva openebs-jiva/jiva -n openebs \
 | jivaCSIPlugin.image.pullPolicy | string | `"IfNotPresent"` | Jiva CSI driver image pull policy |
 | jivaCSIPlugin.image.registry | string | `nil` | Jiva CSI driver image registry |
 | jivaCSIPlugin.image.repository | string | `"openebs/jiva-csi"` |  Jiva CSI driver image repository |
-| jivaCSIPlugin.image.tag | string | `"2.10.0"` | Jiva CSI driver image tag |
+| jivaCSIPlugin.image.tag | string | `"2.10.1"` | Jiva CSI driver image tag |
 | jivaCSIPlugin.name | string | `"jiva-csi-plugin"` | Jiva CSI driver container name |
 | jivaCSIPlugin.remount | string | `"true"` | Jiva CSI driver remount feature, enabled by default |
 | rbac.create | bool | `true` | Enable RBAC |
 | rbac.pspEnabled | bool | `false` | Enable PodSecurityPolicy |
-| release.version | string | `"2.10.0"` | Openebs CStor release version |
+| release.version | string | `"2.10.0"` | Openebs Jiva release version |
 | serviceAccount.annotations | object | `{}` | Service Account annotations |
 | serviceAccount.csiController.create | bool | `true` | Enable CSI Controller ServiceAccount |
 | serviceAccount.csiController.name | string | `"openebs-jiva-csi-controller-sa"` | CSI Controller ServiceAccount name |
