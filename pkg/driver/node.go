@@ -33,6 +33,7 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 )
 
@@ -188,9 +189,32 @@ func (ns *node) NodeStageVolume(
 		return nil, status.Error(codes.FailedPrecondition, err.Error())
 	}
 
+	// check the owner node status
+	// if the previous node is not ready, allow
+	// mount to another another node
+	var nodeOk bool
+	if nodeName, ok := instance.Labels["nodeID"]; ok {
+		node, err := ns.client.GetNode(nodeName)
+		if err != nil && !errors.IsNotFound(err) {
+			return nil, status.Error(codes.Internal, err.Error())
+		}
+		if err == nil {
+			nodeOk = isNodeReady(node)
+		}
+	}
+
+	// if the jivaVolume CR has any existing targetPath and the
+	// pevious node is ready abort the stage request
+	if instance.Spec.MountInfo.TargetPath != "" && nodeOk {
+		err = fmt.Errorf("Volume {%v} is already mounted at more than one place: {%v}",
+			reqParam.volumeID, instance.Spec.MountInfo)
+		return nil, status.Error(codes.FailedPrecondition, err.Error())
+
+	}
+
 	// Volume may be mounted at targetPath (bind mount in NodePublish)
 	if err := ns.isAlreadyMounted(reqParam.volumeID, reqParam.stagingPath); err != nil {
-		return nil, err
+		return nil, status.Error(codes.FailedPrecondition, err.Error())
 	}
 
 	// A temporary TCP connection is made to the volume to check if its
@@ -213,7 +237,7 @@ update:
 	// JivaVolume CR may be updated by jiva-operator
 	instance, err = ns.client.GetJivaVolume(reqParam.volumeID)
 	if err != nil {
-		return nil, err
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	instance.Spec.MountInfo.FSType = reqParam.fsType
@@ -261,6 +285,17 @@ func (ns *node) doesVolumeExist(volID string) (*jv.JivaVolume, error) {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 	return instance, nil
+}
+
+func isNodeReady(node *corev1.Node) bool {
+	for _, cond := range node.Status.Conditions {
+		if cond.Type == corev1.NodeReady {
+			if cond.Status == corev1.ConditionTrue {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // NodeUnstageVolume unmounts the volume from
