@@ -193,7 +193,8 @@ func (ns *node) NodeStageVolume(
 	// if the previous node is not ready, allow
 	// mount to another another node
 	var nodeOk bool
-	if nodeName, ok := instance.Labels["nodeID"]; ok {
+	isSelfNode := instance.Labels["nodeID"] == ns.driver.config.NodeID || instance.Labels["nodeID"] == ""
+	if nodeName := instance.Labels["nodeID"]; nodeName != "" {
 		node, err := ns.client.GetNode(nodeName)
 		if err != nil && !errors.IsNotFound(err) {
 			return nil, status.Error(codes.Internal, err.Error())
@@ -205,8 +206,8 @@ func (ns *node) NodeStageVolume(
 
 	// if the jivaVolume CR has any existing targetPath and the
 	// pevious node is ready abort the stage request
-	if instance.Spec.MountInfo.TargetPath != "" && nodeOk {
-		err = fmt.Errorf("Volume {%v} is already mounted at more than one place: {%v}",
+	if !isSelfNode && nodeOk {
+		err = fmt.Errorf("volume {%v} is already mounted at more than one place: {%v}",
 			reqParam.volumeID, instance.Spec.MountInfo)
 		return nil, status.Error(codes.FailedPrecondition, err.Error())
 
@@ -227,6 +228,14 @@ func (ns *node) NodeStageVolume(
 			status.Error(codes.FailedPrecondition, err.Error())
 	}
 
+	// update the jivaVolume CR with the staging path and nodeID
+	instance.Spec.MountInfo.FSType = reqParam.fsType
+	instance.Spec.MountInfo.StagingPath = reqParam.stagingPath
+	instance.Labels["nodeID"] = ns.driver.config.NodeID
+	if _, err := ns.client.UpdateJivaVolume(instance); err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
 	devicePath, err := ns.attachDisk(instance)
 	if err != nil {
 		logrus.Errorf("NodeStageVolume: failed to attachDisk for volume: {%v}, err: {%v}", reqParam.volumeID, err)
@@ -240,10 +249,8 @@ update:
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	instance.Spec.MountInfo.FSType = reqParam.fsType
 	instance.Spec.MountInfo.DevicePath = devicePath
-	instance.Spec.MountInfo.StagingPath = reqParam.stagingPath
-	instance.Labels["nodeID"] = ns.driver.config.NodeID
+
 	if conflict, err := ns.client.UpdateJivaVolume(instance); err != nil {
 		if conflict {
 			logrus.Infof("Failed to update JivaVolume CR, err: %v. Retrying", err)
@@ -462,11 +469,6 @@ func (ns *node) NodePublishVolume(
 		return nil, err
 	}
 
-	// Volume may be mounted at targetPath (bind mount in NodePublish)
-	if err := ns.isAlreadyMounted(volumeID, target); err != nil {
-		return nil, err
-	}
-
 	mountOptions := []string{"bind"}
 	if req.GetReadonly() {
 		mountOptions = append(mountOptions, "ro")
@@ -653,7 +655,7 @@ func (ns *node) isAlreadyMounted(volID, path string) error {
 		if mounted, ok := currentMounts[path]; ok && mounted {
 			return nil
 		}
-		return fmt.Errorf("Volume {%v} is already mounted at more than one place: {%v}", volID, currentMounts)
+		return fmt.Errorf("volume {%v} is already mounted at more than one place: {%v}", volID, currentMounts)
 	}
 
 	return nil
