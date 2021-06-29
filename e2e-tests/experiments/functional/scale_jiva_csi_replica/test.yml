@@ -1,0 +1,147 @@
+---
+
+- hosts: localhost
+  connection: local
+  gather_facts: False
+
+  vars_files:
+    - test_vars.yml
+
+  tasks:
+
+   - block:
+
+      ## Generating the testname for experiment
+       - include_tasks: /e2e-tests/utils/fcm/create_testname.yml
+
+      ## RECORD START-OF-TEST IN e2e RESULT CR
+       - include_tasks: /e2e-tests/utils/fcm/update_e2e_result_resource.yml
+         vars:
+           status: 'SOT'
+       
+       - block:
+
+           - name: Getting the application pod name
+             shell: kubectl get pod -n {{ namespace }} -l {{ label }} -o jsonpath='{.items[0].metadata.name}'
+             register: app_pod_name
+
+           - name: Getting maya-api server pod name
+             shell: kubectl get pods -n {{ operator_namespace }} -l name=maya-apiserver --no-headers -o jsonpath='{.items[0].metadata.name}'
+             register: maya_api_pod
+
+           - name: Getting the application mount point
+             shell: kubectl get pod {{ app_pod_name.stdout }} -n {{ namespace }} -o jsonpath='{.spec.containers[0].volumeMounts[0].mountPath}'
+             register: app_mount_path
+
+             #Writing approx 1.6G of data at mount point
+           - name: Writing data on application mount point
+             shell: kubectl exec -it {{ app_pod_name.stdout }} -n {{ namespace }} -- sh -c "cd {{ app_mount_path.stdout }} && dd if=/dev/urandom of=test.txt bs=4k count=400024"
+
+         when: lookup('env','COMPONENT_FAILURE') != ''
+
+       - name: Get the volume name
+         shell: >
+           kubectl get pvc {{ persistant_vol_name }} -n {{ namespace }} --no-headers -o custom-columns=:.spec.volumeName
+         args:
+           executable: /bin/bash
+         register: pv_name
+
+       - name: Obtaining the current replication factor
+         shell: kubectl get jv {{ pv_name.stdout }} -n {{ operator_namespace }} -o jsonpath='{.spec.policy.target.replicationFactor}'    
+         register: replication_factor
+
+       - include_tasks: ./scale_replicas.yml
+        
+       - block:
+
+           - name: Getting the PV name
+             shell: kubectl get pvc {{ persistant_vol_name }} -n {{ namespace }} -o jsonpath='{.spec.volumeName}'
+             args:
+               executable: /bin/bash
+             register: pvname
+             changed_when: True
+          
+           - name: Waiting for replicas to start sync
+             shell: kubectl exec -it {{ maya_api_pod.stdout }} -n {{ operator_namespace }} -- mayactl volume describe --volname "{{ pvname.stdout }}" -n {{ namespace }} | grep 'WO' | wc -l
+             register: rep_sync_status
+             until: rep_sync_status.stdout|int != 0
+             delay: 5
+             retries: 30
+
+         when: lookup('env','COMPONENT_FAILURE') == 'controller' or lookup('env','COMPONENT_FAILURE') == 'replica'
+
+       - block:
+           
+           - name: Getting the Controller pod name
+             shell: kubectl get pod -n {{ operator_namespace }} -l openebs.io/component=jiva-controller,openebs.io/persistent-volume="{{ pv_name.stdout }}" -o jsonpath='{.items[0].metadata.name}'
+             register: ctrl_pod_name
+             
+           - name: Restarting controller
+             shell: kubectl delete pod {{ ctrl_pod_name.stdout }} -n {{ operator_namespace }}
+             register: ctrl_delete
+             failed_when: "'deleted' not in ctrl_delete.stdout"
+
+           - name: Verifying successful deletion of controller
+             shell: kubectl get pod -n {{ operator_namespace }} -l openebs.io/component=jiva-controller,openebs.io/persistent-volume="{{ pv_name.stdout }}" -o jsonpath='{.items[0].metadata.name}'
+             register: ctrl_del_status
+             until: "'{{ ctrl_pod_name.stdout }}' not in ctrl_del_status.stdout"
+             delay: 10
+             retries: 100
+
+           - name: Waiting for new controller to be in running state
+             shell: kubectl get pod -n {{ operator_namespace }} -l openebs.io/component=jiva-controller,openebs.io/persistent-volume="{{ pv_name.stdout }}" -o jsonpath='{.items[0].status.phase}'
+             register: new_ctrl_state
+             until: "'Running' in new_ctrl_state.stdout"
+             delay: 10
+             retries: 100
+
+         when: lookup('env','COMPONENT_FAILURE') == 'controller'
+
+       - block:
+          
+           - name: Getting the replica pod name
+             shell: kubectl get pod -n {{ operator_namespace }} -l openebs.io/component=jiva-replica,openebs.io/persistent-volume="{{ pv_name.stdout }}" -o jsonpath='{.items[0].metadata.name}'
+             register: rep_pod_name
+
+           - name: Restarting replica
+             shell: kubectl delete pod {{ rep_pod_name.stdout }} -n {{ operator_namespace }}
+             register: replica_delete
+             failed_when: "'deleted' not in replica_delete.stdout"
+
+           - name: Verifying successful deletion of replica
+             shell: kubectl get pod -n {{ operator_namespace }} -l openebs.io/component=jiva-replica,openebs.io/persistent-volume="{{ pv_name.stdout }}" -o jsonpath='{.items[0].metadata.name}'
+             register: replica_del_status
+             until: "'{{ rep_pod_name.stdout }}' not in replica_del_status.stdout"
+             delay: 10
+             retries: 100
+
+           - name: Checking for all replicas to be in Running state
+             shell: kubectl get pod -n {{ operator_namespace }} -l openebs.io/component=jiva-replica,openebs.io/persistent-volume="{{ pv_name.stdout }}" --no-headers -o custom-columns=:status.phase
+             register: running_rep_status
+             until: "((running_rep_status|unique)|length) == 1 and 'Running' in running_rep_status.stdout"
+             delay: 10
+             retries: 100
+
+         when: lookup('env','INDUCE_TARGET_FAILURE') == 'replica'
+
+        #### Check the replica access mode after scaling up using mayactl commands ####
+       - name: Check the replicas access mode
+         include_tasks: "/e2e-tests/funclib/openebs/jiva-csi-access-mode-check.yml"
+         vars:
+           ns: "{{ namespace }}"
+           pvc_name: "{{ persistant_vol_name }}"
+           operator_ns: "{{ operator_namespace }}"
+
+       - set_fact: 
+           flag: "Pass" 
+          
+     rescue:
+       - set_fact:
+           flag: "Fail"
+
+     always:
+           ## RECORD END-OF-TEST IN e2e RESULT CR
+        - include_tasks: /e2e-tests/utils/fcm/update_e2e_result_resource.yml
+          vars:
+            status: 'EOT'
+

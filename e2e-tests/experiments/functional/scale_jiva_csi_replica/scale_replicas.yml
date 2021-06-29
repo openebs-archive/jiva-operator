@@ -1,0 +1,31 @@
+- name: Obtain the JV spec
+  shell: >
+    kubectl get jv {{ pv_name.stdout }} -n {{ operator_namespace }}
+    --no-headers -o yaml > jv.yml
+  args:
+    executable: /bin/bash
+
+- name: Update the desiredReplicationFactor in PVC spec
+  replace:
+    path: jv.yml
+    before: 'iscsiSpec:'
+    regexp: "desiredReplicationFactor: {{ replication_factor.stdout }}"
+    replace: "desiredReplicationFactor: {{ updatedReplicationFactor }}"
+
+- name: Configure JV with the new desiredReplicationFactor
+  shell: kubectl apply -f jv.yml
+  args:
+    executable: /bin/bash
+  register: result
+  failed_when: "result.rc != 0"
+
+- name: Verify all the replicas are in RW mode
+  shell: >
+    kubectl get jv {{ pv_name.stdout }} -n {{ operator_namespace }}
+    --no-headers -oyaml | grep "mode: RW" | wc -l
+  args:
+    executable: /bin/bash
+  register: result
+  until: result.stdout| int == 4
+  delay: 10
+  retries: 60

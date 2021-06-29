@@ -1,0 +1,38 @@
+---
+- name: Identify the storage class used by the PVC
+  shell: >
+    kubectl get pvc {{ pvc }} -n {{ namespace }} 
+    --no-headers -o custom-columns=:spec.storageClassName
+  args:
+    executable: /bin/bash
+  register: storage_class
+
+- name: Identify the storage provisioner used by the SC
+  shell: >
+    kubectl get sc {{ storage_class.stdout }}
+    --no-headers -o custom-columns=:provisioner
+  args:
+    executable: /bin/bash
+  register: provisioner
+
+- name: Record the storage class name
+  set_fact: 
+    sc: "{{ storage_class.stdout }}"
+
+- name: Record the storage provisioner name
+  set_fact:
+    stg_prov: "{{ provisioner.stdout }}"
+
+- name: Record the storage engine name
+  set_fact:
+    stg_engine: "jiva"
+  when: stg_prov == "jiva.csi.openebs.io"
+
+- block:
+    - name: Derive PV name from PVC to query storage engine type (openebs)
+      shell: >
+        kubectl get pvc {{ pvc }} -n {{ namespace }}
+        --no-headers -o custom-columns=:spec.volumeName
+      args:
+        executable: /bin/bash
+      register: pv

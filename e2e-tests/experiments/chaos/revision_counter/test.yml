@@ -1,0 +1,181 @@
+---
+- hosts: localhost
+  connection: local
+  gather_facts: False
+
+  vars_files:
+    - test_vars.yml
+
+  tasks:
+    - block:
+
+          ## Generating the testname for deployment
+        - include_tasks: /e2e-tests/utils/fcm/create_testname.yml
+
+          ## RECORD START-OF-TEST IN e2e RESULT CR
+        - include_tasks: /e2e-tests/utils/fcm/update_e2e_result_resource.yml
+          vars:
+            status: 'SOT'
+  
+        - name: Verify that the AUT (Application Under Test) is running
+          shell: >
+            kubectl get pods -n "{{ app_ns }}" -l "{{ app_label }}" --no-headers
+            -o custom-columns=:.status.phase
+          args:
+            executable: /bin/bash
+          register: status
+          failed_when: "'Running' not in status.stdout"
+
+        - name: Get application pod name
+          shell: >
+            kubectl get pods -n {{ app_ns }} -l {{ app_label }} --no-headers
+            -o custom-columns=:.metadata.name
+          args:
+            executable: /bin/bash
+          register: app_pod
+          failed_when: "app_pod.rc != 0"
+
+        - name: Obtain the persistent volume
+          shell: >
+            kubectl get pvc -n {{ app_ns }} --no-headers -o custom-columns=:.spec.volumeName
+          args:
+            executable: /bin/bash
+          register: pv
+          failed_when: "pv.rc != 0"
+
+        - name: Check for all replicas to be in Running state
+          shell: >
+            kubectl get pods -n {{ operator_ns }} -l openebs.io/component=jiva-replica,openebs.io/persistent-volume="{{ pv.stdout }}"
+            --no-headers -o custom-columns=:status.phase
+          register: running_rep_status
+          until: "((running_rep_status.stdout_lines|unique)|length) == 1 and 'Running' in running_rep_status.stdout"
+          delay: 10
+          retries: 30
+
+        - name: Obtain the nodes on which jiva replica pods are scheduled
+          shell: >
+            kubectl get pods -n {{ operator_ns }} -l openebs.io/component=jiva-replica,openebs.io/persistent-volume="{{ pv.stdout }}"
+            --no-headers -o custom-columns=:.spec.nodeName
+          args:
+            executable: /bin/bash
+          register: replica_nodes
+          failed_when: "replica_nodes.rc != 0"
+
+        - name: Store the nodes on which jiva replica pods are scheduled
+          set_fact:
+            delete_rep_node: "{{ replica_nodes.stdout_lines[0] }}"
+            test_rep_node: "{{ replica_nodes.stdout_lines[1] }}"
+
+        - name: Load some data to perform chaos with dd
+          shell: >
+            kubectl exec -ti "{{ app_pod.stdout }}" -n "{{ app_ns }}" -- bash
+            -c "dd if=/dev/urandom of={{ mount_path }}/{{ file_name }} bs={{ block_size }} count={{ block_count }}" &
+          args:
+            executable: /bin/bash
+          register: status
+          failed_when: "status.rc != 0"
+
+        - name: Obtain the process ID for dumping data
+          shell: ps -aux | grep urandom | awk 'FNR==1{printf $2}'
+          args:
+            executable: /bin/bash
+          register: p_id
+          failed_when: "p_id.rc != 0"
+
+        # Delete the replica pod and verify the behaviour of revision counter
+        # while dumping the data
+        - include_tasks: ./delete_jiva_csi_replica.yml
+          loop: "{{ range(0, 10 | int, 1)|list }}"
+
+        - name: Wait until the dumping process is finished and pid was destroyed
+          wait_for:
+            path: /proc/{{ p_id.stdout }}/status
+            state: absent
+
+        # Sync the dumped data in jiva replica
+        - name: Sync the dumped data in jiva replica from buffer
+          shell: >
+            kubectl exec -ti "{{ app_pod.stdout }}" -n "{{ app_ns }}" -- bash
+            -c "sync;sync;sync"
+          args:
+            executable: /bin/bash
+          register: status
+          failed_when: "status.rc != 0"
+
+          #### Check the replica access mode after injecting chaos using mayactl commands ####
+        - name: Check the replicas access mode
+          include_tasks: "/e2e-tests/funclib/openebs/jiva-csi-access-mode-check.yml"
+          vars:
+            ns: "{{ app_ns }}"
+            pvc_name: "{{ pvc }}"
+
+        # Verify Revision counter values of all three replicas.
+        - name: Obtain the all three jiva replica pods to verify revision counter.
+          shell: >
+            kubectl get pods -n {{ operator_ns }} -l openebs.io/component=jiva-replica,openebs.io/persistent-volume="{{ pv.stdout }}"
+            --no-headers -o custom-columns=:.metadata.name
+          args:
+            executable: /bin/bash
+          register: jiva_replica_pods
+          failed_when: "jiva_replica_pods.rc != 0"
+
+        - name: Verify the revision counter value
+          shell: >
+            kubectl exec -ti "{{ item }}" -n {{ operator_ns }}
+            -- bash -c "du -h /openebs/revision.counter"
+          args:
+            executable: /bin/bash
+          with_items:
+            - "{{ jiva_replica_pods.stdout_lines }}"
+          register: status
+          failed_when: "'4.0K' not in status.stdout"
+
+        # Verify that each replica consumes same storage
+
+        - name: Obtain one replica pod to verify consumed storage
+          shell: >
+            kubectl get pod -n {{ operator_ns }} -l openebs.io/component=jiva-replica,openebs.io/persistent-volume="{{ pv.stdout }}"
+            -o jsonpath='{.items[?(@.spec.nodeName=="'{{ test_rep_node }}'")].metadata.name}'
+          args:
+            executable: /bin/bash
+          register: replica_pod
+          failed_when: "replica_pod.rc != 0"
+
+        - name: Obtain consumed storage size in one replica
+          shell: kubectl exec -ti {{ replica_pod.stdout }} -n {{ operator_ns }} -- bash -c "du -h openebs"
+          args:
+            executable: /bin/bash
+          register: rep_pod_storage
+          failed_when: "rep_pod_storage.rc != 0"
+
+        - name: Obtain the replica pod which was being deleted
+          shell: >
+            kubectl get pod -n {{ operator_ns }} -l openebs.io/component=jiva-replica,openebs.io/persistent-volume="{{ pv.stdout }}"
+            -o jsonpath='{.items[?(@.spec.nodeName=="'{{ delete_rep_node }}'")].metadata.name}'
+          args:
+            executable: /bin/bash
+          register: replica_pod_chaos
+          failed_when: "replica_pod_chaos.rc != 0"
+
+        - name: Verify consumed storage size in replica
+          shell: kubectl exec -ti {{ replica_pod_chaos.stdout }} -n {{ operator_ns }} -- bash -c "du -h openebs"
+          args:
+            executable: /bin/bash
+          register: rep_size
+          until: "rep_pod_storage.stdout == rep_size.stdout"
+          delay: 60
+          retries: 60
+
+        - set_fact:
+            flag: "Pass"
+
+      rescue:
+        - name: Setting fail flag
+          set_fact:
+            flag: "Fail"
+
+      always:
+        ## RECORD END-OF-TEST IN e2e RESULT CR
+        - include_tasks: /e2e-tests/utils/fcm/update_e2e_result_resource.yml
+          vars:
+            status: 'EOT'

@@ -1,0 +1,41 @@
+---
+
+# Test specific parameters
+
+test_name: "openebs-jiva-operator-{{ lookup('env','ACTION') }}"
+
+openebs_version: "{{ lookup('env','OPENEBS_VERSION') }}"
+
+action: "{{ lookup('env','ACTION') }}"
+
+release_tag: "{{ lookup('env','IMAGE_TYPE') }}"
+
+jiva_operator_image: "{{ lookup('env','JIVA_OPERATOR_IMAGE') }}"
+
+jiva_csi_plugin_image: "{{ lookup('env','JIVA_CSI_PLUGIN_IMAGE') }}"
+
+jiva_controller_image: "{{ lookup('env','JIVA_CONTROLLER_IMAGE') }}"
+
+jiva_replica_image: "{{ lookup('env','JIVA_REPLICA_IMAGE') }}"
+
+commit_id: "{{ lookup('env','COMMIT_ID') }}"
+
+rc_tag: "{{ lookup('env','RC_TAG') }}"
+
+operator_ns: "{{ lookup('env','OPERATOR_NS') }}"
+
+operator_link: https://raw.githubusercontent.com/openebs/jiva-operator/master/deploy/operator.yaml
+
+jiva_csi_link: https://raw.githubusercontent.com/openebs/jiva-operator/master/deploy/jiva-csi.yaml
+
+jiva_operator_link: https://raw.githubusercontent.com/openebs/charts/gh-pages/{{ openebs_version }}/jiva-operator.yaml
+
+release_operator_link: "https://raw.githubusercontent.com/openebs/charts/{{ commit_id }}/{{ openebs_version }}/jiva-operator.yaml"
+
+rc_operator_link: "https://raw.githubusercontent.com/openebs/charts/{{ commit_id }}/{{ openebs_version }}/jiva-operator-{{ rc_tag }}.yaml"
+
+jiva_operator: jiva-operator.yaml
+
+operator_yaml: operator.yaml
+
+jiva_csi: jiva-csi.yaml

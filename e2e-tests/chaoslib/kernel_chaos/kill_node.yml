@@ -1,0 +1,8 @@
+- 
+  block:
+          - name: Execute 'panic'
+            shell: >
+              sshpass -p {{ node_pwd }} ssh -o StrictHostKeyChecking=no {{ user }}@{{ node_ip_add }}
+              "echo {{ node_pwd }} | sudo -S su -c 'sleep 5; echo c > /proc/sysrq-trigger'"
+            async: 10
+            poll: 0

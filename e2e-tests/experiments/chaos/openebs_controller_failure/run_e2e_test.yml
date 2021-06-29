@@ -1,0 +1,74 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: controller-failure
+  namespace: e2e
+data:
+  parameters.yml: |
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: openebs-controller-failure-
+  namespace: e2e
+spec:
+  template:
+    metadata:
+      labels:
+        name: openebs-controller-failure
+    spec:
+      serviceAccountName: e2e
+      restartPolicy: Never
+      containers:
+      - name: ansibletest
+        image: openebs/jiva-csi-e2e:ci
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: ANSIBLE_STDOUT_CALLBACK
+            #value: log_plays
+            #value: actionable
+            value: default
+
+          - name: APP_NAMESPACE
+            value: app-percona-ns 
+
+          - name: TARGET_NAMESPACE
+            value: openebs
+
+          - name: APP_LABEL
+            value: 'name=percona'
+
+          - name: APP_PVC
+            value: percona-mysql-claim
+
+          - name: LIVENESS_APP_LABEL
+            value: ""
+
+          - name: LIVENESS_APP_NAMESPACE
+            value: ""
+
+          - name: DATA_PERSISTENCE
+            value: ""
+       
+          # Specify the container runtime used , to pick the relevant chaos util
+          - name: CONTAINER_RUNTIME
+            value: docker 
+
+            # CHAOS_TYPE values :  ctrl-delete , jiva-ctrl-kill
+            # For Jiva-Controller-container-kill Use : jiva-ctrl-kill
+
+          - name: CHAOS_TYPE
+            value: ""
+
+        command: ["/bin/bash"]
+        args: ["-c", "ansible-playbook ./e2e-tests/experiments/chaos/openebs_controller_failure/test.yml -i /etc/ansible/hosts -vv; exit 0"]
+
+        volumeMounts:
+        - name: parameters
+          mountPath: /mnt/
+      volumes:
+        - name: parameters
+          configMap:
+            name: controller-failure

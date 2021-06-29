@@ -1,0 +1,81 @@
+---
+- hosts: localhost
+  connection: local
+  gather_facts: False
+
+  vars_files:
+    - test_vars.yml
+
+  tasks:
+    - block:
+
+        ## RECORD START-OF-TEST IN e2e RESULT CR
+        - include_tasks: /e2e-tests/utils/fcm/create_testname.yml
+
+        - include_tasks: /e2e-tests/utils/fcm/update_e2e_result_resource.yml
+          vars:
+            status: 'SOT'
+
+        - name: Verify that the AUT (Application Under Test) is running 
+          shell: >
+            kubectl get pods -n {{ app_ns }} -l {{ app_label }} --no-headers
+            -o jsonpath={.items[0].status.phase}
+          args:
+            executable: /bin/bash
+          register: app_status
+          until: "'Running' in app_status.stdout"
+          delay: 30
+          retries: 12
+
+        - name: Obtaining the application pod name through its label.
+          shell: >
+             kubectl get pods -n {{ app_ns }} -l {{ app_label }} --no-headers 
+             -o jsonpath='{.items[0].metadata.name}'
+          args:
+            executable: /bin/bash
+          register: app_pod
+
+        - name: Obtaining the PVC through the application pod
+          shell: >
+            kubectl get pods {{ app_pod.stdout }} -n {{ app_ns }} 
+            --no-headers -o custom-columns=:..claimName
+          args:
+            executable: /bin/bash
+          register: pvc_name
+
+        - name: Recording PVC name in a variable.
+          set_fact:
+            pvc: "{{ pvc_name.stdout }}"
+
+        ## INCLUDING THE CHAOSLIB UTILITY TO KILL THE STORAGE REPLICA POD
+
+        - include: /e2e-tests/chaoslib/openebs/jiva_csi_replica_pod_failure.yaml
+          app_pvc: "{{ pvc }}"
+
+        ## POST-CHAOS APPLICATION LIVENESS CHECK
+
+        - name: Verify AUT existence post fault-injection
+          shell: >
+            kubectl get pods -n {{ app_ns }} -l {{ app_label }} --no-headers
+            -o jsonpath={.items[0].status.phase}
+          args:
+            executable: /bin/bash
+          register: app_status
+          until: "'Running' in app_status.stdout"
+          delay: 30
+          retries: 12
+
+        - set_fact:
+            flag: "Pass"
+
+      rescue: 
+        - set_fact: 
+            flag: "Fail"
+
+      always: 
+        ## RECORD END-OF-TEST IN e2e RESULT CR
+
+        - include_tasks: /e2e-tests/utils/fcm/update_e2e_result_resource.yml
+          vars:
+            status: 'EOT'
+           

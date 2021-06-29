@@ -1,0 +1,211 @@
+---
+- hosts: localhost
+  connection: local
+  gather_facts: False
+
+  vars_files:
+    - test_vars.yml
+    - /mnt/parameters.yml
+
+  tasks:
+    - block:
+            
+          ## PRE-CHAOS APPLICATION LIVENESS CHECK
+        - include_tasks: /e2e-tests/utils/k8s/application_liveness_check.yml
+          when: liveness_label != ''
+
+          # Create test name append with run_id 
+        - include_tasks: /e2e-tests/utils/fcm/create_testname.yml  
+
+        - name: Identify the chaos util to be invoked 
+          template:
+            src: chaosutil.j2
+            dest: chaosutil.yml
+
+        - name: Identify the data consistency util to be invoked
+          template:
+             src: data_persistence.j2
+             dest: data_persistence.yml
+
+        - include_vars:
+            file: data_persistence.yml
+  
+        - include_vars:
+            file: chaosutil.yml
+
+        - name: Record the chaos util path
+          set_fact: 
+            chaos_util_path: "/e2e-tests/chaoslib/{{ chaosutil }}"
+
+        - name: Record the data consistency util path
+          set_fact:
+            data_consistency_util_path: "{{ consistencyutil }}"
+          when: data_persistence != ''    
+
+        ## RECORD START-OF-TEST IN e2e RESULT CR
+
+        - include_tasks: /e2e-tests/utils/fcm/update_e2e_result_resource.yml
+          vars:
+            status: 'SOT'
+            chaostype: "{{ chaosutil.split('.')[0] }}"
+
+        ## PRE-CHAOS APPLICATION LIVENESS CHECK
+
+        - name: Verify that the AUT (Application Under Test) is running
+          include_tasks: "/e2e-tests/utils/k8s/status_app_pod.yml"
+          vars:
+            app_ns: "{{namespace}}"
+            app_lkey: "{{ label.split('=')[0] }}"
+            app_lvalue: "{{ label.split('=')[1] }}"
+            delay: 5
+            retries: 60 
+
+        - name: Get application pod name 
+          shell: >
+            kubectl get pods -n {{ namespace }} -l {{ label }} --no-headers
+            -o=custom-columns=NAME:".metadata.name"
+          args:
+            executable: /bin/bash
+          register: app_pod_name    
+
+        - name: Create some test data
+          include: "{{ data_consistency_util_path }}"
+          vars:
+            status: 'LOAD'
+            ns: "{{ namespace }}"
+            pod_name: "{{ app_pod_name.stdout }}"  
+          when: data_persistence != ''    
+        
+        - name: Derive PV from application PVC 
+          shell: >
+            kubectl get pvc {{ pvc }}
+            -o custom-columns=:spec.volumeName -n {{ namespace }}
+            --no-headers
+          args:
+            executable: /bin/bash
+          register: pv
+
+        - name: Identify the patch to be invoked
+          template:
+            src: jiva_csi_patch.j2
+            dest: patch.yml
+
+        - name: Identify the jiva controller pod name
+          shell: >
+            kubectl get pods -l openebs.io/component=jiva-controller
+            -n {{ operator_ns }} --no-headers | grep {{ pv.stdout }} 
+            | awk '{print $1}' 
+          args:
+            executable: /bin/bash
+          register: csi_controller_pod_before
+
+        - name: Patching jiva controller sts to allow security privileged
+          shell: >
+            kubectl patch deployment {{ pv.stdout }}-jiva-ctrl -n {{ operator_ns }}
+            --patch "$(cat patch.yml)"
+          register: csi_patch_status
+          failed_when: "'patched' not in csi_patch_status.stdout"
+        
+        - name: Wait for 10s post fault injection 
+          wait_for:
+            timeout: 10
+
+        - name: Verify if the jiva controller pod is terminated
+          shell: kubectl get pods -n {{ operator_ns }}
+          args:
+            executable: /bin/bash
+          register: csi_pod_status
+          until: '"{{ csi_controller_pod_before.stdout }}" not in csi_pod_status.stdout' 
+          delay: 5
+          retries: 60
+          when: "'no change' not in csi_patch_status.stdout"
+
+        - name: Identify the new jiva controller pod belonging to the PV
+          shell: > 
+            kubectl get pods -l openebs.io/component=jiva-controller
+            -n {{ operator_ns }} --no-headers | grep {{ pv.stdout }} 
+            | awk '{print $1}'
+          args:
+            executable: /bin/bash
+          register: csi_controller_pod_after
+
+        - name: Check for the jiva controller container status
+          shell: >
+            kubectl get pods {{ csi_controller_pod_after.stdout }} -n {{ operator_ns }} 
+            -o jsonpath='{.status.containerStatuses[?(@.name=="jiva-controller")].state}' | grep running
+          args:
+            executable: /bin/bash
+          register: csi_container_status
+          until: "'running' in csi_container_status.stdout"
+          delay: 3
+          retries: 20
+
+        ## STORAGE FAULT INJECTION 
+
+        - include: "{{ chaos_util_path }}"
+          vars:
+            app_ns: "{{ namespace }}"
+            app_pvc: "{{ pvc }}"
+            network_delay: "{{ n_delay }}"
+            chaos_duration: "{{ c_duration }}"
+          when: cri == 'docker'
+       
+        - include: "{{ chaos_util_path }}"
+          vars:
+            status: "induce"
+            target_pod: "{{ csi_controller_pod_after.stdout }}"
+            operator_namespace: "{{ operator_ns }}"
+            containername: "jiva-controller"
+          when: 
+            - cri == 'containerd' or cri =='cri-o'  
+
+        - name: Wait for 10s post fault injection 
+          wait_for:
+            timeout: 10
+       
+        - include: "{{ chaos_util_path }}"
+          vars:
+            status: "remove"
+            target_pod: "{{ csi_controller_pod_after.stdout }}"
+            operator_namespace: "{{ operator_ns }}"
+            containername: "jiva-controller"
+          when: 
+            - cri == 'containerd' or cri =='cri-o'  
+            
+        ## POST-CHAOS APPLICATION LIVENESS CHECK
+
+        - name: Verify AUT liveness post fault-injection
+          include_tasks: "/e2e-tests/utils/k8s/status_app_pod.yml"
+          vars:
+            app_ns: "{{namespace}}"
+            app_lkey: "{{ label.split('=')[0] }}"
+            app_lvalue: "{{ label.split('=')[1] }}"
+            delay: 5
+            retries: 60 
+            
+        - include_tasks: /e2e-tests/utils/k8s/application_liveness_check.yml
+          when: liveness_label != ''
+    
+        - name: Verify application data persistence  
+          include: "{{ data_consistency_util_path }}"
+          vars:
+            status: 'VERIFY'
+            ns: "{{ namespace }}"
+            pod_name: "{{ app_pod_name.stdout }}"
+          when: data_persistence != ''      
+        
+        - set_fact:
+            flag: "Pass"
+
+      rescue: 
+        - set_fact: 
+            flag: "Fail"
+
+      always: 
+
+        ## RECORD END-OF-TEST IN e2e RESULT CR
+ 
+        - include_tasks: /e2e-tests/utils/fcm/update_e2e_result_resource.yml
+          vars:
+            status: 'EOT'
+            chaostype: "{{ chaosutil.split('.')[0] }}"

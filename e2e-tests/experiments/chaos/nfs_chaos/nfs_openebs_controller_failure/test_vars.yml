@@ -1,0 +1,19 @@
+test_name: openebs-jiva-nfs-controller-failure
+
+target_namespace: "{{ lookup('env','TARGET_NAMESPACE') }}"
+
+nfs_namespace: "{{ lookup('env','NFS_NAMESPACE') }}"
+
+label: "{{ lookup('env','NFS_LABEL') }}"
+
+pvc: "{{ lookup('env','NFS_PVC') }}"
+
+app_namespace: "{{ lookup('env','APP_NAMESPACE') }}"
+
+app_label: "{{ lookup('env','APP_LABEL') }}"
+
+chaos_type: "{{ lookup('env','CHAOS_TYPE') }}"
+
+chaos_duration: 120
+
+cri: "{{ lookup('env','CONTAINER_RUNTIME') }}"

@@ -1,0 +1,12 @@
+test_name: nfs-application-pod-failure
+
+nfs_app_ns: "{{ lookup('env','NFS_NAMESPACE') }}"
+
+nfs_app_label: "{{ lookup('env','NFS_LABEL') }}"
+
+cri: "{{ lookup('env','CONTAINER_RUNTIME') }}"
+
+app_namespace: "{{ lookup('env','APP_NAMESPACE') }}"
+
+app_label: "{{ lookup('env','APP_LABEL') }}"
+

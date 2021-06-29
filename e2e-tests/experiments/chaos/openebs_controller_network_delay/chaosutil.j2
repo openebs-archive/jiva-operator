@@ -1,0 +1,7 @@
+
+  {% if cri is defined and (cri == 'containerd' or cri == 'cri-o') %}
+    chaosutil: openebs/inject_network_delay_tc.yml
+  {% elif cri is defined and cri == 'docker' %}
+    chaosutil: openebs/jiva_csi_controller_network_delay.yaml
+  {% endif %}
+

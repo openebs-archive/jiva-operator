@@ -1,0 +1,61 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: nfs-jiva-controller-failure-
+  namespace: e2e
+spec:
+  template:
+    metadata:
+      labels:
+        name: nfs-jiva-controller-failure
+    spec:
+      serviceAccountName: e2e
+      restartPolicy: Never
+      containers:
+      - name: ansibletest
+        image: openebs/jiva-csi-e2e:ci
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: ANSIBLE_STDOUT_CALLBACK
+            #value: log_plays
+            #value: actionable
+            value: default
+
+            # Namespace where the NFS provisioner is deployed
+          - name: NFS_NAMESPACE
+            value: ""
+
+            # namespace where the OpenEBS components are deployed
+          - name: TARGET_NAMESPACE
+            value: openebs
+
+            # Label for the NFS provisioner deployment
+          - name: NFS_LABEL
+            value: ""
+
+            # PVC name for the NFS provisioner
+          - name: NFS_PVC
+            value: ""
+
+            # Application(s) namespace that are using NFS volume
+          - name: APP_NAMESPACE
+            value: ""
+
+            # Label for the Application that are using NFS volume
+          - name: APP_LABEL
+            value: ""
+       
+          # Specify the container runtime used , to pick the relevant chaos util
+          # Available Container runtimes are docker,condainerd,cri-o
+          - name: CONTAINER_RUNTIME
+            value: docker
+
+            # CHAOS_TYPE values :  ctrl-delete , jiva-ctrl-kill
+            # For Jiva-Controller-container-kill Use : jiva-ctrl-kill
+
+          - name: CHAOS_TYPE
+            value: "jiva-ctrl-kill"
+
+        command: ["/bin/bash"]
+        args: ["-c", "ansible-playbook ./e2e-tests/experiments/chaos/nfs_chaos/nfs_openebs_controller_failure/test.yml -i /etc/ansible/hosts -vv; exit 0"]

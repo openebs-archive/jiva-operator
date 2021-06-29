@@ -1,0 +1,54 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: e2e-jiva-revision-counter-
+  namespace: e2e
+spec:
+  template:
+    metadata:
+      name: e2e
+      labels:
+        app: jiva-revision-counter
+    spec:
+      serviceAccountName: e2e
+      restartPolicy: Never
+      containers:
+      - name: ansibletest
+        image: openebs/jiva-csi-e2e:ci
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: ANSIBLE_STDOUT_CALLBACK
+            #value: log_plays
+            value: default
+
+            # Application Label 
+          - name: APP_LABEL
+            value: ''
+
+            # Application Namespace
+          - name: APP_NAMESPACE
+            value: ''
+
+             # Application PVC
+          - name: APP_PVC
+            value: ''
+
+            # Block Size to dump the data using dd 
+          - name: BLOCK_SIZE
+            value: '3000000'
+
+            # Block Count to dump the data using dd
+          - name: BLOCK_COUNT
+            value: '4k'
+
+            # File Name to dump the data using dd 
+          - name: FILE_NAME
+            value: 'abc.txt'
+
+            # Enter the mount path of application 
+          - name: MOUNT_PATH
+            value: ''
+         
+        command: ["/bin/bash"]
+        args: ["-c", "ansible-playbook ./e2e-tests/experiments/chaos/revision_counter/test.yml -i /etc/ansible/hosts -v; exit 0"]

@@ -1,0 +1,39 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: nfs-application-pod-failure-
+  namespace: e2e
+spec:
+  template:
+    metadata:
+      labels:
+        name: nfs-app-pod-failure
+    spec:
+      serviceAccountName: e2e
+      restartPolicy: Never
+      containers:
+      - name: ansibletest
+        image: openebs/jiva-csi-e2e:ci
+        env:
+          - name: ANSIBLE_STDOUT_CALLBACK
+            value: default
+
+          - name: NFS_NAMESPACE
+            value: ""
+
+          - name: NFS_LABEL
+            value: ""
+
+          - name: APP_LABEL
+            value: ""
+
+          - name: APP_NAMESPACE
+            value: ""
+
+          # Specify the container runtime used , to pick the relevant chaos util
+          - name: CONTAINER_RUNTIME
+            value: ""
+
+        command: ["/bin/bash"]
+        args: ["-c", "ansible-playbook ./e2e-tests/experiments/chaos/nfs_chaos/nfs_provisioner_pod_kill/test.yml -i /etc/ansible/hosts -vv; exit 0"]

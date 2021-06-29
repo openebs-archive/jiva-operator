@@ -1,0 +1,6 @@
+
+{% if chaos_type is defined and chaos_type == 'jiva-ctrl-kill' %}
+  chaosutil: openebs/jiva_csi_controller_container_kill.yml
+{% else %}
+  chaosutil: openebs/jiva_csi_controller_pod_failure.yaml
+{% endif %}

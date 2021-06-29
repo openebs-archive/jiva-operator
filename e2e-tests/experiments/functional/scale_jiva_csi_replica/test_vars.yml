@@ -1,0 +1,6 @@
+test_name: scaleup-jiva-replica
+namespace: "{{ lookup('env','APP_NAMESPACE') }}"
+persistant_vol_name: "{{ lookup('env','PVC_NAME') }}"
+operator_namespace: "{{ lookup('env','OPERATOR_NS') }}"
+label: "{{ lookup('env','APP_LABEL') }}"
+updatedReplicationFactor: "4"

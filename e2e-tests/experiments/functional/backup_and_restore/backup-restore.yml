@@ -1,0 +1,54 @@
+---
+- block:
+
+      - name: Creating Backup
+        shell: >
+          velero backup create {{ velero_backup_name }} --selector '!openebs.io/controller,!openebs.io/replica' --include-namespaces={{ app_ns }}
+        args:
+          executable: /bin/bash
+
+  when: action == "BACKUP"
+
+- block:
+     # Schedule creates a cron job for backup. Notation "--schedule=*/2 * * * *" applies same as kubernetes cron job here.
+   - name: Creating schedule using minio bucket
+     shell: velero create schedule newschedule --schedule="*/2 * * * *" --snapshot-volumes --include-namespaces={{ app_ns }} --volume-snapshot-locations=minio
+     when: bucket_type == "minio"
+
+   - name: Creating schedule using GCP bucket
+     shell: velero create schedule newschedule --schedule="*/2 * * * *" --snapshot-volumes --include-namespaces={{ app_ns }} --volume-snapshot-locations=gcp-bucket
+     when: bucket_type == "GCP"
+
+  when: action == "SCHEDULE"
+
+- block:
+   
+   - name: Getting the state of Backup
+     shell: kubectl get backup {{ velero_backup_name }} -n velero -o jsonpath='{.status.phase}'
+     register: backup_state
+     until: "'Completed' in backup_state.stdout"
+     delay: 5
+     retries: 100
+
+  when: action == "BACKUP_STATE"
+   
+- block:
+     
+    - name: Restoring application 
+      shell: >
+        velero restore create --from-backup {{ velero_backup_name }} --restore-volumes=true
+      args:
+        executable: /bin/bash
+   
+    - name: Getting restore name
+      shell: velero get restore | grep {{ velero_backup_name }} | awk '{print $1}'
+      register: restore_name
+
+    - name: Checking the restore status
+      shell: kubectl get restore {{ restore_name.stdout }} -n velero -o jsonpath='{.status.phase}'
+      register: restore_state
+      until: "'Completed' in restore_state.stdout"
+      delay: 5
+      retries: 60     
+
+  when: action == "RESTORE"

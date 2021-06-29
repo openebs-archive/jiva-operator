@@ -1,0 +1,472 @@
+---
+- hosts: localhost
+  connection: local
+  gather_facts: False
+
+  vars_files:
+    - test_vars.yml
+    - /mnt/parameters.yml
+
+  tasks:
+
+    - block:
+
+        - include_tasks: /e2e-tests/utils/fcm/create_testname.yml
+
+        - include_tasks: /e2e-tests/utils/fcm/update_e2e_result_resource.yml
+          vars:
+            status: 'SOT'
+            chaostype: "node-failure"
+            app: ""
+
+        - include: prerequisites.yml
+
+        - name: Identify the chaos util to be invoked
+          template:
+            src: chaosutil.j2
+            dest: chaosutil.yml
+
+        - include_vars:
+            file: chaosutil.yml
+
+        - name: Record the chaos util path
+          set_fact:
+            chaos_util_path: "/{{ chaosutil }}"
+
+        - name: Identify the crash util to be invoked
+          template:
+            src: crashutil.j2
+            dest: crashutil.yml
+
+        - include_vars:
+            file: crashutil.yml
+
+        - name: Record the crash util path
+          set_fact:
+            crash_util_path: "/{{ crashutil }}"
+
+        - name: Identify the data consistency util to be invoked
+          template:
+            src: data_persistence.j2
+            dest: data_persistence.yml
+
+        - include_vars:
+            file: data_persistence.yml
+
+        - name: Record the data consistency util path
+          set_fact:
+            data_consistency_util_path: "{{ consistencyutil }}"
+          when: data_persistence != ''
+
+        ## Verify the APPLICATION UNDER TEST PRE CHAOS
+        - name: Verify if the application is running.
+          include_tasks: /e2e-tests/utils/k8s/status_app_pod.yml
+          vars:
+            app_ns: "{{ namespace }}"
+            app_lkey: "{{ label.split('=')[0] }}"
+            app_lvalue: "{{ label.split('=')[1] }}"
+            delay: '2'
+            retries: '60'
+
+        ## Fetch application pod name
+        - name: Get application pod name
+          shell: >
+            kubectl get pod -n {{ namespace }} -l {{ label }} --no-headers -o=custom-columns=NAME:".metadata.name"
+          args:
+            executable: /bin/bash
+          register: app_pod_name
+
+        - name: Record the application pod name
+          set_fact:
+            application_pod: "{{ app_pod_name.stdout }}"
+
+        - name: Obtain PVC name from the application mount
+          shell: >
+            kubectl get pods "{{ app_pod_name.stdout }}" -n "{{ namespace }}" 
+            -o custom-columns=:.spec.volumes[*].persistentVolumeClaim.claimName --no-headers
+          args:
+            executable: /bin/bash
+          register: pvc
+
+        ## Obtain the node where application pod is running
+        - name: Get Application pod Node to perform crash
+          shell: >
+            kubectl get pod {{ app_pod_name.stdout }} -n {{ namespace }}
+            --no-headers -o custom-columns=:spec.nodeName
+          args:
+            executable: /bin/bash
+          register: app_node
+
+        ## Obtain the nodeIP where application pod is running
+        - name: Get Application pod Node IP to perform crash
+          shell: >
+            kubectl get nodes {{ app_node.stdout }}
+            -o jsonpath='{ $.status.addresses[?(@.type=="InternalIP")].address }'
+          args:
+            executable: /bin/bash
+          register: app_node_ip
+
+        - name: Obtain the Persistent Volume name
+          shell: >
+            kubectl get pvc "{{ pvc.stdout }}" -n "{{ namespace }}" --no-headers 
+            -o custom-columns=:.spec.volumeName
+          args:
+            executable: /bin/bash
+          register: pv
+          failed_when: 'pv.stdout == ""'
+
+        - name: Record the pv name
+          set_fact:
+            pv_name: "{{ pv.stdout }}"
+
+        - name: Get controller svc
+          shell: >
+           kubectl get svc -l openebs.io/persistent-volume={{ pv_name }}
+           -n {{ operator_ns }} --no-headers -o custom-columns=:spec.clusterIP
+          args:
+            executable: /bin/bash
+          register: controller_service
+          failed_when: controller_service.stdout == ""
+
+        - name: Get total replica count from controller
+          vars:
+            replicas_endpoint: "9501/v1/volumes"
+          uri:
+            url: "http://{{ controller_service.stdout }}:{{ replicas_endpoint }}"
+            method: GET
+            return_content: yes
+            status_code: 200
+            headers:
+              Content-Type: "application/json"
+            body_format: json
+          register: json_response
+          until: json_response.status == 200 and json_response.json.data[0].replicaCount == 3
+          retries: 180
+          delay: 1
+
+        - name: Get rw replica status from controller
+          vars:
+            replicas_endpoint: "9501/v1/replicas"
+          uri:
+            url: "http://{{ controller_service.stdout }}:{{ replicas_endpoint }}"
+            method: GET
+            return_content: yes
+            status_code: 200
+            headers:
+              Content-Type: "application/json"
+            body_format: json
+          register: json_response
+          until: json_response.status == 200 and json_response.json.data | length  == 3 and json_response.json.data[0].mode == "RW" and json_response.json.data[1].mode == "RW" and json_response.json.data[2].mode == "RW"
+          retries: 20
+          delay: 1
+
+        - name: Getting replica1 IP
+          vars:
+            replicas_endpoint: "9501/v1/replicas"
+          shell: curl http://{{ controller_service.stdout }}:{{ replicas_endpoint }} | jq '.data[0].address' | sed -e 's/^"//' -e 's/"$//'
+          register: json_response
+          until: "'tcp' in json_response.stdout"
+          delay: 1
+          retries: 24
+
+        - name: Set replica1 ip
+          set_fact:
+            replica1_ip: "{{ json_response.stdout | regex_replace('tcp://') | regex_replace(':9502') }}"
+
+        - name: Getting replica2 IP
+          vars:
+            replicas_endpoint: "9501/v1/replicas"
+          shell: curl http://{{ controller_service.stdout }}:{{ replicas_endpoint }} | jq '.data[1].address' | sed -e 's/^"//' -e 's/"$//'
+          register: json_response
+          until: "'tcp' in json_response.stdout"
+          delay: 1
+          retries: 24
+
+        - name: Set replica2 ip
+          set_fact:
+            replica2_ip: "{{ json_response.stdout | regex_replace('tcp://') | regex_replace(':9502') }}"
+
+        - name: Getting replica3 IP
+          vars:
+            replicas_endpoint: "9501/v1/replicas"
+          shell: curl http://{{ controller_service.stdout }}:{{ replicas_endpoint }} | jq '.data[2].address' | sed -e 's/^"//' -e 's/"$//'
+          register: json_response
+          until: "'tcp' in json_response.stdout"
+          delay: 1
+          retries: 24
+
+        - name: Set replica3 ip
+          set_fact:
+            replica3_ip: "{{ json_response.stdout | regex_replace('tcp://') | regex_replace(':9502') }}"
+
+        - name: Getting the replica1 pod name corresponding to the IP
+          shell: kubectl get pod -l openebs.io/component=jiva-replica,openebs.io/persistent-volume={{ pv_name }} -n {{ operator_ns }} --no-headers -o jsonpath='{.items[?(@.status.podIP=="{{ replica1_ip }}")].metadata.name}'
+          register: replica1_pod_name
+
+        - name: Getting the replica1 pod name corresponding to the IP
+          shell: kubectl get pod -l openebs.io/component=jiva-replica,openebs.io/persistent-volume={{ pv_name }} -n {{ operator_ns }} --no-headers -o jsonpath='{.items[?(@.status.podIP=="{{ replica2_ip }}")].metadata.name}'
+          register: replica2_pod_name
+
+        - name: Getting the replica1 pod name corresponding to the IP
+          shell: kubectl get pod -l openebs.io/component=jiva-replica,openebs.io/persistent-volume={{ pv_name }} -n {{ operator_ns }} --no-headers -o jsonpath='{.items[?(@.status.podIP=="{{ replica3_ip }}")].metadata.name}'
+          register: replica3_pod_name
+
+        ## Obtain the node where replica1 pod is running
+        - name: Get replica1 pod Node to perform crash
+          shell: >
+            kubectl get pod {{ replica1_pod_name.stdout }} -n {{ operator_ns }}
+            --no-headers -o custom-columns=:spec.nodeName
+          args:
+            executable: /bin/bash
+          register: replica1_node
+
+        ## Obtain the node where replica2 pod is running
+        - name: Get replica2 pod Node to perform crash
+          shell: >
+            kubectl get pod {{ replica2_pod_name.stdout }} -n {{ operator_ns }}
+            --no-headers -o custom-columns=:spec.nodeName
+          args:
+            executable: /bin/bash
+          register: replica2_node
+
+        ## Obtain the node where replica2 pod is running
+        - name: Get replica3 pod Node to perform crash
+          shell: >
+            kubectl get pod {{ replica3_pod_name.stdout }} -n {{ operator_ns }}
+            --no-headers -o custom-columns=:spec.nodeName
+          args:
+            executable: /bin/bash
+          register: replica3_node
+
+        ## Obtain the nodeIP where replica1 pod is running
+        - name: Get replica1 pod Node IP to perform crash
+          shell: >
+            kubectl get nodes {{ replica1_node.stdout }}
+            -o jsonpath='{ $.status.addresses[?(@.type=="InternalIP")].address }'
+          args:
+            executable: /bin/bash
+          register: replica1_node_ip
+
+        ## Obtain the nodeIP where replica2 pod is running
+        - name: Get replica2 pod Node IP to perform crash
+          shell: >
+            kubectl get nodes {{ replica2_node.stdout }}
+            -o jsonpath='{ $.status.addresses[?(@.type=="InternalIP")].address }'
+          args:
+            executable: /bin/bash
+          register: replica2_node_ip
+
+        ## Obtain the nodeIP where replica3 pod is running
+        - name: Get replica3 pod Node IP to perform crash
+          shell: >
+            kubectl get nodes {{ replica3_node.stdout }}
+            -o jsonpath='{ $.status.addresses[?(@.type=="InternalIP")].address }'
+          args:
+            executable: /bin/bash
+          register: replica3_node_ip
+
+    - block:
+        ## Generate data on the application
+        - name: Generate data on the specified application.
+          include: "{{ data_consistency_util_path }}"
+          vars:
+            status: 'LOAD'
+            ns: "{{ namespace }}"
+            pod_name: "{{ app_pod_name.stdout }}"
+          when: data_persistence != ''
+
+        ## Execute the crash util to kill the application node
+        - include_tasks: "{{ crash_util_path }}"
+          vars:
+            node_ip_add: "{{ app_node_ip.stdout }}"
+
+        ## Application verification after injecting crash
+        - name: check the application status
+          shell: kubectl get pods -n {{ namespace}} -l {{ label }} --no-headers -o custom-columns=:.status.phase
+          args:
+            executable: /bin/bash
+          register: app_status
+          until: "'Running' in app_status.stdout"
+          delay: 5
+          retries: 10
+
+        - name: Verify application data persistence
+          include: "{{ data_consistency_util_path }}"
+          vars:
+            status: 'VERIFY'
+            ns: "{{ namespace }}"
+            pod_name: "{{ rescheduled_app_pod.stdout }}"
+          when: data_persistence != ''
+
+    - block:
+        ## Generate data on the application
+        - name: Generate data on the specified application.
+          include: "{{ data_consistency_util_path }}"
+          vars:
+            status: 'LOAD'
+            ns: "{{ namespace }}"
+            pod_name: "{{ app_pod_name.stdout }}"
+          when: data_persistence != ''
+
+        ## Execute the crash util to kill the replica1 node
+        - include_tasks: "{{ crash_util_path }}"
+          vars:
+            node_ip_add: "{{ replica1_node_ip.stdout }}"
+
+        ## Application verification after injecting crash
+        - name: check the application status
+          shell: kubectl get pods -n {{ namespace}} -l {{ label }} --no-headers -o custom-columns=:.status.phase
+          args:
+            executable: /bin/bash
+          register: app_status
+          until: "'Running' in app_status.stdout"
+          delay: 5
+          retries: 10
+
+        - name: Verify application data persistence
+          include: "{{ data_consistency_util_path }}"
+          vars:
+            status: 'VERIFY'
+            ns: "{{ namespace }}"
+            pod_name: "{{ rescheduled_app_pod.stdout }}"
+          when: data_persistence != ''
+
+    - block:
+        ## Generate data on the application
+        - name: Generate data on the specified application.
+          include: "{{ data_consistency_util_path }}"
+          vars:
+            status: 'LOAD'
+            ns: "{{ namespace }}"
+            pod_name: "{{ app_pod_name.stdout }}"
+          when: data_persistence != ''
+
+        ## Execute the crash util to kill the replica1 node
+        - include_tasks: "{{ crash_util_path }}"
+          vars:
+            node_ip_add: "{{ replica1_node_ip.stdout }}"
+ 
+        ## Execute the crash util to kill the replica2 node
+        - include_tasks: "{{ crash_util_path }}"
+          vars:
+            node_ip_add: "{{ replica2_node_ip.stdout }}"
+
+        ## Execute the crash util to kill the replica3 node
+        - include_tasks: "{{ crash_util_path }}"
+          vars:
+            node_ip_add: "{{ replica3_node_ip.stdout }}"
+
+        ## Application verification after injecting crash
+        - name: check the application status
+          shell: kubectl get pods -n {{ namespace}} -l {{ label }} --no-headers -o custom-columns=:.status.phase
+          args:
+            executable: /bin/bash
+          register: app_status
+          until: "'Running' in app_status.stdout"
+          delay: 5
+          retries: 10
+
+        - name: Verify application data persistence
+          include: "{{ data_consistency_util_path }}"
+          vars:
+            status: 'VERIFY'
+            ns: "{{ namespace }}"
+            pod_name: "{{ rescheduled_app_pod.stdout }}"
+          when: data_persistence != ''
+
+    - block:
+        ## Execute the chaos util to turn off the target node
+        - include_tasks: "{{ chaos_util_path }}"
+          vars:
+            esx_ip: "{{ esx_host_ip }}"
+            esx_pwd: "{{ esx_host_pass }}"
+            target_node: "{{ replica3_node.stdout }}"
+            operation: "off"
+
+        - name: Check the node status
+          shell: kubectl get nodes {{ replica3_node.stdout }} --no-headers
+          args:
+            executable: /bin/bash
+          register: state
+          until: "'NotReady' in state.stdout"
+          delay: 15
+          retries: 30
+
+        ## Generate data on the application
+        - name: Generate data on the specified application.
+          include: "{{ data_consistency_util_path }}"
+          vars:
+            status: 'LOAD'
+            ns: "{{ namespace }}"
+            pod_name: "{{ app_pod_name.stdout }}"
+          when: data_persistence != ''
+
+        ## Execute the chaos util to turn on the target node
+        - include_tasks: "{{ chaos_util_path }}"
+          vars:
+            esx_ip: "{{ esx_host_ip }}"
+            esx_pwd: "{{ esx_host_pass }}"
+            target_node: "{{ replica3_node.stdout }}"
+            operation: "on"
+
+        - name: Get total replica count from controller
+          vars:
+            replicas_endpoint: "9501/v1/volumes"
+          uri:
+            url: "http://{{ controller_service.stdout }}:{{ replicas_endpoint }}"
+            method: GET
+            return_content: yes
+            status_code: 200
+            headers:
+              Content-Type: "application/json"
+            body_format: json
+          register: json_response
+          until: json_response.status == 200 and json_response.json.data[0].replicaCount == 3
+          retries: 180
+          delay: 1
+
+        - name: Get wo replica status from controller
+          vars:
+            replicas_endpoint: "9501/v1/replicas"
+          uri:
+            url: "http://{{ controller_service.stdout }}:{{ replicas_endpoint }}"
+            method: GET
+            return_content: yes
+            status_code: 200
+            headers:
+              Content-Type: "application/json"
+            body_format: json
+          register: json_response
+          until: json_response.status == 200 and json_response.json.data | length  == 3 and json_response.json.data[0].mode == "RW" and json_response.json.data[1].mode == "RW" and json_response.json.data[2].mode == "WO"
+          retries: 20
+          delay: 1
+
+        ## Execute the crash util to kill the replica1 node
+        - include_tasks: "{{ crash_util_path }}"
+          vars:
+            node_ip_add: "{{ replica1_node_ip.stdout }}"
+
+        ## Execute the crash util to kill the replica2 node
+        - include_tasks: "{{ crash_util_path }}"
+          vars:
+            node_ip_add: "{{ replica2_node_ip.stdout }}"
+
+        ## Execute the crash util to kill the replica3 node
+        - include_tasks: "{{ crash_util_path }}"
+          vars:
+            node_ip_add: "{{ replica3_node_ip.stdout }}"
+
+        - name: Verify application data persistence
+          include: "{{ data_consistency_util_path }}"
+          vars:
+            status: 'VERIFY'
+            ns: "{{ namespace }}"
+            pod_name: "{{ rescheduled_app_pod.stdout }}"
+          when: data_persistence != ''
+
+        - set_fact:
+            flag: "Pass"
+
+      rescue:
+        - set_fact:
+            flag: "Fail"
