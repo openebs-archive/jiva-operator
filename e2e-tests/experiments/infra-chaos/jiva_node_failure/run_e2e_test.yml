@@ -72,8 +72,18 @@ spec:
           - name: PLATFORM
             value: "vmware"
 
+          # The IP address of ESX HOST
+          - name: ESX_HOST_IP
+            value: 10.43.1.1
+
           - name: OPERATOR_NS
             value: openebs
+
+          - name: ESX_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: host-password 
+                key: password
 
           - name: NODE_PASSWORD
             valueFrom:

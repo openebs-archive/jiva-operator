@@ -58,7 +58,7 @@
 
         - name: Get the controller pod name associated with this pv
           shell: >
-            kubectl get pods -n {{ operator_ns }} -l openebs.io/controller=jiva-controller,openebs.io/persistent-volume={{ pv_name.stdout }} 
+            kubectl get pods -n {{ operator_ns }} -l openebs.io/component=jiva-controller,openebs.io/persistent-volume={{ pv_name.stdout }} 
             --no-headers -o custom-columns=:.metadata.name
           args:
             executable: /bin/bash

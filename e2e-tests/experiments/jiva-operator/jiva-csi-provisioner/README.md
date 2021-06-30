@@ -18,10 +18,10 @@ kubectl apply -f https://raw.githubusercontent.com/openebs/charts/gh-pages/<rele
 ## How to run
 
 - This experiment accepts the parameters in form of kubernetes job environmental variables.
-- For running this experiment of deploying cstor operator, clone openens/cstor-operators[https://github.com/openebs/cstor-operators] repo and then first apply rbac and crds for e2e-framework.
+- For running this experiment of deploying jiva operator, clone openens/jiva-operators[https://github.com/openebs/jiva-operators] repo and then first apply rbac and crds for e2e-framework.
 ```
-kubectl apply -f cstor-operators/e2e-tests/hack/rbac.yaml
-kubectl apply -f cstor-operators/e2e-tests/hack/crds.yaml
+kubectl apply -f jiva-operators/e2e-tests/hack/rbac.yaml
+kubectl apply -f jiva-operators/e2e-tests/hack/crds.yaml
 ```
 then update the needed test specific values in run_e2e_test.yml file and create the kubernetes job.
 ```

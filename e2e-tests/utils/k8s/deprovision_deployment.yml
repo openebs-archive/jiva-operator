@@ -6,7 +6,6 @@
 #         - app_ns       ( application namespace )
 #         - app_label    ( application label)
 #
-- block:
 
     - name: Check if the application to be deleted is available.
       k8s_facts:
@@ -91,116 +90,28 @@
       until: resource_list.resources | length < 1
       delay: 5
       retries: 120
-    
-    - block:  
 
-        - block:
+    - name: Check if the pods are deleted in the namespaces
+      shell: >
+        kubectl get pods -n {{ app_ns }} 
+      args:
+        executable: /bin/bash
+      register: result
+      until: "pod_name not in result.stdout"
+      delay: 5
+      retries: 60
 
-            - name: Check if the ctrl-pod is deleted.
-              k8s_facts:
-                kind: Pod
-                namespace: "{{ app_ns }}"
-                label_selectors:
-                  - "openebs.io/controller=jiva-controller"
-                  - "openebs.io/persistent-volume={{ pvname }}"
-              register: ctrl_status
-              until: "ctrl_status.resources | length < 1"
-              delay: 5
-              retries: 15
+    - name: Delete the namespace.
+      k8s:
+        state: absent
+        kind: Namespace
+        name: "{{ app_ns }}"
 
-            - name: Check if the  replica-pod is deleted.
-              k8s_facts:
-                kind: Pod
-                namespace: "{{ app_ns }}"
-                label_selectors:
-                  - "openebs.io/replica=jiva-replica"
-                  - "openebs.io/persistent-volume={{ pvname }}"
-              register: rep_status
-              until: "rep_status.resources | length < 1"
-              delay: 5
-              retries: 15
-
-          when: stg_engine == 'jiva'
-
-        - block:
-
-            - name: Check if the ctrl-pod is deleted.
-              k8s_facts:
-                kind: Pod
-                namespace: "{{ app_ns }}"
-                label_selectors:
-                  - "openebs.io/component=jiva-controller"
-                  - "openebs.io/persistent-volume={{ pvname }}"
-              register: ctrl_status
-              until: "ctrl_status.resources | length < 1"
-              delay: 5
-              retries: 15
-
-            - name: Check if the  replica-pod is deleted.
-              k8s_facts:
-                kind: Pod
-                namespace: "{{ app_ns }}"
-                label_selectors:
-                  - "openebs.io/component=jiva-replica"
-                  - "openebs.io/persistent-volume={{ pvname }}"
-              register: rep_status
-              until: "rep_status.resources | length < 1"
-              delay: 5
-              retries: 15
-
-          when: stg_engine == 'jiva-csi'
-
-        - block:
-
-            - name: Check if the target pod is deleted.
-              k8s_facts:
-                kind: Pod
-                label_selectors:
-                  - "openebs.io/target=cstor-target"
-                  - "openebs.io/persistent-volume={{ pvname }}"
-                namespace: "{{ operator_ns }}"        
-              register: target_status
-              until: " target_status.resources | length < 1"
-              delay: 5
-              retries: 20
-
-            - name: Check status of the pool deployments from cvr
-              k8s_facts:
-                kind: CStorVolumeReplica
-                namespace: "{{ operator_ns }}"
-                label_selectors:
-                  - "openebs.io/target=cstor-target"
-                  - "openebs.io/persistent-volume={{ pvname }}"
-              register: cvr_status
-              until: " cvr_status.resources | length < 1 "
-              delay: 5
-              retries: 20
-
-          when: stg_engine == 'cstor'  
-
-      when: storage_class is defined    
-
-- name: Check if the pods are deleted in the namespaces
-  shell: >
-    kubectl get pods -n {{ app_ns }} 
-  args:
-    executable: /bin/bash
-  register: result
-  until: "pod_name not in result.stdout"
-  delay: 5
-  retries: 60
-
-- name: Delete the namespace.
-  k8s:
-    state: absent
-    kind: Namespace
-    name: "{{ app_ns }}"
-
-- name: Check if the PV is deleted.
-  k8s_facts:
-    kind: PersistentVolume
-    name: "{{ pvname }}"
-    label_selectors:
-      - "{{ app_label }}"
-  register: pv_result
-  failed_when: "pv_result.resources | length > 1"
+    - name: Check if the PV is deleted.
+      k8s_facts:
+        kind: PersistentVolume
+        name: "{{ pvname }}"
+        label_selectors:
+          - "{{ app_label }}"
+      register: pv_result
+      failed_when: "pv_result.resources | length > 1"

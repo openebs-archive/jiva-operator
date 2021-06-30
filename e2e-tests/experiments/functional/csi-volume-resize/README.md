@@ -2,12 +2,11 @@
 
 | Type       | Description                                                  | Storage | Applications | K8s Platform |
 | ---------- | ------------------------------------------------------------ | ------- | ------------ | ------------ |
-| Functional | Increase the storage capacity of volume created using CSI. | OpenEBS, LocalPV| Any          | Any          |
+| Functional | Increase the storage capacity of volume created using CSI. | OpenEBS | Any          | Any          |
 
 ## Entry-Criteria
 
 - K8s nodes should be ready.
-- cStor CSPC should be created in case of cstor volume resize.
 - Application should be deployed using CSI provisioner.
 - The feature-gate `--feature-gates=ExpandCSIVolumes` should be set to true.
 - The module `iscsi_tcp` should be enabled.

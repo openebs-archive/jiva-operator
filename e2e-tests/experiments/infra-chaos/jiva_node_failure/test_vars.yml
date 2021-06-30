@@ -19,7 +19,7 @@ user: "{{ lookup('env','USERNAME') }}"
 
 node_pwd: "{{ lookup('env','NODE_PASSWORD') }}"
 
-esx_host_ip: "{{ lookup('env','ESX_HOST') }}"
+esx_host_ip: "{{ lookup('env','ESX_HOST_IP') }}"
 
-esx_host_pass: "{{ lookup('env','ESX_HOST_PASSWORD') }}"
+esx_host_pass: "{{ lookup('env','ESX_PASSWORD') }}"
 

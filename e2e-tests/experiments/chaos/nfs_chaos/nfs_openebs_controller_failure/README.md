@@ -2,7 +2,7 @@
 
 | Type  | Description                                                  | Storage | K8s Platform |
 | ----- | ------------------------------------------------------------ | ------- | ------------ |
-| Chaos | Kill the cstor target/Jiva controller container and check if gets created again | OpenEBS | Any          |
+| Chaos | Kill the Jiva controller container and check if gets created again | OpenEBS | Any          |
 
 ## Entry-Criteria
 

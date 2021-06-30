@@ -3,8 +3,7 @@
 # This util induces network delay in the pod provided. The inputs required are:
 #      - target_pod : pod where it has to be induced.
 #
-#      - operator_namespace : openebs namespace in case of "cstor".
-#                           : Use applicaton namespace in case of "jiva".
+#      - operator_namespace : openebs namespace Use applicaton namespace in case of "jiva".
 #
 #      - status : "induce" for adding the network loss rule
 #                 "remove" for deleting the applied rule.
@@ -42,5 +41,3 @@
       register: apt_rc
 
   when: status == "remove"
-
-
