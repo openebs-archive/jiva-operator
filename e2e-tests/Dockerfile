@@ -52,12 +52,4 @@ RUN mkdir /etc/ansible/ /ansible && \
     echo "127.0.0.1" >> /etc/ansible/hosts
 
 #Copying Necessary Files
-COPY providers/ ./providers
-COPY ./apps/ ./apps
-COPY ./e2e-tests/chaoslib ./e2e-tests/chaoslib/
-COPY ./e2e-tests/funclib ./e2e-tests/funclib/
-COPY ./hack/*.j2 ./
-COPY ./e2e-tests/utils ./e2e-tests/utils/
-COPY ./tools/plugins /usr/local/lib/python2.7/dist-packages/ansible/plugins/callback/
-COPY experiments ./e2e-tests/experiments
-COPY executor ./executor
+COPY ./e2e-tests ./e2e-tests
