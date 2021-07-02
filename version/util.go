@@ -21,7 +21,7 @@ import (
 var (
 	validCurrentVersions = map[string]bool{
 		"2.6.0": true, "2.7.0": true, "2.8.0": true, "2.9.0": true,
-		"2.10.0": true,
+		"2.10.0": true, "2.10.1": true, "2.11.0": true,
 	}
 	validDesiredVersion = strings.Split(Version, "-")[0]
 )
