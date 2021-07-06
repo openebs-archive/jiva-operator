@@ -1,0 +1,37 @@
+
+       - name: Get the pv name
+         shell: kubectl get pvc {{ pvc_name }} -n {{ ns }} -o jsonpath='{.spec.volumeName}'
+         args:
+           executable: /bin/bash
+         register: pv_name
+         changed_when: True
+
+       - name: Get the controller deployment name 
+         shell: >
+           kubectl get deployment -n {{ operator_ns }} 
+           -l openebs.io/component=jiva-controller,openebs.io/persistent-volume="{{ pv_name.stdout }}" -o jsonpath='{.items[0].metadata.name}'
+         args:
+           executable: /bin/bash
+         register: ctrl_deployment
+
+       - name: Obtaining the replication factor count from controller deployment
+         shell: >
+            kubectl get deployments {{ ctrl_deployment.stdout }} -n {{ operator_ns }} 
+            -o jsonpath='{.spec.template.spec.containers[0].env[0].value}'    
+         register: replication_factor_count
+       
+       - name: Verify that all the replicas are in RW state
+         shell: >
+           kubectl get jivavolume {{ pv_name.stdout }} -n {{ operator_ns }}
+           --no-headers -o yaml | grep "RW" |grep -v status | wc -l
+         args:
+           executable: /bin/bash
+         register: result
+         until: result.stdout| int == replication_factor_count.stdout | int
+         delay: 15
+         retries: 60
+
+       - debug:
+           msg: "All the replicas are in sync"
+         when: "result.rc == 0"
+

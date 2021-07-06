@@ -1,0 +1,305 @@
+---
+- hosts: localhost
+  connection: local
+  gather_facts: False
+
+  vars_files:
+    - test_vars.yml
+
+  tasks:
+    - block:
+
+          ## Generating the testname for deployment
+        - include_tasks: /e2e-tests/utils/fcm/create_testname.yml
+
+          ## RECORD START-OF-TEST IN E2E RESULT CR
+        - include_tasks: /e2e-tests/utils/fcm/update_e2e_result_resource.yml
+          vars:
+            status: 'SOT'
+
+        - block:
+
+            - name: Downloading jiva operator yaml for rc tag
+              get_url:
+                url: "{{ release_operator_link }}"
+                dest: "{{ playbook_dir }}/{{ jiva_operator }}"
+                force: yes
+              register: release_operator
+              when: rc_tag == ""
+
+            - name: Downloading jiva operator yaml release tag
+              get_url:
+                url: "{{ rc_operator_link }}"
+                dest: "{{ playbook_dir }}/{{ jiva_operator }}"
+                force: yes
+              register: rc_operator
+              when: rc_tag != ""
+
+            - name: Deploy jiva operator
+              shell: >
+                kubectl apply -f {{ jiva_operator }}
+              args:
+                executable: /bin/bash
+              register: deploy_status
+              when: lookup('env','ACTION') == "provision"
+
+            - name: Deprovision jiva operator
+              shell: >
+                kubectl delete -f {{ jiva_operator }}
+              args:
+                executable: /bin/bash
+              register: deprovision_status
+              ignore_errors: True
+              when: lookup('env','ACTION') == "deprovision"
+
+          when:
+            - release_tag == "commit_id"
+
+        - block:
+
+            - name: Downloading the jiva operator file from charts
+              get_url:
+                url: "{{ jiva_operator_link }}"
+                dest: "{{ playbook_dir }}/{{ jiva_operator }}"
+                force: yes
+              register: status
+              until:  "'OK' in status.msg"
+              delay: 5
+              retries: 3
+
+            - name: Deploy jiva operator
+              shell: >
+                kubectl apply -f {{ jiva_operator }}
+              args:
+                executable: /bin/bash
+              register: deploy_status
+              when: lookup('env','ACTION') == "provision"
+
+            - name: Deprovision jiva operator
+              shell: >
+                kubectl delete -f {{ jiva_operator }}
+              args:
+                executable: /bin/bash
+              register: deprovision_status
+              ignore_errors: True
+              when: lookup('env','ACTION') == "deprovision"
+
+          when:
+            - release_tag == "charts"              
+
+        - block:
+
+
+            - name: Downloading the operator yaml spec from master
+              get_url:
+                url: "{{ operator_link }}"
+                dest: "{{ playbook_dir }}/{{ operator_yaml }}"
+                force: yes
+              register: charts_file
+              until:  "'OK' in charts_file.msg"
+              delay: 5
+              retries: 3
+
+            - name: Downloading jiva csi operator yaml
+              get_url:
+                url: "{{ jiva_csi_link }}"
+                dest: "{{ playbook_dir }}/{{ jiva_csi }}"
+                force: yes
+              register: result
+              until:  "'OK' in result.msg"
+              delay: 5
+              retries: 3
+         
+            - block:
+
+                - name: Change the OpenEBS component labels to desired version in Operator yaml
+                  replace:
+                    path: "{{ operator_yaml }}"
+                    regexp: 'openebs.io/version: dev'
+                    replace: "openebs.io/version: {{ openebs_version }}"            
+
+                - name: Change the OpenEBS component labels to desired version in jiva-csi yaml
+                  replace:
+                    path: "{{ jiva_csi }}"
+                    regexp: 'openebs.io/version: dev'
+                    replace: "openebs.io/version: {{ openebs_version }}"
+
+                - name: Change openebs jiva operator image
+                  replace:
+                    path: "{{ operator_yaml }}"
+                    regexp: openebs/jiva-operator:ci
+                    replace: "{{ lookup('env','JIVA_OPERATOR_IMAGE') }}"
+                  when: lookup('env','JIVA_OPERATOR_IMAGE') | length > 0                    
+              
+                - name: Change openebs jiva csi plugin operator image
+                  replace:
+                    path: "{{ jiva_csi }}"
+                    regexp: openebs/jiva-csi:ci
+                    replace: "{{ lookup('env','JIVA_CSI_PLUGIN_IMAGE') }}"
+                  when: lookup('env','JIVA_CSI_PLUGIN_IMAGE') | length > 0 
+
+                - name: Change openebs jiva operator image
+                  replace:
+                    path: "{{ operator_yaml }}"
+                    regexp: openebs/jiva:ci
+                    after: '- name: OPENEBS_IO_JIVA_CONTROLLER_IMAGE'
+                    replace: "{{ lookup('env','JIVA_CONTROLLER_IMAGE') }}"
+                  when: lookup('env','JIVA_CONTROLLER_IMAGE') | length > 0
+
+                - name: Change openebs jiva operator image
+                  replace:
+                    path: "{{ operator_yaml }}"
+                    regexp: openebs/jiva:ci
+                    after: '- name: OPENEBS_IO_JIVA_REPLICA_IMAGE'
+                    replace: "{{ lookup('env','JIVA_REPLICA_IMAGE') }}"
+                  when: lookup('env','JIVA_REPLICA_IMAGE') | length > 0                  
+
+              when: openebs_version != 'ci'
+
+            - block:
+
+                - name: Install the Jiva operator in operator namespace
+                  shell: kubectl apply -f operator.yaml
+                  args:
+                    executable: /bin/bash
+                  register: status
+                  failed_when: "status.rc != 0"
+
+                - name: Deploy CSI Driver
+                  shell: >
+                    kubectl apply -f jiva-csi.yaml
+                  args:
+                    executable: /bin/bash
+                  register: status
+                  failed_when: "status.rc != 0"
+
+              when: action == "provision"
+
+            - block:
+
+                - name: Deprovision JIVA CSI Driver
+                  shell: >
+                    kubectl delete -f jiva-csi.yaml
+                  args:
+                    executable: /bin/bash
+                  register: status
+                  failed_when: "status.rc != 0"            
+
+                - name: Remove the Jiva operator in operator namespace
+                  shell: kubectl delete -f operator.yaml
+                  args:
+                    executable: /bin/bash
+                  register: status
+                  failed_when: "status.rc != 0"
+                 
+              when: action == "deprovision"              
+
+          when:
+            - release_tag == "master"
+
+        - block:
+
+            - name: Obtain the Jiva operator pod in operator namespace
+              shell: >
+                kubectl get po -n {{ operator_ns }} --no-headers -l name=jiva-operator
+                -o custom-columns=:.metadata.name
+              args:
+                executable: /bin/bash
+              register: jiva_operator_pod
+              failed_when: "jiva_operator_pod.rc != 0"
+
+            - name: Verify the status of Jiva operator
+              shell: >
+                kubectl get po {{ jiva_operator_pod.stdout }} -n {{ operator_ns }}
+                --no-headers -o custom-columns=:.status.phase
+              args:
+                executable: /bin/bash
+              register: jiva_operator
+              until: "'Running' in jiva_operator.stdout"
+              delay: 10
+              retries: 30
+
+            - name: check if jiva csi-controller pod is running
+              shell: >
+                kubectl get pods -n {{ operator_ns }} -l app=openebs-jiva-csi-controller
+                --no-headers -o custom-columns=:status.phase
+              args:
+                executable: /bin/bash
+              register: csi_controller
+              until: "'Running' in csi_controller.stdout"
+              delay: 10
+              retries: 30
+
+            - name: Obtain the desired number of openebs-csi-node pods
+              shell: >
+                kubectl get daemonset openebs-jiva-csi-node -n {{ operator_ns }}
+                --no-headers -o custom-columns=:status.desiredNumberScheduled
+              args:
+                executable: /bin/bash
+              register: desired_count
+              failed_when: "desired_count.rc != 0"
+
+            - name: Check if the desired count matches the ready pods
+              command: >
+                kubectl get daemonset openebs-jiva-csi-node -n {{ operator_ns }} --no-headers
+                -o custom-columns=:status.numberReady
+              args:
+                executable: /bin/bash
+              register: ready_pods
+              until: "desired_count.stdout == ready_pods.stdout"
+              delay: 5
+              retries: 50
+
+          when: action == "provision"
+
+        - block:
+
+            - name: Verify if the Jiva CSI controller pod is deleted
+              shell: >
+                kubectl get pod -n {{ operator_ns }} -l app=openebs-jiva-csi-controller
+                --no-headers -o custom-columns=:.metadata.name
+              args:
+                executable: /bin/bash
+              register: jiva_csi_controller
+              until: "jiva_csi_controller.stdout == ''"
+              delay: 10
+              retries: 30
+
+            - name: Verify if the Jiva CSI node pod is deleted
+              shell: >
+                kubectl get pod -n {{ operator_ns }} -l app=openebs-jiva-csi-node
+                --no-headers -o custom-columns=:.metadata.name
+              args:
+                executable: /bin/bash
+              register: jiva_csi_node
+              until: "jiva_csi_node.stdout == ''"
+              delay: 10
+              retries: 30
+
+            - name: Verify if the Jiva operator pod is deleted
+              shell: >
+                kubectl get pod -n {{ operator_ns }} -l name=jiva-operator
+                --no-headers -o custom-columns=:.metadata.name
+              args:
+                executable: /bin/bash
+              register: jiva_operator
+              until: "jiva_operator.stdout == ''"
+              delay: 10
+              retries: 30
+
+          when: action == "deprovision"
+
+        - name: Setting pass flag
+          set_fact:
+            flag: "Pass"
+
+      rescue:
+        - name: Setting fail flag
+          set_fact:
+            flag: "Fail"
+
+      always:
+        ## RECORD END-OF-TEST IN E2E RESULT CR
+        - include_tasks: /e2e-tests/utils/fcm/update_e2e_result_resource.yml
+          vars:
+            status: 'EOT'

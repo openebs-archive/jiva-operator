@@ -1,0 +1,43 @@
+- name: Obtain the jiva replica pod scheduled on one node
+  shell: >
+    kubectl get pod -n {{ operator_ns }} -l openebs.io/component=jiva-replica,openebs.io/persistent-volume="{{ pv.stdout }}" 
+    -o jsonpath='{.items[?(@.spec.nodeName=="'{{ delete_rep_node }}'")].metadata.name}'
+  args:
+    executable: /bin/bash
+  register: replica_pod
+  failed_when: "replica_pod.rc != 0"
+
+- name: Delete the replica pod of one node
+  shell: >
+    kubectl delete pod "{{ replica_pod.stdout }}" -n {{ operator_ns }}
+  args:
+    executable: /bin/bash
+  register: status
+  failed_when: "status.rc != 0"
+
+- name: Verify if all the replica pods are in running state
+  shell: >
+    kubectl get pods -n {{ operator_ns }} -l openebs.io/component=jiva-replica,openebs.io/persistent-volume="{{ pv.stdout }}" 
+    --no-headers -o custom-columns=:status.phase
+  register: running_rep_status
+  until: "((running_rep_status.stdout_lines|unique)|length) == 1 and 'Running' in running_rep_status.stdout"
+  delay: 10
+  retries: 30
+
+- name: Obtain one replica pod to check the revision counter value
+  shell: >
+    kubectl get pod -n {{ operator_ns }} -l openebs.io/component=jiva-replica,openebs.io/persistent-volume="{{ pv.stdout }}" 
+    -o jsonpath='{.items[?(@.spec.nodeName=="'{{ test_rep_node }}'")].metadata.name}'
+  args:
+    executable: /bin/bash
+  register: replica_pod
+  failed_when: "replica_pod.rc != 0"  
+
+- name: Verify the revision counter value
+  shell: >
+    kubectl exec -ti "{{ replica_pod.stdout }}" -n {{ operator_ns }} 
+    -- bash -c "du -h /openebs/revision.counter"
+  args:
+    executable: /bin/bash
+  register: status
+  failed_when: "'4.0K' not in status.stdout"

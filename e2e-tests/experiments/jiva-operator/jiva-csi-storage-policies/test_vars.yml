@@ -1,0 +1,15 @@
+---
+
+# Test specific parameters
+
+test_name: "openebs-jiva-csi-sc-{{ lookup('env','ACTION') }}"
+
+replica_storageclass: "{{ lookup('env','REPLICA_SC') }}"
+
+replica_count: "{{ lookup('env','REPLICA_COUNT') }}"
+
+action: "{{ lookup('env','ACTION') }}"
+
+storage_policies:
+  - jiva-csi-xfs-sc.yml
+  - jiva-csi-sc.yml

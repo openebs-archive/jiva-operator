@@ -1,0 +1,60 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: e2e-jiva-csi-provisioner-
+  namespace: e2e
+spec:
+  template:
+    metadata:
+      name: e2e
+      labels:
+        provider: jiva-operator
+    spec:
+      serviceAccountName: e2e
+      restartPolicy: Never
+      containers:
+      - name: ansibletest
+        image: openebs/jiva-csi-e2e:ci
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: ANSIBLE_STDOUT_CALLBACK
+            value: default
+
+            # JIVA operator version in case of ci, value is 'ci'
+            # For the release chart image JIVA operator versions should be release tag eg: 2.9.0
+          - name: OPENEBS_VERSION
+            value: ""
+
+            # To Deploy the JIVA operator from release charts value should be `charts`
+            # To Deploy the JIVA operator for ci images value should be `master`
+            # To Deploy the JIVA operator from any PR value should be `commit_id`
+          - name: IMAGE_TYPE
+            value: ""
+
+          - name: JIVA_OPERATOR_IMAGE
+            value: ""
+
+          - name: JIVA_CSI_PLUGIN_IMAGE
+            value: ""
+
+          - name: JIVA_CONTROLLER_IMAGE
+            value: ""
+
+          - name: JIVA_REPLICA_IMAGE
+            value: ""                        
+
+          - name: ACTION
+            value: provision
+
+          - name: COMMIT_ID
+            value: ""
+
+          - name: RC_TAG
+            value: ""
+
+          - name: OPERATOR_NS
+            value: "openebs"       
+
+        command: ["/bin/bash"]
+        args: ["-c", "ansible-playbook ./e2e-tests/experiments/jiva-operator/jiva-csi-provisioner/test.yml -i /etc/ansible/hosts -vv; exit 0"]

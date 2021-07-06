@@ -1,0 +1,61 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: target-network-loss
+  namespace: e2e
+data:
+  parameters.yml: |
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: openebs-controller-network-loss- 
+  namespace: e2e 
+spec:
+  template:
+    metadata:
+      labels:
+        name: openebs-controller-network-loss
+    spec:
+      serviceAccountName: e2e
+      restartPolicy: Never
+      containers:
+      - name: ansibletest
+        image: openebs/jiva-csi-e2e:ci
+        env: 
+          - name: ANSIBLE_STDOUT_CALLBACK
+            value: default
+
+          - name: OPERATOR_NAMESPACE
+            value: openebs
+ 
+          - name: APP_NAMESPACE
+            value: app-percona-ns 
+
+          - name: APP_LABEL
+            value: 'name=percona'
+
+          - name: APP_PVC
+            value: percona-mysql-claim
+
+          - name: LIVENESS_APP_LABEL
+            value: ""
+
+          - name: LIVENESS_APP_NAMESPACE
+            value: ""
+
+          - name: DATA_PERSISTENCE
+            value: ""
+                      
+        command: ["/bin/bash"]
+        args: ["-c", "ansible-playbook ./e2e-tests/experiments/chaos/openebs_controller_network_loss/test.yml -i /etc/ansible/hosts -vv; exit 0"]
+
+        volumeMounts:
+        - name: parameters
+          mountPath: /mnt/
+      volumes:
+        - name: parameters
+          configMap:
+            name: target-network-loss  

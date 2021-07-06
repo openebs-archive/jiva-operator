@@ -1,0 +1,35 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: e2e-memleak-test-
+  namespace: e2e
+spec:
+  template:
+    metadata:
+      labels:
+        name: e2e
+        app: memleak-test
+    spec:
+      serviceAccountName: e2e
+      restartPolicy: Never
+      containers:
+      - name: ansibletest
+        image: openebs/jiva-csi-e2e:ci
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: ANSIBLE_STDOUT_CALLBACK
+            value: default
+
+          - name: PROVIDER_STORAGE_CLASS
+            value: openebs-jiva-default
+
+          - name: APP_NAMESPACE
+            value: memleak
+
+          - name: MEMORY_BM
+            value: '800'
+
+        command: ["/bin/bash"]
+        args: ["-c", "ansible-playbook ./e2e-tests/experiments/functional/memcheck/test.yml -i /etc/ansible/hosts -v; exit 0"]
+

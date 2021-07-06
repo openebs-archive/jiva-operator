@@ -1,0 +1,85 @@
+---
+- hosts: localhost
+  connection: local
+  gather_facts: False
+
+  vars_files:
+    - test_vars.yml
+
+  tasks:
+    - block:
+
+        ## Create test name append with run_id
+        - include_tasks: "/e2e-tests/utils/fcm/create_testname.yml"
+
+        ## RECORD START-OF-TEST IN e2e RESULT CR
+        - include_tasks: "/e2e-tests/utils/fcm/update_e2e_result_resource.yml"
+          vars:
+            status: 'SOT'
+
+        - name: Obtain the volume name
+          shell: >
+            kubectl get pvc {{ pvc_name }} -n {{ namespace }} --no-headers -o custom-columns=:.spec.volumeName
+          args:
+            executable: /bin/bash
+          register: pv_name
+
+        - name: Getting replica-pod name
+          shell: >
+            kubectl get pod -n {{ operator_ns }} -l openebs.io/component=jiva-replica,openebs.io/persistent-volume="{{ pv_name.stdout }}"
+            -o jsonpath='{.items[0].metadata.name}'
+          args:
+            executable: /bin/bash
+          register: rep_pod
+
+        - name: Checking the status of replica pod
+          shell: kubectl get pod {{ rep_pod.stdout }} -n {{ operator_ns }} -o jsonpath='{.status.phase}'
+          register: status
+          until: "'Running' in status.stdout"
+          delay: 30
+          retries: 10
+
+        - name: Getting the Node name on which replica-pod is scheduled
+          shell: kubectl get pod {{ rep_pod.stdout }} -n {{ operator_ns }} -o jsonpath='{.spec.nodeName}'
+          args:
+            executable: /bin/bash
+          register: node
+
+        - name: Obtaining the sts name for the replica pod
+          shell: >
+            kubectl get sts -n {{ operator_ns }} -l openebs.io/component=jiva-replica,openebs.io/persistent-volume="{{ pv_name.stdout }}"
+            -o jsonpath='{.items[0].metadata.name}'
+          args:
+            executable: /bin/bash
+          register: sts_name
+
+        - name: Checking the node affinity for replica-pod
+          include_tasks: "/e2e-tests/funclib/kubectl/pod_node_affinity.yml"
+          vars:
+              ns: "{{ operator_ns }}"
+              pod_name: "{{ rep_pod.stdout }}"
+              pod_label: "openebs.io/component=jiva-replica,openebs.io/persistent-volume={{ pv_name.stdout }}"
+
+        - name: Checking the status of replica-pod
+          shell: >
+            kubectl get pod {{ new_pod_name.stdout }} -n {{ operator_ns }} -o jsonpath='{.status.phase}'
+          until: "'Running' in status.stdout"
+          delay: 30
+          retries: 10
+
+        - set_fact:
+            flag: "Pass"
+
+      rescue:
+        - set_fact:
+            flag: "Fail"
+
+      always:
+          #This Task is added inside always because if it the fails node will be available for scheduling
+        - name: Uncordon node
+          shell: kubectl uncordon {{ node_name.stdout }}
+
+          ## RECORD END-OF-TEST IN e2e RESULT CR
+        - include_tasks: "/e2e-tests/utils/fcm/update_e2e_result_resource.yml"
+          vars:
+            status: 'EOT'
