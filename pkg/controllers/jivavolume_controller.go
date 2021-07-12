@@ -142,7 +142,7 @@ func (r *JivaVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			// log err only, as controller must be in container creating state
 			// don't return err as it will dump stack trace unneccesary
 			logrus.Infof("failed to get controller pod ip for volume %s: %s", instance.Name, err.Error())
-			time.Sleep(5 * time.Second)
+			time.Sleep(1 * time.Second)
 		}
 	}
 
@@ -1233,7 +1233,7 @@ func (r *JivaVolumeReconciler) getAndUpdateVolumeStatus(cr *openebsiov1alpha1.Ji
 		err = r.updatePodIPMap(cr)
 		if err != nil {
 			logrus.Infof("failed to get controller pod ip for volume %s: %s", cr.Name, err.Error())
-			time.Sleep(5 * time.Second)
+			time.Sleep(1 * time.Second)
 		}
 	}
 

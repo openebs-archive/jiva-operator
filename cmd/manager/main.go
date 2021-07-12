@@ -78,7 +78,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	duration := 5 * time.Second
+	duration := 30 * time.Second
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
