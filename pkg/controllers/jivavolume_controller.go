@@ -72,6 +72,7 @@ type upgradeFunc func(u *upgradeParams) (*openebsiov1alpha1.JivaVolume, error)
 
 var (
 	upgradeMap = map[string]upgradeFunc{}
+	podIPMap   = map[string]string{}
 )
 
 const (
@@ -91,7 +92,7 @@ var (
 		createReplicaPodDisruptionBudget,
 	}
 
-	updateErrMsg = "Failed to update JivaVolume with service info"
+	updateErrMsg = "failed to update JivaVolume with service info"
 
 	defaultServiceAccountName = os.Getenv("OPENEBS_SERVICEACCOUNT_NAME")
 )
@@ -135,6 +136,16 @@ func (r *JivaVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return reconcile.Result{}, err
 	}
 
+	if _, ok := podIPMap[instance.Name]; !ok {
+		err = r.updatePodIPMap(instance)
+		if err != nil {
+			// log err only, as controller must be in container creating state
+			// don't return err as it will dump stack trace unneccesary
+			logrus.Infof("failed to get controller pod ip for volume %s: %s", instance.Name, err.Error())
+			time.Sleep(5 * time.Second)
+		}
+	}
+
 	// initially Phase will be "", so it will skip switch case
 	// Once it has started boostrapping it will set the Phase to Pending/Failed
 	// depends upon the error. If bootstrap is successful it will set the Phase
@@ -156,6 +167,7 @@ func (r *JivaVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 				return reconcile.Result{}, fmt.Errorf("failed to scaleup volume %s: %s",
 					instance.Name, err.Error())
 			}
+			return reconcile.Result{}, r.getAndUpdateVolumeStatus(instance)
 		}
 		if err := r.moveReplicasForMissingNodes(instance); err != nil {
 			r.Recorder.Eventf(instance, corev1.EventTypeWarning,
@@ -163,7 +175,7 @@ func (r *JivaVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			return reconcile.Result{}, fmt.Errorf("failed to move replica %s: %s",
 				instance.Name, err.Error())
 		}
-		return reconcile.Result{}, r.getAndUpdateVolumeStatus(instance)
+		return reconcile.Result{}, nil
 	case openebsiov1alpha1.JivaVolumePhaseSyncing, openebsiov1alpha1.JivaVolumePhaseUnkown:
 		return reconcile.Result{}, r.getAndUpdateVolumeStatus(instance)
 	case openebsiov1alpha1.JivaVolumePhaseDeleting:
@@ -177,6 +189,30 @@ func (r *JivaVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	return reconcile.Result{}, nil
+}
+
+func (r *JivaVolumeReconciler) updatePodIPMap(cr *openebsiov1alpha1.JivaVolume) error {
+	var (
+		controllerLabel = "openebs.io/component=jiva-controller,openebs.io/persistent-volume="
+	)
+
+	labelSelector, _ := labels.Parse(
+		controllerLabel + cr.Name)
+
+	pods := corev1.PodList{}
+	err := r.List(context.TODO(), &pods, &client.ListOptions{
+		Namespace:     cr.Namespace,
+		LabelSelector: labelSelector,
+	})
+	if err != nil {
+		return err
+	}
+	if len(pods.Items) != 1 {
+		return fmt.Errorf("expected 1 controller pod got %d", len(pods.Items))
+	}
+	podIPMap[cr.Name] = pods.Items[0].Status.PodIP
+
+	return nil
 }
 
 func (r *JivaVolumeReconciler) isScaleup(cr *openebsiov1alpha1.JivaVolume) bool {
@@ -1170,19 +1206,22 @@ func (r *JivaVolumeReconciler) updateStatus(err error, cr *openebsiov1alpha1.Jiv
 	}
 }
 
-func (r *JivaVolumeReconciler) getAndUpdateVolumeStatus(cr *openebsiov1alpha1.JivaVolume) (err error) {
+func (r *JivaVolumeReconciler) getAndUpdateVolumeStatus(cr *openebsiov1alpha1.JivaVolume) error {
 	var (
 		cli *jiva.ControllerClient
+		err error
 	)
 
 	if err = r.getJivaVolume(cr); err != nil {
-		return fmt.Errorf("Failed to getAndUpdateVolumeStatus, err: %v", err)
+		return fmt.Errorf("failed to getAndUpdateVolumeStatus, err: %v", err)
 	}
 
+	podIP := podIPMap[cr.Name]
+
 	defer r.updateStatus(err, cr)
-	addr := cr.Spec.ISCSISpec.TargetIP + ":9501"
+	addr := podIP + ":9501"
 	if len(addr) == 0 {
-		return fmt.Errorf("Failed to get volume stats: target address is empty")
+		return fmt.Errorf("failed to get volume stats: target address is empty")
 	}
 	cli = jiva.NewControllerClient(addr)
 	stats := &volume.Stats{}
@@ -1190,7 +1229,12 @@ func (r *JivaVolumeReconciler) getAndUpdateVolumeStatus(cr *openebsiov1alpha1.Ji
 	if err != nil {
 		// log err only, as controller must be in container creating state
 		// don't return err as it will dump stack trace unneccesary
-		logrus.Info("Failed to get volume stats ", "err", err)
+		logrus.Info("failed to get volume stats ", "err", err)
+		err = r.updatePodIPMap(cr)
+		if err != nil {
+			logrus.Infof("failed to get controller pod ip for volume %s: %s", cr.Name, err.Error())
+			time.Sleep(5 * time.Second)
+		}
 	}
 
 	cr.Status.Status = stats.TargetStatus
