@@ -1232,8 +1232,8 @@ func setdefaults(cr *openebsiov1alpha1.JivaVolume) {
 	}
 }
 
-func (r *JivaVolumeReconciler) updateStatus(err error, cr *openebsiov1alpha1.JivaVolume) {
-	if err != nil {
+func (r *JivaVolumeReconciler) updateStatus(err *error, cr *openebsiov1alpha1.JivaVolume) {
+	if *err != nil {
 		setdefaults(cr)
 	}
 	if err := r.updateJivaVolume(cr); err != nil {
@@ -1250,11 +1250,11 @@ func (r *JivaVolumeReconciler) getAndUpdateVolumeStatus(cr *openebsiov1alpha1.Ji
 		err error
 	)
 
+	defer r.updateStatus(&err, cr)
+
 	if err = r.getJivaVolume(cr); err != nil {
 		return fmt.Errorf("failed to getAndUpdateVolumeStatus, err: %v", err)
 	}
-
-	defer r.updateStatus(err, cr)
 
 	addr := cr.Spec.ISCSISpec.TargetIP + ":9501"
 	if podIP, ok := podIPMap[cr.Name]; ok {
@@ -1264,6 +1264,7 @@ func (r *JivaVolumeReconciler) getAndUpdateVolumeStatus(cr *openebsiov1alpha1.Ji
 	if len(addr) == 0 {
 		return fmt.Errorf("failed to get volume stats: target address is empty")
 	}
+
 	cli = jiva.NewControllerClient(addr)
 	stats := &volume.Stats{}
 	err = cli.Get("/stats", stats)
