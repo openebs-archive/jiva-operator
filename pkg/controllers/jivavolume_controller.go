@@ -43,6 +43,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -141,7 +142,7 @@ func (r *JivaVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		if err != nil {
 			// log err only, as controller must be in container creating state
 			// don't return err as it will dump stack trace unneccesary
-			logrus.Infof("failed to get controller pod ip for volume %s: %s", instance.Name, err.Error())
+			logrus.Infof("not able to get controller pod ip for volume %s: %s", instance.Name, err.Error())
 			time.Sleep(1 * time.Second)
 		}
 	}
@@ -203,16 +204,41 @@ func (r *JivaVolumeReconciler) updatePodIPMap(cr *openebsiov1alpha1.JivaVolume) 
 	err := r.List(context.TODO(), &pods, &client.ListOptions{
 		Namespace:     cr.Namespace,
 		LabelSelector: labelSelector,
+		FieldSelector: fields.SelectorFromSet(fields.Set{"status.phase": "Running"}),
 	})
 	if err != nil {
 		return err
 	}
-	if len(pods.Items) != 1 {
+
+	runningPodIPs := []string{}
+
+	for _, pod := range pods.Items {
+		node := &corev1.Node{}
+		err := r.Get(context.TODO(), types.NamespacedName{
+			Name: pod.Spec.NodeName,
+		}, node)
+		if err == nil && isNodeReady(node) {
+			runningPodIPs = append(runningPodIPs, pod.Status.PodIP)
+		}
+	}
+
+	if len(runningPodIPs) != 1 {
 		return fmt.Errorf("expected 1 controller pod got %d", len(pods.Items))
 	}
-	podIPMap[cr.Name] = pods.Items[0].Status.PodIP
+	podIPMap[cr.Name] = runningPodIPs[0]
 
 	return nil
+}
+
+func isNodeReady(node *corev1.Node) bool {
+	for _, cond := range node.Status.Conditions {
+		if cond.Type == corev1.NodeReady {
+			if cond.Status == corev1.ConditionTrue {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func (r *JivaVolumeReconciler) isScaleup(cr *openebsiov1alpha1.JivaVolume) bool {
@@ -308,7 +334,7 @@ func (r *JivaVolumeReconciler) moveReplicasForMissingNodes(cr *openebsiov1alpha1
 				err = r.Delete(context.TODO(), &pod)
 				// wait for pod to get deleted and
 				// recreated
-				time.Sleep(5 * time.Second)
+				time.Sleep(10 * time.Second)
 				if err != nil && !errors.IsNotFound(err) {
 					return err
 				}
@@ -316,30 +342,36 @@ func (r *JivaVolumeReconciler) moveReplicasForMissingNodes(cr *openebsiov1alpha1
 			}
 			return err
 		}
-
-		err = r.Get(context.TODO(), types.NamespacedName{
-			Name: pvc.GetAnnotations()[nodeAnnotation],
-		}, &corev1.Node{})
-		if err != nil {
-			if errors.IsNotFound(err) {
-				err = r.removeSTSVolume(pvc)
-				if err != nil {
+		nodeName := pvc.GetAnnotations()[nodeAnnotation]
+		// if a pvc and pod is deleted then in next iteration the nodeName
+		// will be empty which will end up in not-found error
+		// this can result in a race between pvc getting bound and operator deleting
+		// the pending pvc, so performing steps only if nodeName is present
+		if nodeName != "" {
+			err = r.Get(context.TODO(), types.NamespacedName{
+				Name: nodeName,
+			}, &corev1.Node{})
+			if err != nil {
+				if errors.IsNotFound(err) {
+					err = r.removeSTSVolume(pvc)
+					if err != nil {
+						return err
+					}
+					err = r.Delete(context.TODO(), &pod)
+					if err != nil {
+						return err
+					}
+					// wait for pod to get deleted and
+					// recreated
+					time.Sleep(10 * time.Second)
+					r.Recorder.Eventf(cr, corev1.EventTypeWarning,
+						"ReplicaMovement",
+						"replica %s and it's corresponding PVC & PV deleted",
+						pod.Name,
+					)
+				} else {
 					return err
 				}
-				err = r.Delete(context.TODO(), &pod)
-				if err != nil {
-					return err
-				}
-				// wait for pod to get deleted and
-				// recreated
-				time.Sleep(5 * time.Second)
-				r.Recorder.Eventf(cr, corev1.EventTypeWarning,
-					"ReplicaMovement",
-					"replica %s and it's corresponding PVC & PV deleted",
-					pod.Name,
-				)
-			} else {
-				return err
 			}
 		}
 	}
@@ -389,6 +421,12 @@ deletepvc:
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *JivaVolumeReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	if err := mgr.GetFieldIndexer().IndexField(context.TODO(), &corev1.Pod{}, "status.phase", func(rawObj client.Object) []string {
+		pod := rawObj.(*corev1.Pod)
+		return []string{string(pod.Status.Phase)}
+	}); err != nil {
+		return err
+	}
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&openebsiov1alpha1.JivaVolume{}).
 		Owns(&appsv1.Deployment{}).
