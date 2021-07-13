@@ -1254,10 +1254,13 @@ func (r *JivaVolumeReconciler) getAndUpdateVolumeStatus(cr *openebsiov1alpha1.Ji
 		return fmt.Errorf("failed to getAndUpdateVolumeStatus, err: %v", err)
 	}
 
-	podIP := podIPMap[cr.Name]
-
 	defer r.updateStatus(err, cr)
-	addr := podIP + ":9501"
+
+	addr := cr.Spec.ISCSISpec.TargetIP + ":9501"
+	if podIP, ok := podIPMap[cr.Name]; ok {
+		addr = podIP + ":9501"
+	}
+
 	if len(addr) == 0 {
 		return fmt.Errorf("failed to get volume stats: target address is empty")
 	}
