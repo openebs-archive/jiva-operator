@@ -27,8 +27,7 @@ var (
 // IsCurrentVersionValid verifies if the  current version is valid or not
 func IsCurrentVersionValid(v string) bool {
 	currentVersion := strings.Split(v, "-")[0]
-	return IsCurrentLessThanOrEqualNewVersion(minCurrentVersion, currentVersion) &&
-		IsCurrentLessThanOrEqualNewVersion(currentVersion, validDesiredVersion)
+	return CanCurrentVersionBeUpgraded(currentVersion)
 }
 
 // IsDesiredVersionValid verifies the desired version is valid or not
@@ -37,9 +36,16 @@ func IsDesiredVersionValid(v string) bool {
 	return validDesiredVersion == desiredVersion
 }
 
-// IsCurrentLessThanOrEqualNewVersion compares current and new version and returns true
-// if currentversion is less `<` or equal then new version
-func IsCurrentLessThanOrEqualNewVersion(old, new string) bool {
+// CanCurrentVersionBeUpgraded determines whether the current version
+// is within the range of minCurrentVersion and validDesiredVersion
+func CanCurrentVersionBeUpgraded(version string) bool {
+	return IsOldLessThanOrEqualNewVersion(minCurrentVersion, version) &&
+		IsOldLessThanOrEqualNewVersion(version, validDesiredVersion)
+}
+
+// IsOldLessThanOrEqualNewVersion compares old and new version and returns true
+// if old version is less `<` or equal then new version
+func IsOldLessThanOrEqualNewVersion(old, new string) bool {
 	oldVersions := strings.Split(strings.Split(old, "-")[0], ".")
 	newVersions := strings.Split(strings.Split(new, "-")[0], ".")
 	for i := 0; i < len(oldVersions); i++ {
