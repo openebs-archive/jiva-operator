@@ -1,3 +1,18 @@
+v2.11.0 / 2021-07-15
+========================
+* fix(status): fetch volume status using controller podIP (#112, @shubham14bajpai)
+* fix(csi): prevent volume mount on multiple nodes simultaneously (#107, @shubham14bajpai)
+
+v2.11.0-RC2 / 2021-07-13
+========================
+* fix(status): fetch volume status using controller podIP ([#112](https://github.com/openebs/jiva-operator/pull/112),[@shubham14bajpai](https://github.com/shubham14bajpai))
+
+
+v2.11.0-RC1 / 2021-07-07
+========================
+* fix(csi): prevent volume mount on multiple nodes simultaneously ([#107](https://github.com/openebs/jiva-operator/pull/107),[@shubham14bajpai](https://github.com/shubham14bajpai))
+
+
 v2.10.0 / 2021-06-14
 ========================
 * feat(charts): add default policy and storageclass ([#95](https://github.com/openebs/jiva-operator/pull/95),[@shubham14bajpai](https://github.com/shubham14bajpai))
