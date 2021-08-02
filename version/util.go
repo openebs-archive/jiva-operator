@@ -22,6 +22,8 @@ import (
 var (
 	minCurrentVersion   = "2.6.0"
 	validDesiredVersion = strings.Split(Version, "-")[0]
+	// these are the versions used in various pipelines for ci testing
+	exceptions = []string{"master"}
 )
 
 // IsCurrentVersionValid verifies if the  current version is valid or not
@@ -48,6 +50,11 @@ func CanCurrentVersionBeUpgraded(version string) bool {
 func IsOldLessThanOrEqualNewVersion(old, new string) bool {
 	oldVersions := strings.Split(strings.Split(old, "-")[0], ".")
 	newVersions := strings.Split(strings.Split(new, "-")[0], ".")
+	for _, exception := range exceptions {
+		if newVersions[0] == exception {
+			return true
+		}
+	}
 	for i := 0; i < len(oldVersions); i++ {
 		oldVersion, _ := strconv.Atoi(oldVersions[i])
 		newVersion, _ := strconv.Atoi(newVersions[i])
