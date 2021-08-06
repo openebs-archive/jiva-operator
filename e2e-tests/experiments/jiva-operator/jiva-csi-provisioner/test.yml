@@ -18,39 +18,128 @@
             status: 'SOT'
 
         - block:
+            - block:
+                - name: Downloading jiva operator yaml for release tag
+                  get_url:
+                    url: "{{ release_operator_link }}"
+                    dest: "{{ playbook_dir }}/{{ jiva_operator }}"
+                    force: yes
+                  register: release_operator
 
-            - name: Downloading jiva operator yaml for rc tag
-              get_url:
-                url: "{{ release_operator_link }}"
-                dest: "{{ playbook_dir }}/{{ jiva_operator }}"
-                force: yes
-              register: release_operator
+                - name: Downloading localpv operator yaml for release tag
+                  get_url:
+                    url: "{{ release_hostpath_link }}"
+                    dest: "{{ playbook_dir }}/{{ charts_localpv_operator }}"
+                    force: yes
+                  register: localpv_operator
+
+                - block:
+    
+                    - name: Deploy localpv operator
+                      shell: >
+                        kubectl apply -f {{ charts_localpv_operator }}
+                      args:
+                        executable: /bin/bash
+                      register: localpv_status
+
+                    - name: Deploy jiva operator
+                      shell: >
+                        kubectl apply -f {{ jiva_operator }}
+                      args:
+                        executable: /bin/bash
+                      register: deploy_status
+
+                  when: lookup('env','ACTION') == "provision"
+
+                - block:
+
+                    - name: Deprovision jiva operator
+                      shell: >
+                        kubectl delete -f {{ jiva_operator }}
+                      args:
+                        executable: /bin/bash
+                      register: jiva_deprovision
+                      ignore_errors: True
+
+                    - name: Deprovision localpv operator
+                      shell: >
+                        kubectl delete -f {{ charts_localpv_operator }}
+                      args:
+                        executable: /bin/bash
+                      register: deprovision_status
+                      ignore_errors: True
+
+                  when: lookup('env','ACTION') == "deprovision"
+                
               when: rc_tag == ""
+            
+            - block:
 
-            - name: Downloading jiva operator yaml release tag
-              get_url:
-                url: "{{ rc_operator_link }}"
-                dest: "{{ playbook_dir }}/{{ jiva_operator }}"
-                force: yes
-              register: rc_operator
+                - name: Downloading jiva operator yaml release tag
+                  get_url:
+                    url: "{{ rc_operator_link }}"
+                    dest: "{{ playbook_dir }}/{{ jiva_operator }}"
+                    force: yes
+                  register: rc_operator
+                
+                - name: Downloading hostpath operator yaml
+                  get_url:
+                    url: "{{ hostpath_operator_link }}"
+                    dest: "{{ playbook_dir }}/{{ hostpath_operator }}"
+                    force: yes
+                  register: result_hostpath
+
+                - name: Change the Localpv provisioner image
+                  replace:
+                    path: "{{ hostpath_operator }}"
+                    regexp: "openebs/provisioner-localpv-ci:dev-120403"
+                    replace: "openebs/provisioner-localpv:{{ localpv_tag }}"
+
+                - name: Change the OpenEBS component labels to desired version in Operator yaml
+                  replace:
+                    path: "{{ hostpath_operator }}"
+                    regexp: 'openebs.io/version: dev'
+                    replace: "openebs.io/version: {{ localpv_tag }}"                
+
+                - block:
+
+                    - name: Deploy localpv operator
+                      shell: >
+                        kubectl apply -f {{ hostpath_operator }}
+                      args:
+                        executable: /bin/bash
+                      register: localpv_status
+
+                    - name: Deploy jiva operator
+                      shell: >
+                        kubectl apply -f {{ jiva_operator }}
+                      args:
+                        executable: /bin/bash
+                      register: deploy_status
+
+                  when: lookup('env','ACTION') == "provision"
+                    
+                - block:
+
+                    - name: Deprovision jiva operator
+                      shell: >
+                        kubectl delete -f {{ jiva_operator }}
+                      args:
+                        executable: /bin/bash
+                      register: jiva_deprovision
+                      ignore_errors: True
+
+                    - name: Deprovision localpv operator
+                      shell: >
+                        kubectl delete -f {{ hostpath_operator }}
+                      args:
+                        executable: /bin/bash
+                      register: deprovision_status
+                      ignore_errors: True
+
+                  when: lookup('env','ACTION') == "deprovision"
+
               when: rc_tag != ""
-
-            - name: Deploy jiva operator
-              shell: >
-                kubectl apply -f {{ jiva_operator }}
-              args:
-                executable: /bin/bash
-              register: deploy_status
-              when: lookup('env','ACTION') == "provision"
-
-            - name: Deprovision jiva operator
-              shell: >
-                kubectl delete -f {{ jiva_operator }}
-              args:
-                executable: /bin/bash
-              register: deprovision_status
-              ignore_errors: True
-              when: lookup('env','ACTION') == "deprovision"
 
           when:
             - release_tag == "commit_id"
@@ -67,21 +156,52 @@
               delay: 5
               retries: 3
 
-            - name: Deploy jiva operator
-              shell: >
-                kubectl apply -f {{ jiva_operator }}
-              args:
-                executable: /bin/bash
-              register: deploy_status
+            - name: Downloading the localpv operator file from charts
+              get_url:
+                url: "{{ charts_hostpath_link }}"
+                dest: "{{ playbook_dir }}/{{ charts_localpv_operator }}"
+                force: yes
+              register: status
+              until:  "'OK' in status.msg"
+              delay: 5
+              retries: 3
+             
+            - block:   
+
+                - name: Deploy localpv operator
+                  shell: >
+                    kubectl apply -f {{ charts_localpv_operator }}
+                  args:
+                    executable: /bin/bash
+                  register: charts_localpv
+    
+                - name: Deploy jiva operator
+                  shell: >
+                    kubectl apply -f {{ jiva_operator }}
+                  args:
+                    executable: /bin/bash
+                  register: deploy_status
+                  
               when: lookup('env','ACTION') == "provision"
 
-            - name: Deprovision jiva operator
-              shell: >
-                kubectl delete -f {{ jiva_operator }}
-              args:
-                executable: /bin/bash
-              register: deprovision_status
-              ignore_errors: True
+            - block: 
+
+                - name: Deprovision jiva operator
+                  shell: >
+                    kubectl delete -f {{ jiva_operator }}
+                  args:
+                    executable: /bin/bash
+                  register: deprovision_status
+                  ignore_errors: True
+
+                - name: Deprovision localpv operator
+                  shell: >
+                    kubectl delete -f {{ charts_localpv_operator }}
+                  args:
+                    executable: /bin/bash
+                  register: deprovision_localpv
+                  ignore_errors: True
+
               when: lookup('env','ACTION') == "deprovision"
 
           when:
@@ -109,7 +229,23 @@
               until:  "'OK' in result.msg"
               delay: 5
               retries: 3
-         
+
+            - name: Downloading hostpath operator yaml
+              get_url:
+                url: "{{ hostpath_operator_link }}"
+                dest: "{{ playbook_dir }}/{{ hostpath_operator }}"
+                force: yes
+              register: result_hostpath
+              until:  "'OK' in result_hostpath.msg"
+              delay: 5
+              retries: 3
+
+            - name: Change the Localpv provisioner image 
+              replace:
+                path: "{{  hostpath_operator }}"
+                regexp: "openebs/provisioner-localpv-ci:dev-120403"
+                replace: "openebs/provisioner-localpv:ci"
+                      
             - block:
 
                 - name: Change the OpenEBS component labels to desired version in Operator yaml
@@ -158,6 +294,13 @@
 
             - block:
 
+                - name: Deploy localpv operator
+                  shell: >
+                    kubectl apply -f {{ hostpath_operator }}
+                  args:
+                    executable: /bin/bash
+                  register: charts_localpv
+
                 - name: Install the Jiva operator in operator namespace
                   shell: kubectl apply -f operator.yaml
                   args:
@@ -192,12 +335,29 @@
                   register: status
                   failed_when: "status.rc != 0"
                  
+                - name: Deprovision localpv operator
+                  shell: >
+                    kubectl delete -f {{ hostpath_operator }}
+                  args:
+                    executable: /bin/bash
+                  register: deprovision_localpv
+                  ignore_errors: True
+
               when: action == "deprovision"              
 
           when:
             - release_tag == "master"
 
         - block:
+
+            - name: Check if the OpenEBS-localpv-provisioner is running
+              shell: >
+                kubectl get pods -n {{ operator_ns }}
+                -o jsonpath='{.items[?(@.metadata.labels.name=="openebs-localpv-provisioner")].status.phase}'
+              register: local_pv
+              until: "'Running' in local_pv.stdout"
+              delay: 5
+              retries: 120                
 
             - name: Obtain the Jiva operator pod in operator namespace
               shell: >

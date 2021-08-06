@@ -22,6 +22,8 @@ commit_id: "{{ lookup('env','COMMIT_ID') }}"
 
 rc_tag: "{{ lookup('env','RC_TAG') }}"
 
+localpv_tag: "{{ lookup('env','OPENEBS_VERSION') }}-{{ lookup('env','RC_TAG') }}"
+
 operator_ns: "{{ lookup('env','OPERATOR_NS') }}"
 
 operator_link: https://raw.githubusercontent.com/openebs/jiva-operator/master/deploy/operator.yaml
@@ -33,6 +35,16 @@ jiva_operator_link: https://raw.githubusercontent.com/openebs/charts/gh-pages/{{
 release_operator_link: "https://raw.githubusercontent.com/openebs/charts/{{ commit_id }}/{{ openebs_version }}/jiva-operator.yaml"
 
 rc_operator_link: "https://raw.githubusercontent.com/openebs/charts/{{ commit_id }}/{{ openebs_version }}/jiva-operator-{{ rc_tag }}.yaml"
+
+hostpath_operator_link: "https://raw.githubusercontent.com/openebs/dynamic-localpv-provisioner/develop/deploy/kubectl/provisioner-hostpath.yaml"
+
+charts_hostpath_link: "https://raw.githubusercontent.com/openebs/charts/gh-pages/{{ openebs_version }}/hostpath-operator.yaml"
+
+release_hostpath_link: "https://raw.githubusercontent.com/openebs/charts/{{ commit_id }}/{{ openebs_version }}/hostpath-operator.yaml"
+
+charts_localpv_operator: hostpath-operator.yaml
+
+hostpath_operator: provisioner-hostpath.yaml
 
 jiva_operator: jiva-operator.yaml
 

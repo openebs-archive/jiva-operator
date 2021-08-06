@@ -46,6 +46,7 @@
               with_items:
                 - jiva-csi
                 - jiva-csi-xfs
+                - openebs-hostpath
 
           when: action == "provision"
 
@@ -70,6 +71,7 @@
               with_items:
                 - jiva-csi
                 - jiva-csi-xfs
+                - openebs-hostpath
 
           when: action == "deprovision"
 
