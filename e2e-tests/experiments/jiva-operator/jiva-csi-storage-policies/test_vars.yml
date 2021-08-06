@@ -13,3 +13,4 @@ action: "{{ lookup('env','ACTION') }}"
 storage_policies:
   - jiva-csi-xfs-sc.yml
   - jiva-csi-sc.yml
+  - localpv-sc.yml
