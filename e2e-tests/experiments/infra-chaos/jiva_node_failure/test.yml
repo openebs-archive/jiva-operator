@@ -420,3 +420,11 @@
       rescue:
         - set_fact:
             flag: "Fail"
+
+      always:
+
+        - include_tasks: /e2e-tests/utils/fcm/update_e2e_result_resource.yml
+          vars:
+            status: 'EOT'
+            chaostype: "node-failure"
+            app: ""
