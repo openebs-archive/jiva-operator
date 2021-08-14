@@ -36,7 +36,7 @@ release_operator_link: "https://raw.githubusercontent.com/openebs/charts/{{ comm
 
 rc_operator_link: "https://raw.githubusercontent.com/openebs/charts/{{ commit_id }}/{{ openebs_version }}/jiva-operator-{{ rc_tag }}.yaml"
 
-hostpath_operator_link: "https://raw.githubusercontent.com/openebs/dynamic-localpv-provisioner/develop/deploy/kubectl/provisioner-hostpath.yaml"
+hostpath_operator_link: "https://raw.githubusercontent.com/openebs/dynamic-localpv-provisioner/develop/deploy/kubectl/hostpath-operator.yaml"
 
 charts_hostpath_link: "https://raw.githubusercontent.com/openebs/charts/gh-pages/{{ openebs_version }}/hostpath-operator.yaml"
 
