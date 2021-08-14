@@ -92,7 +92,7 @@
                 - name: Change the Localpv provisioner image
                   replace:
                     path: "{{ hostpath_operator }}"
-                    regexp: "openebs/provisioner-localpv-ci:dev-120403"
+                    regexp: "openebs/provisioner-localpv:ci"
                     replace: "openebs/provisioner-localpv:{{ localpv_tag }}"
 
                 - name: Change the OpenEBS component labels to desired version in Operator yaml
@@ -239,13 +239,7 @@
               until:  "'OK' in result_hostpath.msg"
               delay: 5
               retries: 3
-
-            - name: Change the Localpv provisioner image 
-              replace:
-                path: "{{  hostpath_operator }}"
-                regexp: "openebs/provisioner-localpv-ci:dev-120403"
-                replace: "openebs/provisioner-localpv:ci"
-                      
+                     
             - block:
 
                 - name: Change the OpenEBS component labels to desired version in Operator yaml
