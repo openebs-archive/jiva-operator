@@ -9,6 +9,7 @@ metadata:
 {{- end }}
 provisioner: jiva.csi.openebs.io
 volumeBindingMode: Immediate
+allowVolumeExpansion: {{ .Values.defaultClass.allowVolumeExpansion }}
 reclaimPolicy: {{ .Values.defaultClass.reclaimPolicy }}
 parameters:
   cas-type: "jiva"
