@@ -3,7 +3,7 @@
 # Declare variables to be passed into your templates.
 
 release:
-  version: "2.11.0"
+  version: "2.12.1"
 
 
 # If false, openebs localpv sub-chart will not be installed
@@ -25,12 +25,12 @@ jivaOperator:
     image:
       registry:
       repository: openebs/jiva
-      tag: 2.11.0
+      tag: 2.12.1
   replica:
     image:
       registry:
       repository: openebs/jiva
-      tag: 2.11.0
+      tag: 2.12.1
   image:
     # Make sure that registry name end with a '/'.
     # For example : quay.io/ is a correct value here and quay.io is incorrect
@@ -38,7 +38,7 @@ jivaOperator:
     repository: openebs/jiva-operator
     pullPolicy: IfNotPresent
     # Overrides the image tag whose default is the chart appVersion.
-    tag: 2.11.0
+    tag: 2.12.1
   annotations: {}
   resyncInterval: "30"
   podAnnotations: {}
@@ -111,7 +111,7 @@ jivaCSIPlugin:
     repository: openebs/jiva-csi
     pullPolicy: IfNotPresent
     # Overrides the image tag whose default is the chart appVersion.
-    tag: 2.11.0
+    tag: 2.12.1
   remount: "true"
 
 csiNode:
@@ -187,6 +187,8 @@ defaultClass:
   reclaimPolicy: Delete
   # If true, sets the openebs-jiva-csi-default StorageClass as the default StorageClass
   isDefaultClass: false
+  # If true, allows resize of the volumes
+  allowVolumeExpansion: true
 
 defaultPolicy:
   # Name of the default default JivaVolumePolicy

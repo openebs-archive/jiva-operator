@@ -45,7 +45,7 @@ By default this chart installs additional, dependent charts:
 
 | Repository | Name | Version |
 |------------|------|---------|
-| https://openebs.github.io/dynamic-localpv-provisioner | localpv-provisioner | 2.11.0 |
+| https://openebs.github.io/dynamic-localpv-provisioner | localpv-provisioner | 2.12.0 |
 
 **Note:** Find detailed Dynamic LocalPV Provisioner Helm chart configuration options [here](https://github.com/openebs/dynamic-localpv-provisioner/blob/develop/deploy/helm/charts/README.md).
 
@@ -166,6 +166,7 @@ helm upgrade openebs-jiva openebs-jiva/jiva -n openebs \
 | defaultPolicy.replicas | string | `"3"` | The desired replication factor for the jiva volumes |
 | defaultClass.name | string | `"openebs-jiva-csi-default"` | Default jiva csi StorageClass |
 | defaultClass.enabled | bool | `true`  | Enable default jiva csi StorageClass |
+| defaultClass.allowVolumeExpansion | bool | `true` | Enable volume expansion for the Volumes |
 | defaultClass.reclaimPolicy | string | `"Delete"` | Reclaim Policy for the StorageClass |
 | defaultClass.isDefaultClass | bool | `false` | Make jiva csi StorageClass as the default StorageClass |
 | jivaOperator.annotations | object | `{}` | Jiva operator annotations |
@@ -173,7 +174,7 @@ helm upgrade openebs-jiva openebs-jiva/jiva -n openebs \
 | jivaOperator.image.pullPolicy | string | `"IfNotPresent"` | Jiva operator image pull policy |
 | jivaOperator.image.registry | string | `nil` | Jiva operator image registry |
 | jivaOperator.image.repository | string | `"openebs/jiva-operator"` | Jiva operator image repository |
-| jivaOperator.image.tag | string | `"2.11.0"` |  Jiva operator image tag |
+| jivaOperator.image.tag | string | `"2.12.1"` |  Jiva operator image tag |
 | jivaOperator.nodeSelector | object | `{}` |  Jiva operator pod nodeSelector|
 | jivaOperator.podAnnotations | object | `{}` | Jiva operator pod annotations |
 | jivaOperator.resources | object | `{}` | Jiva operator pod resources |
@@ -182,12 +183,12 @@ helm upgrade openebs-jiva openebs-jiva/jiva -n openebs \
 | jivaCSIPlugin.image.pullPolicy | string | `"IfNotPresent"` | Jiva CSI driver image pull policy |
 | jivaCSIPlugin.image.registry | string | `nil` | Jiva CSI driver image registry |
 | jivaCSIPlugin.image.repository | string | `"openebs/jiva-csi"` |  Jiva CSI driver image repository |
-| jivaCSIPlugin.image.tag | string | `"2.11.0"` | Jiva CSI driver image tag |
+| jivaCSIPlugin.image.tag | string | `"2.12.1"` | Jiva CSI driver image tag |
 | jivaCSIPlugin.name | string | `"jiva-csi-plugin"` | Jiva CSI driver container name |
 | jivaCSIPlugin.remount | string | `"true"` | Jiva CSI driver remount feature, enabled by default |
 | rbac.create | bool | `true` | Enable RBAC |
 | rbac.pspEnabled | bool | `false` | Enable PodSecurityPolicy |
-| release.version | string | `"2.11.0"` | Openebs Jiva release version |
+| release.version | string | `"2.12.1"` | Openebs Jiva release version |
 | serviceAccount.annotations | object | `{}` | Service Account annotations |
 | serviceAccount.csiController.create | bool | `true` | Enable CSI Controller ServiceAccount |
 | serviceAccount.csiController.name | string | `"openebs-jiva-csi-controller-sa"` | CSI Controller ServiceAccount name |
