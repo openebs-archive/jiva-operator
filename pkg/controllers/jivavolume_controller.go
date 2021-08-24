@@ -80,6 +80,7 @@ const (
 	pdbAPIVersion            = "policyv1beta1"
 	defaultStorageClass      = "openebs-hostpath"
 	defaultReplicationFactor = 3
+	defaultMonitor           = true
 )
 
 type policyOptFuncs func(*openebsiov1alpha1.JivaVolumePolicySpec, openebsiov1alpha1.JivaVolumePolicySpec)
@@ -744,7 +745,7 @@ func defaultControllerSVCPorts() []corev1.ServicePort {
 			TargetPort: intstr.IntOrString{IntVal: 9501},
 		},
 		{
-			Name:       "m-exporter",
+			Name:       "exporter",
 			Port:       9500,
 			Protocol:   "TCP",
 			TargetPort: intstr.IntOrString{IntVal: 9500},
@@ -1061,6 +1062,7 @@ func getDefaultPolicySpec() openebsiov1alpha1.JivaVolumePolicySpec {
 				},
 			},
 			ReplicationFactor: defaultReplicationFactor,
+			Monitor:           defaultMonitor,
 		},
 		Replica: openebsiov1alpha1.ReplicaSpec{
 			PodTemplateResources: openebsiov1alpha1.PodTemplateResources{

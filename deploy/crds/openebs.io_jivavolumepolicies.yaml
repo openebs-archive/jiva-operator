@@ -42,9 +42,11 @@ spec:
             properties:
               autoScaling:
                 description: AutoScaling ...
+                nullable: true
                 type: boolean
               enableBufio:
                 description: EnableBufio ...
+                nullable: true
                 type: boolean
               priorityClassName:
                 description: PriorityClassName if specified applies to the pod If
@@ -1484,10 +1486,9 @@ spec:
                           type: string
                       type: object
                     type: array
+                required:
+                - monitor
                 type: object
-            required:
-            - autoScaling
-            - enableBufio
             type: object
           status:
             description: JivaVolumePolicyStatus is for handling status of JivaVolumePolicy

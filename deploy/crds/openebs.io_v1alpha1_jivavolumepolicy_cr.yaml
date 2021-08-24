@@ -8,7 +8,7 @@ spec:
   enableBufio: false
   autoScaling: false
   target:
-    # monitor: false
+    monitor: true
     replicationFactor: 1
     # auxResources:
     # tolerations:
@@ -17,10 +17,10 @@ spec:
     # nodeSelector:
     # priorityClassName:
   # replica:
-    # tolerations:
-    # resources:
-    # affinity:
-    # nodeSelector:
-    # priorityClassName:
+  # tolerations:
+  # resources:
+  # affinity:
+  # nodeSelector:
+  # priorityClassName:
 # status:
-  # phase:
+# phase:

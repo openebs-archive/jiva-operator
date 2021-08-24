@@ -90,7 +90,7 @@ openebs-jiva-csi-node-h2unk                    2/2     Running   0          6m20
       autoScaling: false
       target:
         replicationFactor: 1
-        # monitor: false
+        monitor: true
         # auxResources:
         # tolerations:
         # resources:
