@@ -8,7 +8,6 @@ require (
 	github.com/go-openapi/spec v0.19.4
 	github.com/google/uuid v1.1.2
 	github.com/jpillora/go-ogle-analytics v0.0.0-20161213085824-14b04e0594ef
-	github.com/kr/pretty v0.2.0 // indirect
 	github.com/kubernetes-csi/csi-lib-iscsi v0.0.0-20191120152119-1430b53a1741
 	github.com/kubernetes-csi/csi-lib-utils v0.6.1
 	github.com/onsi/ginkgo v1.14.1
