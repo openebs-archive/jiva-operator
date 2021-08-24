@@ -30,7 +30,7 @@ import (
 	"github.com/openebs/jiva-operator/pkg/kubernetes/container"
 	deploy "github.com/openebs/jiva-operator/pkg/kubernetes/deployment"
 	pts "github.com/openebs/jiva-operator/pkg/kubernetes/podtemplatespec"
-	pvc "github.com/openebs/jiva-operator/pkg/kubernetes/pvc"
+	"github.com/openebs/jiva-operator/pkg/kubernetes/pvc"
 	svc "github.com/openebs/jiva-operator/pkg/kubernetes/service"
 	sts "github.com/openebs/jiva-operator/pkg/kubernetes/statefulset"
 	"github.com/openebs/jiva-operator/pkg/volume"
@@ -72,13 +72,15 @@ type upgradeParams struct {
 type upgradeFunc func(u *upgradeParams) (*openebsiov1alpha1.JivaVolume, error)
 
 var (
-	upgradeMap = map[string]upgradeFunc{}
-	podIPMap   = map[string]string{}
+	upgradeMap  = map[string]upgradeFunc{}
+	podIPMap    = map[string]string{}
+	selectorMap = map[string]string{}
 )
 
 const (
 	pdbAPIVersion            = "policyv1beta1"
 	defaultStorageClass      = "openebs-hostpath"
+	replicaAntiAffinityKey   = "openebs.io/replica-anti-affinity"
 	defaultReplicationFactor = 3
 )
 
@@ -778,7 +780,6 @@ func defaultServiceLabels(pv string) map[string]string {
 	}
 }
 
-// TODO: Add code to configure resource limits, nodeAffinity etc.
 func createReplicaStatefulSet(r *JivaVolumeReconciler, cr *openebsiov1alpha1.JivaVolume) error {
 
 	var (
@@ -810,6 +811,8 @@ func createReplicaStatefulSet(r *JivaVolumeReconciler, cr *openebsiov1alpha1.Jiv
 		return fmt.Errorf("failed to convert human readable size: %v into int64, err: %v", cr.Spec.Capacity, err)
 	}
 
+	defaultLabels := defaultReplicaLabels(cr.Spec.PV)
+
 	stsObj, err = sts.NewBuilder().
 		WithName(cr.Name + "-jiva-rep").
 		WithLabelsNew(defaultReplicaLabels(cr.Spec.PV)).
@@ -822,20 +825,8 @@ func createReplicaStatefulSet(r *JivaVolumeReconciler, cr *openebsiov1alpha1.Jiv
 		WithPodTemplateSpecBuilder(
 			func() *pts.Builder {
 				ptsBuilder := pts.NewBuilder().
-					WithLabels(defaultReplicaLabels(cr.Spec.PV)).
+					//WithLabels(defaultReplicaLabels(cr.Spec.PV)).
 					WithServiceAccountName(defaultServiceAccountName).
-					WithAffinity(&corev1.Affinity{
-						PodAntiAffinity: &corev1.PodAntiAffinity{
-							RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
-								{
-									LabelSelector: &metav1.LabelSelector{
-										MatchLabels: defaultReplicaMatchLabels(cr.Spec.PV),
-									},
-									TopologyKey: "kubernetes.io/hostname",
-								},
-							},
-						},
-					}).
 					WithContainerBuilders(
 						container.NewBuilder().
 							WithName("jiva-replica").
@@ -873,6 +864,42 @@ func createReplicaStatefulSet(r *JivaVolumeReconciler, cr *openebsiov1alpha1.Jiv
 				if cr.Spec.Policy.Replica.NodeSelector != nil {
 					ptsBuilder = ptsBuilder.WithNodeSelector(cr.Spec.Policy.Replica.NodeSelector)
 				}
+				if cr.Spec.Policy.Replica.Affinity != nil {
+					if cr.Spec.Policy.Replica.Affinity.PodAntiAffinity != nil {
+						for _, term := range cr.Spec.Policy.Replica.Affinity.PodAntiAffinity.RequiredDuringSchedulingIgnoredDuringExecution {
+							selectorMap, _ = metav1.LabelSelectorAsMap(term.LabelSelector)
+						}
+						defaultLabels[replicaAntiAffinityKey] = selectorMap[replicaAntiAffinityKey]
+					}
+				}
+				ptsBuilder = ptsBuilder.WithLabels(defaultLabels)
+				affinity := &corev1.Affinity{
+					PodAntiAffinity: &corev1.PodAntiAffinity{
+						RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+							{
+								LabelSelector: &metav1.LabelSelector{
+									MatchLabels: defaultReplicaMatchLabels(cr.Spec.PV),
+								},
+								TopologyKey: "kubernetes.io/hostname",
+							},
+						},
+					},
+				}
+
+				// update any affinities has been configured using jiva volume policy
+				if cr.Spec.Policy.Replica.Affinity != nil {
+					if cr.Spec.Policy.Replica.Affinity.PodAntiAffinity != nil {
+						affinity.PodAntiAffinity.RequiredDuringSchedulingIgnoredDuringExecution = append(
+							affinity.PodAntiAffinity.RequiredDuringSchedulingIgnoredDuringExecution,
+							cr.Spec.Policy.Replica.Affinity.PodAntiAffinity.RequiredDuringSchedulingIgnoredDuringExecution...,
+						)
+					}
+					affinity.NodeAffinity = cr.Spec.Policy.Replica.Affinity.NodeAffinity
+					affinity.PodAffinity = cr.Spec.Policy.Replica.Affinity.PodAffinity
+				}
+
+				ptsBuilder = ptsBuilder.WithAffinity(affinity)
+
 				return ptsBuilder
 			}(),
 		).
