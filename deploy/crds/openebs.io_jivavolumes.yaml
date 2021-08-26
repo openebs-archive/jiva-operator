@@ -89,14 +89,6 @@ spec:
                   and replica pods during volume provisioning
                 nullable: true
                 properties:
-                  autoScaling:
-                    description: AutoScaling ...
-                    nullable: true
-                    type: boolean
-                  enableBufio:
-                    description: EnableBufio ...
-                    nullable: true
-                    type: boolean
                   priorityClassName:
                     description: PriorityClassName if specified applies to the pod
                       If left empty, no priority class is applied.
@@ -1505,7 +1497,7 @@ spec:
                               More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/'
                             type: object
                         type: object
-                      monitor:
+                      disableMonitor:
                         description: Monitor enables or disables the target exporter
                           sidecar
                         type: boolean
@@ -1589,8 +1581,6 @@ spec:
                               type: string
                           type: object
                         type: array
-                    required:
-                    - monitor
                     type: object
                 type: object
               pv:

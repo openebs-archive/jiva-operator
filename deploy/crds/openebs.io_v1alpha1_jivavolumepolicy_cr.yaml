@@ -5,10 +5,8 @@ metadata:
   namespace: openebs
 spec:
   replicaSC: openebs-hostpath
-  enableBufio: false
-  autoScaling: false
   target:
-    monitor: true
+    disableMonitor: false
     replicationFactor: 1
     # auxResources:
     # tolerations:
