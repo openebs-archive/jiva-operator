@@ -81,6 +81,7 @@ const (
 	defaultStorageClass      = "openebs-hostpath"
 	defaultReplicationFactor = 3
 	defaultMonitor           = true
+	openebsPVC               = "openebs.io/persistent-volume-claim"
 )
 
 type policyOptFuncs func(*openebsiov1alpha1.JivaVolumePolicySpec, openebsiov1alpha1.JivaVolumePolicySpec)
@@ -572,14 +573,14 @@ func createControllerDeployment(r *JivaVolumeReconciler, cr *openebsiov1alpha1.J
 
 	dep, err := deploy.NewBuilder().WithName(cr.Name + "-jiva-ctrl").
 		WithNamespace(cr.Namespace).
-		WithLabels(defaultControllerLabels(cr.Spec.PV)).
+		WithLabels(defaultControllerLabels(cr.Spec.PV, cr.GetLabels()[openebsPVC])).
 		WithReplicas(&reps).
 		WithStrategyType(appsv1.RecreateDeploymentStrategyType).
-		WithSelectorMatchLabelsNew(defaultControllerMatchLabels(cr.Spec.PV)).
+		WithSelectorMatchLabelsNew(defaultControllerMatchLabels(cr.Spec.PV, cr.GetLabels()[openebsPVC])).
 		WithPodTemplateSpecBuilder(
 			func() *pts.Builder {
 				ptsBuilder := pts.NewBuilder().
-					WithLabels(defaultControllerLabels(cr.Spec.PV)).
+					WithLabels(defaultControllerLabels(cr.Spec.PV, cr.GetLabels()[openebsPVC])).
 					WithServiceAccountName(defaultServiceAccountName).
 					WithAnnotations(defaultAnnotations()).
 					WithTolerations(cr.Spec.Policy.Target.Tolerations...).
@@ -696,17 +697,18 @@ func defaultReplicaMatchLabels(pv string) map[string]string {
 	}
 }
 
-func defaultControllerLabels(pv string) map[string]string {
-	labels := defaultControllerMatchLabels(pv)
+func defaultControllerLabels(pv string, pvc string) map[string]string {
+	labels := defaultControllerMatchLabels(pv, pvc)
 	labels["openebs.io/version"] = version.Version
 	return labels
 }
 
-func defaultControllerMatchLabels(pv string) map[string]string {
+func defaultControllerMatchLabels(pv string, pvc string) map[string]string {
 	return map[string]string{
 		"openebs.io/cas-type":          "jiva",
 		"openebs.io/component":         "jiva-controller",
 		"openebs.io/persistent-volume": pv,
+		openebsPVC:                     pvc,
 	}
 }
 
