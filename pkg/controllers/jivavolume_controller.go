@@ -80,7 +80,7 @@ const (
 	pdbAPIVersion            = "policyv1beta1"
 	defaultStorageClass      = "openebs-hostpath"
 	defaultReplicationFactor = 3
-	defaultMonitor           = true
+	defaultDisableMonitor    = false
 	openebsPVC               = "openebs.io/persistent-volume-claim"
 )
 
@@ -610,7 +610,7 @@ func createControllerDeployment(r *JivaVolumeReconciler, cr *openebsiov1alpha1.J
 							WithResources(cr.Spec.Policy.Target.Resources).
 							WithImagePullPolicy(corev1.PullIfNotPresent),
 					)
-				if cr.Spec.Policy.Target.Monitor {
+				if !cr.Spec.Policy.Target.DisableMonitor {
 					ptsBuilder = ptsBuilder.WithContainerBuilders(
 						container.NewBuilder().
 							WithImage(getImage("OPENEBS_IO_MAYA_EXPORTER_IMAGE",
@@ -1064,7 +1064,7 @@ func getDefaultPolicySpec() openebsiov1alpha1.JivaVolumePolicySpec {
 				},
 			},
 			ReplicationFactor: defaultReplicationFactor,
-			Monitor:           defaultMonitor,
+			DisableMonitor:    defaultDisableMonitor,
 		},
 		Replica: openebsiov1alpha1.ReplicaSpec{
 			PodTemplateResources: openebsiov1alpha1.PodTemplateResources{
