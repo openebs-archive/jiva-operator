@@ -6,6 +6,7 @@ and we have to mention the `JivaVolumePolicy` name in StorageClass parameters to
 Following are list of policies that can be configured based on the requirements.
 
 - [replicationFactor](#replication-factor)
+- [Replica STS pod Anti Affinity](#replica-sts-pod-anti-affinity)
 - [Target pod Affinity](#target-pod-affinity)
 - [Resource Request and Limits](#resource-request-and-limits)
 - [Priority Class](#priority-class)
@@ -40,6 +41,38 @@ spec:
     replicationFactor: 3
 ```
 
+### Replica STS Pod Anti Affinity:
+
+The Stateful workloads access the OpenEBS storage volume by connecting to the Volume Target(Controller) Pod.
+Replica Pod Anti Affinity policy can be used to distribute replica statefulset pod across the node to mitigate
+high availability issues.
+
+For example distributed applications like mongodb require the volumes to be spread across multiple nodes - just like its own replicas.
+Cross scheduling them will cause performance and high availability issues. User will need to add the following podAntiAffinity
+rule to volume Policy to enable replica anti affinity policies.
+
+```yaml
+apiVersion: openebs.io/v1alpha1
+kind: JivaVolumePolicy
+metadata:
+  name: example-jivavolumepolicy
+  namespace: openebs
+spec:
+  replicaSC: openebs-hostpath
+  target:
+    monitor: false
+    replicationFactor: 1
+  replica:
+    affinity:
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchLabels:
+              openebs.io/replica-anti-affinity: mongo-sts
+          topologyKey: kubernetes.io/hostname
+
+```
+
 ### Target Pod Affinity:
 
 The Stateful workloads access the OpenEBS storage volume by connecting to the Volume Target(Controller) Pod.
@@ -58,15 +91,16 @@ metadata:
 spec:
   target:
     affinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-      - labelSelector:
-          matchExpressions:
-          - key: openebs.io/target-affinity
-            operator: In
-            values:
-            - fio-jiva                              // application-unique-label
-        topologyKey: kubernetes.io/hostname
-        namespaces: ["default"]                      // application namespace
+      podAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+            - key: openebs.io/target-affinity
+              operator: In
+              values:
+              - fio-jiva                              // application-unique-label
+          topologyKey: kubernetes.io/hostname
+          namespaces: ["default"]                      // application namespace
 ```
 
 
