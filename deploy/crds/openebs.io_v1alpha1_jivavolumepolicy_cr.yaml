@@ -6,7 +6,7 @@ metadata:
 spec:
   replicaSC: openebs-hostpath
   target:
-    disableMonitor: false
+    # disableMonitor: true
     replicationFactor: 1
     # auxResources:
     # tolerations:
