@@ -28,18 +28,15 @@ import (
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
+	openebsiov1alpha1 "github.com/openebs/jiva-operator/pkg/apis/openebs/v1alpha1"
+	"github.com/openebs/jiva-operator/pkg/controllers"
+	"github.com/openebs/jiva-operator/version"
+	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
-
-	// "sigs.k8s.io/controller-runtime/pkg/log/zap"
-
-	openebsiov1alpha1 "github.com/openebs/jiva-operator/pkg/apis/openebs/v1alpha1"
-	"github.com/openebs/jiva-operator/pkg/controllers"
-	"github.com/openebs/jiva-operator/version"
-	"github.com/sirupsen/logrus"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -72,12 +69,6 @@ func main() {
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.Parse()
 
-	namespace, err := getOpenebsNamespace()
-	if err != nil {
-		setupLog.Error(err, "Failed to get watch namespace")
-		os.Exit(1)
-	}
-
 	duration := 30 * time.Second
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
@@ -88,7 +79,6 @@ func main() {
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "jiva-operator.openebs.io",
 		SyncPeriod:             &duration,
-		Namespace:              namespace,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
