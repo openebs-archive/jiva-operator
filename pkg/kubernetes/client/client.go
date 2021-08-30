@@ -130,11 +130,15 @@ func (cl *Client) UpdateJivaVolume(cr *jv.JivaVolume) (bool, error) {
 	return false, nil
 }
 
-func getDefaultLabels(pv string) map[string]string {
-	return map[string]string{
+func getDefaultLabels(pv string, pvc string) map[string]string {
+	defaultLabels := map[string]string{
 		"openebs.io/persistent-volume": pv,
 		"openebs.io/component":         "jiva-volume",
 	}
+	if pvc != "" {
+		defaultLabels["openebs.io/persistent-volume-claim"] = pvc
+	}
+	return defaultLabels
 }
 
 func getdefaultAnnotations(policy string) map[string]string {
@@ -183,7 +187,7 @@ func (cl *Client) CreateJivaVolume(req *csi.CreateVolumeRequest) (string, error)
 	jiva := jivavolume.New().WithKindAndAPIVersion("JivaVolume", "openebs.io/v1alpha1").
 		WithNameAndNamespace(name, ns).
 		WithAnnotations(getdefaultAnnotations(policyName)).
-		WithLabels(getDefaultLabels(name)).
+		WithLabels(getDefaultLabels(name, pvcName)).
 		WithPV(name).
 		WithCapacity(capacity).
 		WithAccessType(accessType).
@@ -220,7 +224,7 @@ func (cl *Client) ListJivaVolume(volumeID string) (*jv.JivaVolumeList, error) {
 	volumeID = utils.StripName(volumeID)
 	obj := &jv.JivaVolumeList{}
 	opts := []client.ListOption{
-		client.MatchingLabels(getDefaultLabels(volumeID)),
+		client.MatchingLabels(getDefaultLabels(volumeID, "")),
 	}
 
 	if err := cl.client.List(context.TODO(), obj, opts...); err != nil {
@@ -296,7 +300,7 @@ func GetOpenEBSNamespace() string {
 	return openebsNamespace
 }
 
-// sendEventOrIgnore sends anonymous cstor provision/delete events
+// sendEventOrIgnore sends anonymous jiva provision/delete events
 func SendEventOrIgnore(pvcName, pvName, capacity, replicaCount, stgType, method string) {
 	if env.Truthy(analytics.OpenEBSEnableAnalytics) {
 		analytics.New().Build().ApplicationBuilder().

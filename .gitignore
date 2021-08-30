@@ -2,3 +2,4 @@ cscope*
 jiva-discussion
 build/bin/*
 vendor/*
+*.idea

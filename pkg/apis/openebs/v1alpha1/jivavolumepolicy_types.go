@@ -29,10 +29,6 @@ type JivaVolumePolicySpec struct {
 	// ReplicaSC represents the storage class used for
 	// creating the pvc for the replicas (provisioned by localpv provisioner)
 	ReplicaSC string `json:"replicaSC,omitempty"`
-	// EnableBufio ...
-	EnableBufio bool `json:"enableBufio"`
-	// AutoScaling ...
-	AutoScaling bool `json:"autoScaling"`
 	// ServiceAccountName can be provided to enable PSP
 	ServiceAccountName string `json:"serviceAccountName,omitempty"`
 	// PriorityClassName if specified applies to the pod
@@ -48,8 +44,8 @@ type JivaVolumePolicySpec struct {
 
 // TargetSpec represents configuration related to jiva target deployment
 type TargetSpec struct {
-	// Monitor enables or disables the target exporter sidecar
-	Monitor bool `json:"monitor,omitempty"`
+	// DisableMonitor will not attach prometheus exporter sidecar to jiva volume target.
+	DisableMonitor bool `json:"disableMonitor,omitempty"`
 
 	// ReplicationFactor represents maximum number of replicas
 	// that are allowed to connect to the target
