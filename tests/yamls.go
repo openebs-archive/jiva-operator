@@ -165,10 +165,8 @@ metadata:
   namespace: openebs
 spec:
   replicaSC: openebs-hostpath
-  enableBufio: false
-  autoScaling: false
   target:
-    # monitor: false
+    # disableMonitor: true
     replicationFactor: 1
     # auxResources:
     # tolerations:
