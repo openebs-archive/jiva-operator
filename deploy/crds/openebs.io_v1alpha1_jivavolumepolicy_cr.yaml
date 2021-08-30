@@ -15,10 +15,10 @@ spec:
     # nodeSelector:
     # priorityClassName:
   # replica:
-  # tolerations:
-  # resources:
-  # affinity:
-  # nodeSelector:
-  # priorityClassName:
+    # tolerations:
+    # resources:
+    # affinity:
+    # nodeSelector:
+    # priorityClassName:
 # status:
 # phase:

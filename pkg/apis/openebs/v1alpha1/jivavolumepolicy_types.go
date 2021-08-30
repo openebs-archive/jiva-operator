@@ -45,7 +45,6 @@ type JivaVolumePolicySpec struct {
 // TargetSpec represents configuration related to jiva target deployment
 type TargetSpec struct {
 	// DisableMonitor will not attach prometheus exporter sidecar to jiva volume target.
-
 	DisableMonitor bool `json:"disableMonitor,omitempty"`
 
 	// ReplicationFactor represents maximum number of replicas

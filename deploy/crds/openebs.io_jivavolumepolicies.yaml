@@ -1398,7 +1398,8 @@ spec:
                         type: object
                     type: object
                   disableMonitor:
-                    description: Monitor enables or disables the target exporter sidecar
+                    description: DisableMonitor will not attach prometheus exporter
+                      sidecar to jiva volume target.
                     type: boolean
                   nodeSelector:
                     additionalProperties:
