@@ -123,19 +123,19 @@ helm upgrade openebs-jiva openebs-jiva/jiva -n openebs \
 | csiController.livenessprobe.image.pullPolicy | string | `"IfNotPresent"` | CSI livenessprobe image pull policy |
 | csiController.livenessprobe.image.registry | string | `"k8s.gcr.io/"` |  CSI livenessprobe image registry |
 | csiController.livenessprobe.image.repository | string | `"k8scsi/livenessprobe"` |  CSI livenessprobe image repo |
-| csiController.livenessprobe.image.tag | string | `"v2.2.0"` | CSI livenessprobe image tag |
+| csiController.livenessprobe.image.tag | string | `"v2.3.0"` | CSI livenessprobe image tag |
 | csiController.livenessprobe.name | string | `"liveness-probe"` |  CSI livenessprobe container name|
 | csiController.nodeSelector | object | `{}` |  CSI controller pod node selector |
 | csiController.podAnnotations | object | `{}` | CSI controller pod annotations |
 | csiController.provisioner.image.pullPolicy | string | `"IfNotPresent"` | CSI provisioner image pull policy |
 | csiController.provisioner.image.registry | string | `"k8s.gcr.io/"` | CSI provisioner image pull registry |
 | csiController.provisioner.image.repository | string | `"k8scsi/csi-provisioner"` | CSI provisioner image pull repository |
-| csiController.provisioner.image.tag | string | `"v2.1.0"` | CSI provisioner image tag |
+| csiController.provisioner.image.tag | string | `"v3.0.0"` | CSI provisioner image tag |
 | csiController.provisioner.name | string | `"csi-provisioner"` | CSI provisioner container name |
 | csiController.resizer.image.pullPolicy | string | `"IfNotPresent"` | CSI resizer image pull policy  |
 | csiController.resizer.image.registry | string | `"k8s.gcr.io/"` | CSI resizer image registry |
 | csiController.resizer.image.repository | string | `"k8scsi/csi-resizer"` |  CSI resizer image repository|
-| csiController.resizer.image.tag | string | `"v1.1.0"` | CSI resizer image tag |
+| csiController.resizer.image.tag | string | `"v1.2.0"` | CSI resizer image tag |
 | csiController.resizer.name | string | `"csi-resizer"` | CSI resizer container name |
 | csiController.resources | object | `{}` | CSI controller container resources |
 | csiController.securityContext | object | `{}` | CSI controller security context |
@@ -145,7 +145,7 @@ helm upgrade openebs-jiva openebs-jiva/jiva -n openebs \
 | csiNode.driverRegistrar.image.pullPolicy | string | `"IfNotPresent"` | CSI Node driver registrar image pull policy|
 | csiNode.driverRegistrar.image.registry | string | `"k8s.gcr.io/"` | CSI Node driver registrar image registry |
 | csiNode.driverRegistrar.image.repository | string | `"k8scsi/csi-node-driver-registrar"` | CSI Node driver registrar image repository |
-| csiNode.driverRegistrar.image.tag | string | `"v2.0.1"` |  CSI Node driver registrar image tag|
+| csiNode.driverRegistrar.image.tag | string | `"v2.3.0"` |  CSI Node driver registrar image tag|
 | csiNode.driverRegistrar.name | string | `"csi-node-driver-registrar"` | CSI Node driver registrar container name |
 | csiNode.kubeletDir | string | `"/var/lib/kubelet/"` | Kubelet root dir |
 | csiNode.labels | object | `{}` | CSI Node pod labels |
@@ -158,7 +158,7 @@ helm upgrade openebs-jiva openebs-jiva/jiva -n openebs \
 | csiNode.livenessprobe.image.pullPolicy | string | `"IfNotPresent"` | CSI livenessprobe image pull policy |
 | csiNode.livenessprobe.image.registry | string | `"k8s.gcr.io/"` |  CSI livenessprobe image registry |
 | csiNode.livenessprobe.image.repository | string | `"k8scsi/livenessprobe"` |  CSI livenessprobe image repo |
-| csiNode.livenessprobe.image.tag | string | `"v2.2.0"` | CSI livenessprobe image tag |
+| csiNode.livenessprobe.image.tag | string | `"v2.3.0"` | CSI livenessprobe image tag |
 | csiNode.livenessprobe.name | string | `"liveness-probe"` |  CSI livenessprobe container name|
 | defaultPolicy.name | string | `"openebs-jiva-default-policy"` | Default jiva volume policy |
 | defaultPolicy.enabled | bool | `true`  | Enable default jiva volume policy |
@@ -174,7 +174,7 @@ helm upgrade openebs-jiva openebs-jiva/jiva -n openebs \
 | jivaOperator.image.pullPolicy | string | `"IfNotPresent"` | Jiva operator image pull policy |
 | jivaOperator.image.registry | string | `nil` | Jiva operator image registry |
 | jivaOperator.image.repository | string | `"openebs/jiva-operator"` | Jiva operator image repository |
-| jivaOperator.image.tag | string | `"2.12.1"` |  Jiva operator image tag |
+| jivaOperator.image.tag | string | `"2.12.2"` |  Jiva operator image tag |
 | jivaOperator.nodeSelector | object | `{}` |  Jiva operator pod nodeSelector|
 | jivaOperator.podAnnotations | object | `{}` | Jiva operator pod annotations |
 | jivaOperator.resources | object | `{}` | Jiva operator pod resources |
@@ -183,12 +183,12 @@ helm upgrade openebs-jiva openebs-jiva/jiva -n openebs \
 | jivaCSIPlugin.image.pullPolicy | string | `"IfNotPresent"` | Jiva CSI driver image pull policy |
 | jivaCSIPlugin.image.registry | string | `nil` | Jiva CSI driver image registry |
 | jivaCSIPlugin.image.repository | string | `"openebs/jiva-csi"` |  Jiva CSI driver image repository |
-| jivaCSIPlugin.image.tag | string | `"2.12.1"` | Jiva CSI driver image tag |
+| jivaCSIPlugin.image.tag | string | `"2.12.2"` | Jiva CSI driver image tag |
 | jivaCSIPlugin.name | string | `"jiva-csi-plugin"` | Jiva CSI driver container name |
 | jivaCSIPlugin.remount | string | `"true"` | Jiva CSI driver remount feature, enabled by default |
 | rbac.create | bool | `true` | Enable RBAC |
 | rbac.pspEnabled | bool | `false` | Enable PodSecurityPolicy |
-| release.version | string | `"2.12.1"` | Openebs Jiva release version |
+| release.version | string | `"2.12.2"` | Openebs Jiva release version |
 | serviceAccount.annotations | object | `{}` | Service Account annotations |
 | serviceAccount.csiController.create | bool | `true` | Enable CSI Controller ServiceAccount |
 | serviceAccount.csiController.name | string | `"openebs-jiva-csi-controller-sa"` | CSI Controller ServiceAccount name |
