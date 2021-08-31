@@ -30,7 +30,7 @@ operator_link: https://raw.githubusercontent.com/openebs/jiva-operator/master/de
 
 jiva_csi_link: https://raw.githubusercontent.com/openebs/jiva-operator/master/deploy/jiva-csi.yaml
 
-jiva_operator_link: https://raw.githubusercontent.com/openebs/charts/gh-pages/{{ openebs_version }}/jiva-operator.yaml
+jiva_operator_link: https://raw.githubusercontent.com/openebs/charts/gh-pages/versioned/{{ openebs_version }}/jiva-operator.yaml
 
 release_operator_link: "https://raw.githubusercontent.com/openebs/charts/{{ commit_id }}/{{ openebs_version }}/jiva-operator.yaml"
 
@@ -38,7 +38,7 @@ rc_operator_link: "https://raw.githubusercontent.com/openebs/charts/{{ commit_id
 
 hostpath_operator_link: "https://raw.githubusercontent.com/openebs/dynamic-localpv-provisioner/develop/deploy/kubectl/hostpath-operator.yaml"
 
-charts_hostpath_link: "https://raw.githubusercontent.com/openebs/charts/gh-pages/{{ openebs_version }}/hostpath-operator.yaml"
+charts_hostpath_link: "https://raw.githubusercontent.com/openebs/charts/versioned/gh-pages/{{ openebs_version }}/hostpath-operator.yaml"
 
 release_hostpath_link: "https://raw.githubusercontent.com/openebs/charts/{{ commit_id }}/{{ openebs_version }}/hostpath-operator.yaml"
 
