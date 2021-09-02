@@ -1,10 +1,10 @@
 apiVersion: v2
 name: jiva
-description: Jiva-Operator helm chart for Kubernetes
+description: Helm chart for OpenEBS Jiva Operator. Jiva provides highly available replication block volumes to Kubernetes stateful workloads using the local storage available on the Kubernetes nodes.
 type: application
 # This is the chart version. This version number should be incremented each time you make changes
 # to the chart and its templates, including the app version.
-version: 2.12.1
+version: 2.12.2
 # This is the version number of the application being deployed. This version number should be
 # incremented each time you make changes to the application.
 appVersion: 2.12.2
