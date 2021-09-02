@@ -1,3 +1,5 @@
+
+---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
@@ -38,12 +40,6 @@ spec:
           spec:
             description: JivaVolumePolicySpec defines the desired state of JivaVolumePolicy
             properties:
-              autoScaling:
-                description: AutoScaling ...
-                type: boolean
-              enableBufio:
-                description: EnableBufio ...
-                type: boolean
               priorityClassName:
                 description: PriorityClassName if specified applies to the pod If
                   left empty, no priority class is applied.
@@ -1401,8 +1397,9 @@ spec:
                           to an implementation-defined value. More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/'
                         type: object
                     type: object
-                  monitor:
-                    description: Monitor enables or disables the target exporter sidecar
+                  disableMonitor:
+                    description: DisableMonitor will not attach prometheus exporter
+                      sidecar to jiva volume target.
                     type: boolean
                   nodeSelector:
                     additionalProperties:
@@ -1483,9 +1480,6 @@ spec:
                       type: object
                     type: array
                 type: object
-            required:
-            - autoScaling
-            - enableBufio
             type: object
           status:
             description: JivaVolumePolicyStatus is for handling status of JivaVolumePolicy
