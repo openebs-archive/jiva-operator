@@ -5,8 +5,6 @@ metadata:
   name: {{ .Values.defaultPolicy.name }}
 spec:
   replicaSC: {{ .Values.defaultPolicy.replicaSC }}
-  enableBufio: false
-  autoScaling: false
   target:
     replicationFactor: {{ .Values.defaultPolicy.replicas }}
 {{- end }}

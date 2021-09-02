@@ -18,4 +18,4 @@ Please provide details like:
 * Are you using for home use or for your organization
 * A brief description of the use case or details on how OpenEBS is helping your projects. 
 
-If you would like your name (as a home user) or organization name to be added to the Adopters.md, please provide a preferred contact handle like GitHub id, Twitter id, LinkedIn id, website, etc.
+If you would like your name (as a home user) or organization name to be added to the ADOPTER.md, please provide a preferred contact handle like GitHub id, Twitter id, LinkedIn id, website, etc.

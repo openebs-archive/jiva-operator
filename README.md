@@ -8,6 +8,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/openebs/jiva-csi)](https://goreportcard.com/report/github.com/openebs/jiva-operator)
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fopenebs%2Fjiva-operator.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fopenebs%2Fjiva-operator?ref=badge_shield)
 [![Releases](https://img.shields.io/github/release/openebs/jiva-operator/all.svg?style=flat-square)](https://github.com/openebs/jiva-operator/releases)
+[![Docker Pulls](https://img.shields.io/docker/pulls/openebs/jiva)](https://hub.docker.com/repository/docker/openebs/jiva)
 
 <img width="200" align="right" alt="OpenEBS Logo" src="https://raw.githubusercontent.com/cncf/artwork/master/projects/openebs/stacked/color/openebs-stacked-color.png" xmlns="http://www.w3.org/1999/html">
 
