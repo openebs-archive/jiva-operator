@@ -1,3 +1,10 @@
+v2.12.2 / 2021-08-31
+========================
+* chore(build): bump csi sidecars and jiva version to 1.12.2 (293bc51, @prateekpandey14)
+* refactor(e2e): migrate jiva e2e tests from openebs/e2e-test to this repo. (@nsathyaseelan)
+* fix(crd): update JivaVolumePolicy parameter(monitor, enableBufio and autoScaling)  (#130, @rajaSahil)
+* feat(policy): add pod AntiAffinity in jiva replica sts using policy (#132, @prateekpandey14)
+
 v2.11.0 / 2021-07-15
 ========================
 * fix(status): fetch volume status using controller podIP (#112, @shubham14bajpai)
