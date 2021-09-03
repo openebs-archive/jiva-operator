@@ -86,6 +86,8 @@ openebs-jiva-csi-node-h2unk                    2/2     Running   0          6m20
       namespace: openebs
     spec:
       replicaSC: openebs-hostpath
+      autoScaling: true
+      enableBufio: true
       target:
         replicationFactor: 1
         # disableMonitor: false
