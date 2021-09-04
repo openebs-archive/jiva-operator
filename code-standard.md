@@ -2,7 +2,7 @@
 
 ## Sign your commits
 
-We use the Developer Certificate of Origin (DCO) as an additional safeguard for the OpenEBS projects. This is a well established and widely used mechanism to assure that contributors have confirmed their right to license their contribution under the project's license. Please read [dcofile](https://github.com/openebs/openebs/blob/master/contribute/developer-certificate-of-origin). If you can certify it, then just add a line to every git commit message:
+We use the Developer Certificate of Origin (DCO) as an additional safeguard for the OpenEBS projects. This is a well established and widely used mechanism to assure that contributors have confirmed their right to license their contribution under the project's license. Please read [dcofile](https://github.com/openebs/openebs/blob/HEAD/contribute/developer-certificate-of-origin). If you can certify it, then just add a line to every git commit message:
 
 ````
   Signed-off-by: Random J Developer <random@developer.example.org>
@@ -12,6 +12,10 @@ Use your real name (sorry, no pseudonyms or anonymous contributions). The email 
 If you set your `user.name` and `user.email` in git config, you can sign your commit automatically with `git commit -s`.
 
 ## Verifying code style
+
+This project recommends the guidelines mentioned here:
+- [Go Code Review Comments](https://code.google.com/p/go-wiki/wiki/CodeReviewComments) and 
+- _Formatting and style_ section of Peter Bourgon's [Go: Best Practices for Production Environments](http://peter.bourgon.org/go-in-production/#formatting-and-style).
 
 ```
 make lint
