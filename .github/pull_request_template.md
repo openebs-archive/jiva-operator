@@ -1,5 +1,3 @@
-## Pull Request template
-
 **Why is this PR required? What issue does it fix?**:
 _Fixes #<issue number>_
 
