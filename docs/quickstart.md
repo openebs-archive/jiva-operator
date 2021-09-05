@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-1. Kubernetes version 1.17 or higher.
+1. Kubernetes version 1.18 or higher.
 
 2. iSCSI initiator utils installed on all the worker nodes(If you are using rancher based cluster perform steps mentioned [here](troubleshooting/rancher_prerequisite.md)).
 
@@ -52,7 +52,7 @@
 
 ### Using Helm Charts:
  
-Install Jiva components using [jiva helm charts](https://github.com/openebs/jiva-operator/tree/master/deploy/helm/charts).
+Install Jiva components using [jiva helm charts](https://github.com/openebs/jiva-operator/tree/HEAD/deploy/helm/charts).
 
 ### Using Operator:
 

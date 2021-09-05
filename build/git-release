@@ -19,7 +19,7 @@ set -e
 if [ "$#" -ne 3 ]; then
     echo "Error: Unable to create a new release. Missing required input."
     echo "Usage: $0 <github org/repo> <tag-name> <branch-name>"
-    echo "Example: $0 kmova/bootstrap v1.0.0 master"
+    echo "Example: $0 kmova/bootstrap v1.0.0 develop"
     exit 1
 fi
 

@@ -1,5 +1,3 @@
-## Pull Request template
-
 **Why is this PR required? What issue does it fix?**:
 _Fixes #<issue number>_
 
@@ -14,7 +12,7 @@ _Mention if this PR is part of any design or a continuation of previous PRs_
 
 
 **Checklist:**
-- [ ] PR Title follows the convention of  `<type>(<scope>): <subject>`. See examples below. 
+- [ ] PR Title follows the convention of  `<type>(<scope>): <subject>`. <!-- See examples below. -->
 - [ ] Has the change log section been updated? 
 - [ ] Commit has unit tests
 - [ ] Commit has integration tests
