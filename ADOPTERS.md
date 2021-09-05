@@ -1,6 +1,6 @@
 # OpenEBS Jiva Adopters
 
-You can see the full list of organizations/users using OpenEBS [here](https://github.com/openebs/openebs/blob/master/ADOPTERS.md).
+You can see the full list of organizations/users using OpenEBS [here](https://github.com/openebs/openebs/blob/HEAD/ADOPTERS.md).
 
 If you are using Jiva, and would like yourself to be listed in this page as a an adopter, please raise an [issue](https://github.com/openebs/jiva-operator/issues/new?assignees=&labels=&template=become-an-adopter.md&title=%5BADOPTER%5D) with the following details:
 
@@ -18,4 +18,4 @@ Some of the organizations that have publicly shared the usage of Jiva.
 - [CodeWave](https://github.com/openebs/openebs/blob/HEAD/adopters/codewave/README.md)
 - [Verizon Media](https://github.com/openebs/openebs/blob/HEAD/adopters/verizon/README.md)
 
-You can see the full list of organizations/users using OpenEBS [here](https://github.com/openebs/openebs/blob/master/ADOPTERS.md).
+You can see the full list of organizations/users using OpenEBS [here](https://github.com/openebs/openebs/blob/HEAD/ADOPTERS.md).

@@ -23,7 +23,7 @@ var (
 	minCurrentVersion   = "2.6.0"
 	validDesiredVersion = strings.Split(Version, "-")[0]
 	// these are the versions used in various pipelines for ci testing
-	exceptions = []string{"master"}
+	exceptions = []string{"master", "develop"}
 )
 
 // IsCurrentVersionValid verifies if the  current version is valid or not

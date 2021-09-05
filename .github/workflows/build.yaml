@@ -18,7 +18,7 @@ on:
   create:
   push:
     branches:
-      - 'master'
+      - 'develop'
       - 'v*'
     paths-ignore:
       - '*.md'
@@ -136,7 +136,7 @@ jobs:
         run: |
           BRANCH="${GITHUB_REF##*/}"
           CI_TAG=${BRANCH#v}-ci
-          if [ ${BRANCH} = "master" ]; then
+          if [ ${BRANCH} = "develop" ]; then
             CI_TAG="ci"
           fi
           echo "TAG=${CI_TAG}" >> $GITHUB_ENV
@@ -184,6 +184,13 @@ jobs:
           username: ${{ secrets.QUAY_USERNAME }}
           password: ${{ secrets.QUAY_TOKEN }}
 
+      - name: Login to GHCR
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build and Push Image
         uses: docker/build-push-action@v2
         with:
@@ -221,7 +228,7 @@ jobs:
         run: |
           BRANCH="${GITHUB_REF##*/}"
           CI_TAG=${BRANCH#v}-ci
-          if [ ${BRANCH} = "master" ]; then
+          if [ ${BRANCH} = "develop" ]; then
             CI_TAG="ci"
           fi
           echo "TAG=${CI_TAG}" >> $GITHUB_ENV
