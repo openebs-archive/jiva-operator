@@ -110,7 +110,7 @@ endif
 ## if release tag is empty then mark version as ci
 ifeq (${RELEASE_TAG},)
     ## Marking VERSION as current_branch-dev
-    ## Example: master branch maps to master-dev
+    ## Example: develop branch maps to develop-dev
     ## Example: v1.11.x-ee branch to 1.11.x-ee-dev
     ## Example: v1.10.x branch to 1.10.x-dev
 	VERSION=$(CURRENT_BRANCH:v%=%)-dev

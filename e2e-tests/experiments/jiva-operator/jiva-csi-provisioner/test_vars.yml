@@ -26,9 +26,9 @@ localpv_tag: "{{ lookup('env','OPENEBS_VERSION') }}-{{ lookup('env','RC_TAG') }}
 
 operator_ns: "{{ lookup('env','OPERATOR_NS') }}"
 
-operator_link: https://raw.githubusercontent.com/openebs/jiva-operator/master/deploy/operator.yaml
+operator_link: https://raw.githubusercontent.com/openebs/jiva-operator/HEAD/deploy/operator.yaml
 
-jiva_csi_link: https://raw.githubusercontent.com/openebs/jiva-operator/master/deploy/jiva-csi.yaml
+jiva_csi_link: https://raw.githubusercontent.com/openebs/jiva-operator/HEAD/deploy/jiva-csi.yaml
 
 jiva_operator_link: https://raw.githubusercontent.com/openebs/charts/gh-pages/versioned/{{ openebs_version }}/jiva-operator.yaml
 

@@ -210,7 +210,7 @@
         - block:
 
 
-            - name: Downloading the operator yaml spec from master
+            - name: Downloading the operator yaml spec from develop
               get_url:
                 url: "{{ operator_link }}"
                 dest: "{{ playbook_dir }}/{{ operator_yaml }}"
@@ -340,7 +340,7 @@
               when: action == "deprovision"              
 
           when:
-            - release_tag == "master"
+            - release_tag == "develop"
 
         - block:
 

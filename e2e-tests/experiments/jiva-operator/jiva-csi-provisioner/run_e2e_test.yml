@@ -27,7 +27,7 @@ spec:
             value: ""
 
             # To Deploy the JIVA operator from release charts value should be `charts`
-            # To Deploy the JIVA operator for ci images value should be `master`
+            # To Deploy the JIVA operator for ci images value should be `develop`
             # To Deploy the JIVA operator from any PR value should be `commit_id`
           - name: IMAGE_TYPE
             value: ""
