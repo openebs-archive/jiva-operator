@@ -53,6 +53,7 @@ csiController:
   priorityClass:
     create: true
     name: jiva-csi-controller-critical
+    value: 900000000
   componentName: "openebs-jiva-csi-controller"
   attacher:
     name: "csi-attacher"
@@ -118,6 +119,7 @@ csiNode:
   priorityClass:
     create: true
     name: jiva-csi-node-critical
+    value: 900001000
   componentName: "openebs-jiva-csi-node"
   driverRegistrar:
     name: "csi-node-driver-registrar"
