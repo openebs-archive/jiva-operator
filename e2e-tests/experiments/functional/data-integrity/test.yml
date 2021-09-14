@@ -96,7 +96,7 @@
          register: result_fio_pod
          until: "'Completed' in result_fio_pod.stdout"
          delay: 15
-         retries: 30
+         retries: 60
 
        - name: Verify the fio logs to check if run is complete w/o errors
          shell: >

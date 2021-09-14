@@ -67,7 +67,7 @@
   args:
     executable: /bin/bash
   register: runningStatusCount
-  until: "runningStatusCount.stdout == \"1\""
+  until: "runningStatusCount.stdout == \"2\""
   delay: 30
   retries: 10
 
