@@ -30,14 +30,6 @@ spec:
         args:
         - server
         - /storage1
-        livenessProbe:
-          exec:
-            command: 
-            - /bin/sh
-            - -c
-            - touch /storage1/healthy; sleep 2; rm -rf /storage1/healthy;
-          initialDelaySeconds: 5
-          periodSeconds: 5
         env:
         # Minio access key and secret key
         - name: MINIO_ACCESS_KEY
