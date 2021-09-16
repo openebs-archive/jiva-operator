@@ -22,6 +22,8 @@ import (
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	config "github.com/openebs/jiva-operator/pkg/config"
 	"github.com/openebs/jiva-operator/pkg/kubernetes/client"
+	analytics "github.com/openebs/jiva-operator/pkg/usage"
+	"github.com/openebs/lib-csi/pkg/common/env"
 	"github.com/sirupsen/logrus"
 )
 
@@ -95,6 +97,14 @@ func (d *CSIDriver) Run() error {
 	s := NewNonBlockingGRPCServer(d.config.Endpoint, d.ids, d.cs, d.ns)
 
 	s.Start()
+
+	// Send Event only after starting controller.
+	// ControllerServer(cs) will be non-empty only if driver is running as controller service
+	if d.cs != nil && env.Truthy(analytics.OpenEBSEnableAnalytics) {
+		analytics.New().Build().InstallBuilder(true).Send()
+		go analytics.PingCheck()
+	}
+
 	s.Wait()
 
 	return nil
