@@ -1,3 +1,7 @@
+v3.0.0 / 2021-09-17
+========================
+* chore(analytic): send install event on jiva-csi controller start ([#153](https://github.com/openebs/jiva-operator/pull/153),[@mittachaitu](https://github.com/mittachaitu))
+
 v2.12.2 / 2021-08-31
 ========================
 * chore(build): bump csi sidecars and jiva version to 1.12.2 (293bc51, @prateekpandey14)
