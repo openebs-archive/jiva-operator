@@ -68,8 +68,7 @@ git remote -v
   cd $GOPATH/src/github.com/openebs/jiva-operator
   kubectl apply -f https://openebs.github.io/charts/hostpath-operator.yaml
   kubectl apply -f deploy/hostpath-sc.yaml
-  kubectl apply -f deploy/operator.yaml
-  kubectl apply -f deploy/jiva-csi.yaml
+  kubectl apply -f deploy/jiva-operator.yaml
   ./ci/ci.sh
   cd ./tests
   make tests

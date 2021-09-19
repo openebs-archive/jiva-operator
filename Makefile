@@ -298,7 +298,10 @@ CONTROLLER_GEN=$(shell which controller-gen)
 endif
 
 manifests: controller-gen
-	$(CONTROLLER_GEN) crd:trivialVersions=true,preserveUnknownFields=false paths="./pkg/apis/..." output:crd:artifacts:config=deploy/crds
+	@echo "--------------------------------"
+	@echo "+ Generating jiva-operator yaml"
+	@echo "--------------------------------"
+	./build/generate-manifest.sh
 
 
 .PHONY: kubegen
