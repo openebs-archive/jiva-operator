@@ -52,8 +52,10 @@ spec:
                   fieldPath: spec.serviceAccountName
             - name: OPENEBS_IO_JIVA_CONTOLLER_IMAGE
               value: "{{ .Values.jivaOperator.controller.image.registry }}{{ .Values.jivaOperator.controller.image.repository }}:{{ .Values.jivaOperator.controller.image.tag }}"
-            - name:  OPENEBS_IO_JIVA_REPLICA_IMAGE
+            - name: OPENEBS_IO_JIVA_REPLICA_IMAGE
               value: "{{ .Values.jivaOperator.replica.image.registry }}{{ .Values.jivaOperator.replica.image.repository }}:{{ .Values.jivaOperator.replica.image.tag }}"
+            - name: OPENEBS_IO_MAYA_EXPORTER_IMAGE
+              value: "{{ .Values.jivaOperator.exporter.image.registry }}{{ .Values.jivaOperator.exporter.image.repository }}:{{ .Values.jivaOperator.exporter.image.tag }}"
 {{- if .Values.imagePullSecrets }}
             - name: OPENEBS_IO_IMAGE_PULL_SECRETS
               value: "{{- range $.Values.imagePullSecrets }}{{ .name }},{{- end }}"
