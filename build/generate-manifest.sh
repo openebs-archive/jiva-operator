@@ -38,6 +38,9 @@ cat deploy/crds/openebs.io_jivavolumepolicies.yaml >> deploy/jiva-operator.yaml
 # Add JivaVolume v1alpha1 CRDs to the Operator yaml
 cat deploy/crds/openebs.io_jivavolumes.yaml >> deploy/jiva-operator.yaml
 
+# Add UpgradeTask v1alpha1 CRDs to the Operator yaml
+cat deploy/yamls/upgradetask.yaml >> deploy/jiva-operator.yaml
+
 # Add the jiva-operator resources to the Operator yaml
 cat deploy/yamls/operator.yaml >> deploy/jiva-operator.yaml
 
