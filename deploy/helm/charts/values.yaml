@@ -31,6 +31,11 @@ jivaOperator:
       registry:
       repository: openebs/jiva
       tag: 3.0.0
+  exporter:
+    image:
+      registry:
+      repository: openebs/m-exporter
+      tag: 3.0.0
   image:
     # Make sure that registry name end with a '/'.
     # For example : quay.io/ is a correct value here and quay.io is incorrect

@@ -140,6 +140,8 @@ spec:
               value: "openebs/jiva:ci"
             - name: OPENEBS_IO_JIVA_REPLICA_IMAGE
               value: "openebs/jiva:ci"
+            - name: OPENEBS_IO_MAYA_EXPORTER_IMAGE
+              value: "openebs/m-exporter:ci"
           livenessProbe:
             httpGet:
               path: /healthz
