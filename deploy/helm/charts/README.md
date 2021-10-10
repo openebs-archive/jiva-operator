@@ -113,6 +113,7 @@ helm upgrade openebs-jiva openebs-jiva/jiva -n openebs \
 | csiController.attacher.image.registry | string | `"k8s.gcr.io/"` |  CSI attacher image registry |
 | csiController.attacher.image.repository | string | `"k8scsi/csi-attacher"` |  CSI attacher image repo |
 | csiController.attacher.image.tag | string | `"v3.1.0"` | CSI attacher image tag |
+| csiController.attacher.logLevel | string | `"5"` |  CSI attacher container log level (1 = least verbose, 5 = most verbose)|
 | csiController.attacher.name | string | `"csi-attacher"` |  CSI attacher container name|
 | csiController.componentName | string | `""` | CSI controller component name |
 | csiController.driverRegistrar.image.pullPolicy | string | `"IfNotPresent"` | CSI driver registrar image pull policy  |
@@ -125,17 +126,20 @@ helm upgrade openebs-jiva openebs-jiva/jiva -n openebs \
 | csiController.livenessprobe.image.repository | string | `"k8scsi/livenessprobe"` |  CSI livenessprobe image repo |
 | csiController.livenessprobe.image.tag | string | `"v2.3.0"` | CSI livenessprobe image tag |
 | csiController.livenessprobe.name | string | `"liveness-probe"` |  CSI livenessprobe container name|
+| csiController.logLevel | string | _unspecified_ |  Log level for all CSI controller containers (1 = least verbose, 5 = most verbose) - overrides the per-container defaults |
 | csiController.nodeSelector | object | `{}` |  CSI controller pod node selector |
 | csiController.podAnnotations | object | `{}` | CSI controller pod annotations |
 | csiController.provisioner.image.pullPolicy | string | `"IfNotPresent"` | CSI provisioner image pull policy |
 | csiController.provisioner.image.registry | string | `"k8s.gcr.io/"` | CSI provisioner image pull registry |
 | csiController.provisioner.image.repository | string | `"k8scsi/csi-provisioner"` | CSI provisioner image pull repository |
 | csiController.provisioner.image.tag | string | `"v3.0.0"` | CSI provisioner image tag |
+| csiController.provisioner.logLevel | string | `"5"` |  CSI provisioner container log level (1 = least verbose, 5 = most verbose)|
 | csiController.provisioner.name | string | `"csi-provisioner"` | CSI provisioner container name |
 | csiController.resizer.image.pullPolicy | string | `"IfNotPresent"` | CSI resizer image pull policy  |
 | csiController.resizer.image.registry | string | `"k8s.gcr.io/"` | CSI resizer image registry |
 | csiController.resizer.image.repository | string | `"k8scsi/csi-resizer"` |  CSI resizer image repository|
 | csiController.resizer.image.tag | string | `"v1.2.0"` | CSI resizer image tag |
+| csiController.resizer.logLevel | string | `"5"` |  CSI resizer container log level (1 = least verbose, 5 = most verbose)|
 | csiController.resizer.name | string | `"csi-resizer"` | CSI resizer container name |
 | csiController.resources | object | `{}` | CSI controller container resources |
 | csiController.securityContext | object | `{}` | CSI controller security context |
@@ -147,6 +151,7 @@ helm upgrade openebs-jiva openebs-jiva/jiva -n openebs \
 | csiNode.driverRegistrar.image.repository | string | `"k8scsi/csi-node-driver-registrar"` | CSI Node driver registrar image repository |
 | csiNode.driverRegistrar.image.tag | string | `"v2.3.0"` |  CSI Node driver registrar image tag|
 | csiNode.driverRegistrar.name | string | `"csi-node-driver-registrar"` | CSI Node driver registrar container name |
+| csiNode.driverRegistrar.logLevel | string | `"5"` |  CSI node driver registrat container log level (1 = least verbose, 5 = most verbose)|
 | csiNode.kubeletDir | string | `"/var/lib/kubelet/"` | Kubelet root dir |
 | csiNode.labels | object | `{}` | CSI Node pod labels |
 | csiNode.nodeSelector | object | `{}` |   CSI Node pod nodeSelector |
