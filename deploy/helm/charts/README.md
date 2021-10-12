@@ -151,7 +151,7 @@ helm upgrade openebs-jiva openebs-jiva/jiva -n openebs \
 | csiNode.driverRegistrar.image.repository | string | `"k8scsi/csi-node-driver-registrar"` | CSI Node driver registrar image repository |
 | csiNode.driverRegistrar.image.tag | string | `"v2.3.0"` |  CSI Node driver registrar image tag|
 | csiNode.driverRegistrar.name | string | `"csi-node-driver-registrar"` | CSI Node driver registrar container name |
-| csiNode.driverRegistrar.logLevel | string | `"5"` |  CSI node driver registrat container log level (1 = least verbose, 5 = most verbose)|
+| csiNode.driverRegistrar.logLevel | string | `"5"` |  CSI node driver registrar container log level (1 = least verbose, 5 = most verbose)|
 | csiNode.kubeletDir | string | `"/var/lib/kubelet/"` | Kubelet root dir |
 | csiNode.labels | object | `{}` | CSI Node pod labels |
 | csiNode.nodeSelector | object | `{}` |   CSI Node pod nodeSelector |
