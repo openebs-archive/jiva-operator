@@ -70,6 +70,7 @@ csiController:
       pullPolicy: IfNotPresent
       # Overrides the image tag whose default is the chart appVersion.
       tag: v3.1.0
+    logLevel: "5"
   livenessprobe:
     name: "liveness-probe"
     image:
@@ -90,6 +91,7 @@ csiController:
       pullPolicy: IfNotPresent
       # Overrides the image tag whose default is the chart appVersion.
       tag: v3.0.0
+    logLevel: "5"
   resizer:
     name: "csi-resizer"
     image:
@@ -100,6 +102,7 @@ csiController:
       pullPolicy: IfNotPresent
       # Overrides the image tag whose default is the chart appVersion.
       tag: v1.2.0
+    logLevel: "5"
   annotations: {}
   podAnnotations: {}
   podLabels: {}
@@ -134,6 +137,7 @@ csiNode:
       pullPolicy: IfNotPresent
       # Overrides the image tag whose default is the chart appVersion.
       tag: v2.3.0
+    logLevel: "5"
   livenessprobe:
     name: "liveness-probe"
     image:
