@@ -43,7 +43,7 @@ set -o pipefail
   # so we can install the tools.
   #cd $(dirname "${0}")
   cd vendor/k8s.io/code-generator/ 
-  go install ./cmd/{defaulter-gen,deepcopy-gen}
+  go install ./cmd/{defaulter-gen,client-gen,deepcopy-gen}
 )
 
 function codegen::join() { local IFS="$1"; shift; echo "$*"; }
@@ -52,6 +52,13 @@ module_name="github.com/openebs/jiva-operator"
 
 # Generate deepcopy functions for all internalapis and external APIs
 deepcopy_inputs=(
+  pkg/apis/openebs/v1alpha1 \
+)
+
+client_subpackage="pkg/client"
+client_package="${module_name}/${client_subpackage}"
+# Generate clientsets, listers and informers for user-facing API types
+client_inputs=(
   pkg/apis/openebs/v1alpha1 \
 )
 
@@ -70,5 +77,19 @@ gen-deepcopy() {
 #  done
 }
 
-gen-deepcopy
+gen-clientsets() {
+#  clean "${client_subpackage}"/clientset '*.go'
+  echo "Generating clientset..." >&2
+  prefixed_inputs=( "${client_inputs[@]/#/$module_name/}" )
+  joined=$( IFS=$','; echo "${prefixed_inputs[*]}" )
+  "${GOPATH}/bin/client-gen" \
+    --go-header-file hack/custom-boilerplate.go.txt \
+    --clientset-name versioned \
+    --input-base "" \
+    --input "$joined" \
+    --output-package "${client_package}"/clientset
+#  copyfiles "${client_subpackage}/clientset" "*.go"
+}
 
+gen-deepcopy
+gen-clientsets
