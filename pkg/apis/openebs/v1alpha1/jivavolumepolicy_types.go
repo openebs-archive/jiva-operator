@@ -88,8 +88,7 @@ type JivaVolumePolicyStatus struct {
 	Phase string `json:"phase"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
+// +genclient
 // JivaVolumePolicy is the Schema for the jivavolumes API
 // Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

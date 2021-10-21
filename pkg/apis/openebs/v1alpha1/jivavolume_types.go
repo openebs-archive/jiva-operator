@@ -69,8 +69,7 @@ type JivaVolumeStatus struct {
 	Phase JivaVolumePhase `json:"phase,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
+// +genclient
 // JivaVolume is the Schema for the jivavolumes API
 // Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
