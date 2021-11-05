@@ -23,7 +23,7 @@ import (
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/openebs/jiva-operator/pkg/apis"
-	jv "github.com/openebs/jiva-operator/pkg/apis/openebs/v1alpha1"
+	jv "github.com/openebs/jiva-operator/pkg/apis/openebs/v1"
 	"github.com/openebs/jiva-operator/pkg/jivavolume"
 	analytics "github.com/openebs/jiva-operator/pkg/usage"
 	"github.com/openebs/jiva-operator/pkg/utils"
@@ -184,7 +184,7 @@ func (cl *Client) CreateJivaVolume(req *csi.CreateVolumeRequest) (string, error)
 			accessType = "mount"
 		}
 	}
-	jiva := jivavolume.New().WithKindAndAPIVersion("JivaVolume", "openebs.io/v1alpha1").
+	jiva := jivavolume.New().WithKindAndAPIVersion("JivaVolume", "openebs.io/v1").
 		WithNameAndNamespace(name, ns).
 		WithAnnotations(getdefaultAnnotations(policyName)).
 		WithLabels(getDefaultLabels(name, pvcName)).

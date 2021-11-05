@@ -21,7 +21,7 @@ package fake
 import (
 	"context"
 
-	v1alpha1 "github.com/openebs/jiva-operator/pkg/apis/openebs/v1alpha1"
+	openebsv1 "github.com/openebs/jiva-operator/pkg/apis/openebs/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -32,29 +32,29 @@ import (
 
 // FakeJivaVolumes implements JivaVolumeInterface
 type FakeJivaVolumes struct {
-	Fake *FakeOpenebsV1alpha1
+	Fake *FakeOpenebsV1
 	ns   string
 }
 
-var jivavolumesResource = schema.GroupVersionResource{Group: "openebs.io", Version: "v1alpha1", Resource: "jivavolumes"}
+var jivavolumesResource = schema.GroupVersionResource{Group: "openebs.io", Version: "v1", Resource: "jivavolumes"}
 
-var jivavolumesKind = schema.GroupVersionKind{Group: "openebs.io", Version: "v1alpha1", Kind: "JivaVolume"}
+var jivavolumesKind = schema.GroupVersionKind{Group: "openebs.io", Version: "v1", Kind: "JivaVolume"}
 
 // Get takes name of the jivaVolume, and returns the corresponding jivaVolume object, and an error if there is any.
-func (c *FakeJivaVolumes) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.JivaVolume, err error) {
+func (c *FakeJivaVolumes) Get(ctx context.Context, name string, options v1.GetOptions) (result *openebsv1.JivaVolume, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewGetAction(jivavolumesResource, c.ns, name), &v1alpha1.JivaVolume{})
+		Invokes(testing.NewGetAction(jivavolumesResource, c.ns, name), &openebsv1.JivaVolume{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*v1alpha1.JivaVolume), err
+	return obj.(*openebsv1.JivaVolume), err
 }
 
 // List takes label and field selectors, and returns the list of JivaVolumes that match those selectors.
-func (c *FakeJivaVolumes) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.JivaVolumeList, err error) {
+func (c *FakeJivaVolumes) List(ctx context.Context, opts v1.ListOptions) (result *openebsv1.JivaVolumeList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewListAction(jivavolumesResource, jivavolumesKind, c.ns, opts), &v1alpha1.JivaVolumeList{})
+		Invokes(testing.NewListAction(jivavolumesResource, jivavolumesKind, c.ns, opts), &openebsv1.JivaVolumeList{})
 
 	if obj == nil {
 		return nil, err
@@ -64,8 +64,8 @@ func (c *FakeJivaVolumes) List(ctx context.Context, opts v1.ListOptions) (result
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &v1alpha1.JivaVolumeList{ListMeta: obj.(*v1alpha1.JivaVolumeList).ListMeta}
-	for _, item := range obj.(*v1alpha1.JivaVolumeList).Items {
+	list := &openebsv1.JivaVolumeList{ListMeta: obj.(*openebsv1.JivaVolumeList).ListMeta}
+	for _, item := range obj.(*openebsv1.JivaVolumeList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)
 		}
@@ -81,43 +81,43 @@ func (c *FakeJivaVolumes) Watch(ctx context.Context, opts v1.ListOptions) (watch
 }
 
 // Create takes the representation of a jivaVolume and creates it.  Returns the server's representation of the jivaVolume, and an error, if there is any.
-func (c *FakeJivaVolumes) Create(ctx context.Context, jivaVolume *v1alpha1.JivaVolume, opts v1.CreateOptions) (result *v1alpha1.JivaVolume, err error) {
+func (c *FakeJivaVolumes) Create(ctx context.Context, jivaVolume *openebsv1.JivaVolume, opts v1.CreateOptions) (result *openebsv1.JivaVolume, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewCreateAction(jivavolumesResource, c.ns, jivaVolume), &v1alpha1.JivaVolume{})
+		Invokes(testing.NewCreateAction(jivavolumesResource, c.ns, jivaVolume), &openebsv1.JivaVolume{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*v1alpha1.JivaVolume), err
+	return obj.(*openebsv1.JivaVolume), err
 }
 
 // Update takes the representation of a jivaVolume and updates it. Returns the server's representation of the jivaVolume, and an error, if there is any.
-func (c *FakeJivaVolumes) Update(ctx context.Context, jivaVolume *v1alpha1.JivaVolume, opts v1.UpdateOptions) (result *v1alpha1.JivaVolume, err error) {
+func (c *FakeJivaVolumes) Update(ctx context.Context, jivaVolume *openebsv1.JivaVolume, opts v1.UpdateOptions) (result *openebsv1.JivaVolume, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateAction(jivavolumesResource, c.ns, jivaVolume), &v1alpha1.JivaVolume{})
+		Invokes(testing.NewUpdateAction(jivavolumesResource, c.ns, jivaVolume), &openebsv1.JivaVolume{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*v1alpha1.JivaVolume), err
+	return obj.(*openebsv1.JivaVolume), err
 }
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeJivaVolumes) UpdateStatus(ctx context.Context, jivaVolume *v1alpha1.JivaVolume, opts v1.UpdateOptions) (*v1alpha1.JivaVolume, error) {
+func (c *FakeJivaVolumes) UpdateStatus(ctx context.Context, jivaVolume *openebsv1.JivaVolume, opts v1.UpdateOptions) (*openebsv1.JivaVolume, error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateSubresourceAction(jivavolumesResource, "status", c.ns, jivaVolume), &v1alpha1.JivaVolume{})
+		Invokes(testing.NewUpdateSubresourceAction(jivavolumesResource, "status", c.ns, jivaVolume), &openebsv1.JivaVolume{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*v1alpha1.JivaVolume), err
+	return obj.(*openebsv1.JivaVolume), err
 }
 
 // Delete takes name of the jivaVolume and deletes it. Returns an error if one occurs.
 func (c *FakeJivaVolumes) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(jivavolumesResource, c.ns, name), &v1alpha1.JivaVolume{})
+		Invokes(testing.NewDeleteAction(jivavolumesResource, c.ns, name), &openebsv1.JivaVolume{})
 
 	return err
 }
@@ -126,17 +126,17 @@ func (c *FakeJivaVolumes) Delete(ctx context.Context, name string, opts v1.Delet
 func (c *FakeJivaVolumes) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
 	action := testing.NewDeleteCollectionAction(jivavolumesResource, c.ns, listOpts)
 
-	_, err := c.Fake.Invokes(action, &v1alpha1.JivaVolumeList{})
+	_, err := c.Fake.Invokes(action, &openebsv1.JivaVolumeList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched jivaVolume.
-func (c *FakeJivaVolumes) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.JivaVolume, err error) {
+func (c *FakeJivaVolumes) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *openebsv1.JivaVolume, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceAction(jivavolumesResource, c.ns, name, pt, data, subresources...), &v1alpha1.JivaVolume{})
+		Invokes(testing.NewPatchSubresourceAction(jivavolumesResource, c.ns, name, pt, data, subresources...), &openebsv1.JivaVolume{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*v1alpha1.JivaVolume), err
+	return obj.(*openebsv1.JivaVolume), err
 }

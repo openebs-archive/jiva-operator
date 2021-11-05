@@ -54,7 +54,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	openebsiov1alpha1 "github.com/openebs/jiva-operator/pkg/apis/openebs/v1alpha1"
+	api "github.com/openebs/jiva-operator/pkg/apis/openebs/v1"
 )
 
 // JivaVolumeReconciler reconciles a JivaVolume object
@@ -65,11 +65,11 @@ type JivaVolumeReconciler struct {
 }
 
 type upgradeParams struct {
-	j      *openebsiov1alpha1.JivaVolume
+	j      *api.JivaVolume
 	client client.Client
 }
 
-type upgradeFunc func(u *upgradeParams) (*openebsiov1alpha1.JivaVolume, error)
+type upgradeFunc func(u *upgradeParams) (*api.JivaVolume, error)
 
 var (
 	upgradeMap  = map[string]upgradeFunc{}
@@ -86,10 +86,10 @@ const (
 	openebsPVC               = "openebs.io/persistent-volume-claim"
 )
 
-type policyOptFuncs func(*openebsiov1alpha1.JivaVolumePolicySpec, openebsiov1alpha1.JivaVolumePolicySpec)
+type policyOptFuncs func(*api.JivaVolumePolicySpec, api.JivaVolumePolicySpec)
 
 var (
-	installFuncs = []func(r *JivaVolumeReconciler, cr *openebsiov1alpha1.JivaVolume) error{
+	installFuncs = []func(r *JivaVolumeReconciler, cr *api.JivaVolume) error{
 		populateJivaVolumePolicy,
 		createControllerService,
 		createControllerDeployment,
@@ -118,7 +118,7 @@ var (
 func (r *JivaVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 
 	// Fetch the JivaVolume instance
-	instance := &openebsiov1alpha1.JivaVolume{}
+	instance := &api.JivaVolume{}
 	err := r.Get(context.TODO(), req.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -156,7 +156,7 @@ func (r *JivaVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// depends upon the error. If bootstrap is successful it will set the Phase
 	// to syncing which will be changed to Ready later when volume becomes RW
 	switch instance.Status.Phase {
-	case openebsiov1alpha1.JivaVolumePhaseReady:
+	case api.JivaVolumePhaseReady:
 		// fetching the latest status before performing
 		// other operations
 		err = r.getAndUpdateVolumeStatus(instance)
@@ -181,12 +181,12 @@ func (r *JivaVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 				instance.Name, err.Error())
 		}
 		return reconcile.Result{}, nil
-	case openebsiov1alpha1.JivaVolumePhaseSyncing, openebsiov1alpha1.JivaVolumePhaseUnkown:
+	case api.JivaVolumePhaseSyncing, api.JivaVolumePhaseUnkown:
 		return reconcile.Result{}, r.getAndUpdateVolumeStatus(instance)
-	case openebsiov1alpha1.JivaVolumePhaseDeleting:
+	case api.JivaVolumePhaseDeleting:
 		logrus.Info("start tearing down jiva components", "JivaVolume: ", instance.Name)
 		return reconcile.Result{}, nil
-	case "", openebsiov1alpha1.JivaVolumePhasePending, openebsiov1alpha1.JivaVolumePhaseFailed:
+	case "", api.JivaVolumePhasePending, api.JivaVolumePhaseFailed:
 		if ok {
 			logrus.Info("start bootstraping jiva components", "JivaVolume: ", instance.Name)
 			return reconcile.Result{}, r.bootstrapJiva(instance)
@@ -196,7 +196,7 @@ func (r *JivaVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	return reconcile.Result{}, nil
 }
 
-func (r *JivaVolumeReconciler) updatePodIPMap(cr *openebsiov1alpha1.JivaVolume) error {
+func (r *JivaVolumeReconciler) updatePodIPMap(cr *api.JivaVolume) error {
 	var (
 		controllerLabel = "openebs.io/component=jiva-controller,openebs.io/persistent-volume="
 	)
@@ -245,7 +245,7 @@ func isNodeReady(node *corev1.Node) bool {
 	return false
 }
 
-func (r *JivaVolumeReconciler) isScaleup(cr *openebsiov1alpha1.JivaVolume) bool {
+func (r *JivaVolumeReconciler) isScaleup(cr *api.JivaVolume) bool {
 	if cr.Spec.DesiredReplicationFactor > cr.Spec.Policy.Target.ReplicationFactor {
 		if cr.Spec.Policy.Target.ReplicationFactor != cr.Status.ReplicaCount {
 			r.Recorder.Eventf(cr, corev1.EventTypeWarning,
@@ -278,7 +278,7 @@ func (r *JivaVolumeReconciler) isScaleup(cr *openebsiov1alpha1.JivaVolume) bool 
 
 // isHAVolume checks if the volume has atleast
 // qurom number of replicas in RW state
-func isHAVolume(cr *openebsiov1alpha1.JivaVolume) bool {
+func isHAVolume(cr *api.JivaVolume) bool {
 	if cr.Spec.Policy.Target.ReplicationFactor < 3 {
 		return false
 	}
@@ -295,7 +295,7 @@ func isHAVolume(cr *openebsiov1alpha1.JivaVolume) bool {
 	return false
 }
 
-func (r *JivaVolumeReconciler) moveReplicasForMissingNodes(cr *openebsiov1alpha1.JivaVolume) error {
+func (r *JivaVolumeReconciler) moveReplicasForMissingNodes(cr *api.JivaVolume) error {
 
 	// if the volume does not HA replicas in
 	// RW mode skip the process
@@ -432,19 +432,19 @@ func (r *JivaVolumeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return err
 	}
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&openebsiov1alpha1.JivaVolume{}).
+		For(&api.JivaVolume{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}).
 		Owns(&appsv1.StatefulSet{}).
 		Complete(r)
 }
 
-func (r *JivaVolumeReconciler) finally(err error, cr *openebsiov1alpha1.JivaVolume) {
+func (r *JivaVolumeReconciler) finally(err error, cr *api.JivaVolume) {
 	if err != nil {
-		cr.Status.Phase = openebsiov1alpha1.JivaVolumePhaseFailed
+		cr.Status.Phase = api.JivaVolumePhaseFailed
 		logrus.Errorf("failed to bootstrap volume %s, due to error: %v", cr.Name, err)
 	} else {
-		cr.Status.Phase = openebsiov1alpha1.JivaVolumePhaseSyncing
+		cr.Status.Phase = api.JivaVolumePhaseSyncing
 	}
 
 	if err := r.updateJivaVolume(cr); err != nil {
@@ -452,7 +452,7 @@ func (r *JivaVolumeReconciler) finally(err error, cr *openebsiov1alpha1.JivaVolu
 	}
 }
 
-func (r *JivaVolumeReconciler) shouldReconcile(cr *openebsiov1alpha1.JivaVolume) (bool, error) {
+func (r *JivaVolumeReconciler) shouldReconcile(cr *api.JivaVolume) (bool, error) {
 	operatorVersion := version.Version
 	jivaVolumeVersion := cr.VersionDetails.Status.Current
 
@@ -467,7 +467,7 @@ func (r *JivaVolumeReconciler) shouldReconcile(cr *openebsiov1alpha1.JivaVolume)
 // 1. Create controller svc
 // 2. Create controller deploy
 // 3. Create replica statefulset
-func (r *JivaVolumeReconciler) bootstrapJiva(cr *openebsiov1alpha1.JivaVolume) (err error) {
+func (r *JivaVolumeReconciler) bootstrapJiva(cr *api.JivaVolume) (err error) {
 	for _, f := range installFuncs {
 		if err = f(r, cr); err != nil {
 			r.Recorder.Eventf(cr, corev1.EventTypeWarning,
@@ -480,7 +480,7 @@ func (r *JivaVolumeReconciler) bootstrapJiva(cr *openebsiov1alpha1.JivaVolume) (
 }
 
 // TODO: add logic to create disruption budget for replicas
-func createReplicaPodDisruptionBudget(r *JivaVolumeReconciler, cr *openebsiov1alpha1.JivaVolume) error {
+func createReplicaPodDisruptionBudget(r *JivaVolumeReconciler, cr *api.JivaVolume) error {
 	min := cr.Spec.Policy.Target.ReplicationFactor
 	pdbObj := &policyv1beta1.PodDisruptionBudget{
 		TypeMeta: metav1.TypeMeta{
@@ -524,7 +524,7 @@ func createReplicaPodDisruptionBudget(r *JivaVolumeReconciler, cr *openebsiov1al
 	return nil
 }
 
-func (r *JivaVolumeReconciler) performScaleup(cr *openebsiov1alpha1.JivaVolume) error {
+func (r *JivaVolumeReconciler) performScaleup(cr *api.JivaVolume) error {
 	// update the replica sts with the desired replica count
 	// this will bring a new hostpath pvc on a new node and a
 	// new pod
@@ -563,14 +563,14 @@ func (r *JivaVolumeReconciler) performScaleup(cr *openebsiov1alpha1.JivaVolume) 
 	}
 
 	cr.Spec.Policy.Target.ReplicationFactor = int(desiredReplicas)
-	cr.Status.Phase = openebsiov1alpha1.JivaVolumePhaseSyncing
+	cr.Status.Phase = api.JivaVolumePhaseSyncing
 	if err := r.updateJivaVolume(cr); err != nil {
 		return fmt.Errorf("failed to update JivaVolume phase: %s", err.Error())
 	}
 	return nil
 }
 
-func createControllerDeployment(r *JivaVolumeReconciler, cr *openebsiov1alpha1.JivaVolume) error {
+func createControllerDeployment(r *JivaVolumeReconciler, cr *api.JivaVolume) error {
 	reps := int32(1)
 
 	dep, err := deploy.NewBuilder().WithName(cr.Name + "-jiva-ctrl").
@@ -783,7 +783,7 @@ func defaultServiceLabels(pv string) map[string]string {
 	}
 }
 
-func createReplicaStatefulSet(r *JivaVolumeReconciler, cr *openebsiov1alpha1.JivaVolume) error {
+func createReplicaStatefulSet(r *JivaVolumeReconciler, cr *api.JivaVolume) error {
 
 	var (
 		err                            error
@@ -950,7 +950,7 @@ func createReplicaStatefulSet(r *JivaVolumeReconciler, cr *openebsiov1alpha1.Jiv
 	return nil
 }
 
-func updateJivaVolumeWithServiceInfo(r *JivaVolumeReconciler, cr *openebsiov1alpha1.JivaVolume) error {
+func updateJivaVolumeWithServiceInfo(r *JivaVolumeReconciler, cr *api.JivaVolume) error {
 	ctrlSVC := &corev1.Service{}
 	if err := r.Get(context.TODO(),
 		types.NamespacedName{
@@ -974,7 +974,7 @@ func updateJivaVolumeWithServiceInfo(r *JivaVolumeReconciler, cr *openebsiov1alp
 	}
 
 	logrus.Info("Updating JivaVolume with iscsi spec", "ISCSISpec", cr.Spec.ISCSISpec)
-	cr.Status.Phase = openebsiov1alpha1.JivaVolumePhasePending
+	cr.Status.Phase = api.JivaVolumePhasePending
 	if err := r.Update(context.TODO(), cr); err != nil {
 		return fmt.Errorf("%s, err: %v", updateErrMsg, err)
 	}
@@ -1063,11 +1063,11 @@ func getBaseTargetTolerations() []corev1.Toleration {
 }
 
 // getDefaultPolicySpec gives the default policy spec for jiva volume.
-func getDefaultPolicySpec() openebsiov1alpha1.JivaVolumePolicySpec {
-	return openebsiov1alpha1.JivaVolumePolicySpec{
+func getDefaultPolicySpec() api.JivaVolumePolicySpec {
+	return api.JivaVolumePolicySpec{
 		ReplicaSC: defaultStorageClass,
-		Target: openebsiov1alpha1.TargetSpec{
-			PodTemplateResources: openebsiov1alpha1.PodTemplateResources{
+		Target: api.TargetSpec{
+			PodTemplateResources: api.PodTemplateResources{
 				Tolerations: getBaseTargetTolerations(),
 				Resources: &corev1.ResourceRequirements{
 					Requests: corev1.ResourceList{
@@ -1093,8 +1093,8 @@ func getDefaultPolicySpec() openebsiov1alpha1.JivaVolumePolicySpec {
 			ReplicationFactor: defaultReplicationFactor,
 			DisableMonitor:    defaultDisableMonitor,
 		},
-		Replica: openebsiov1alpha1.ReplicaSpec{
-			PodTemplateResources: openebsiov1alpha1.PodTemplateResources{
+		Replica: api.ReplicaSpec{
+			PodTemplateResources: api.PodTemplateResources{
 				Tolerations: getBaseReplicaTolerations(),
 				Resources: &corev1.ResourceRequirements{
 					Requests: corev1.ResourceList{
@@ -1111,47 +1111,47 @@ func getDefaultPolicySpec() openebsiov1alpha1.JivaVolumePolicySpec {
 	}
 }
 
-func defaultRF(policy *openebsiov1alpha1.JivaVolumePolicySpec, defaultPolicy openebsiov1alpha1.JivaVolumePolicySpec) {
+func defaultRF(policy *api.JivaVolumePolicySpec, defaultPolicy api.JivaVolumePolicySpec) {
 	if policy.Target.ReplicationFactor == 0 {
 		policy.Target.ReplicationFactor = defaultPolicy.Target.ReplicationFactor
 	}
 }
 
-func defaultSC(policy *openebsiov1alpha1.JivaVolumePolicySpec, defaultPolicy openebsiov1alpha1.JivaVolumePolicySpec) {
+func defaultSC(policy *api.JivaVolumePolicySpec, defaultPolicy api.JivaVolumePolicySpec) {
 	if policy.ReplicaSC == "" {
 		policy.ReplicaSC = defaultPolicy.ReplicaSC
 	}
 }
 
-func defaultTargetRes(policy *openebsiov1alpha1.JivaVolumePolicySpec, defaultPolicy openebsiov1alpha1.JivaVolumePolicySpec) {
+func defaultTargetRes(policy *api.JivaVolumePolicySpec, defaultPolicy api.JivaVolumePolicySpec) {
 	if policy.Target.Resources == nil {
 		policy.Target.Resources = defaultPolicy.Target.Resources
 	}
 }
 
-func defaultTargetAuxRes(policy *openebsiov1alpha1.JivaVolumePolicySpec, defaultPolicy openebsiov1alpha1.JivaVolumePolicySpec) {
+func defaultTargetAuxRes(policy *api.JivaVolumePolicySpec, defaultPolicy api.JivaVolumePolicySpec) {
 	if policy.Target.AuxResources == nil {
 		policy.Target.AuxResources = defaultPolicy.Target.AuxResources
 	}
 }
 
-func defaultReplicaRes(policy *openebsiov1alpha1.JivaVolumePolicySpec, defaultPolicy openebsiov1alpha1.JivaVolumePolicySpec) {
+func defaultReplicaRes(policy *api.JivaVolumePolicySpec, defaultPolicy api.JivaVolumePolicySpec) {
 	if policy.Replica.Resources == nil {
 		policy.Replica.Resources = defaultPolicy.Replica.Resources
 	}
 }
 
-func defaultTargetTolerations(policy *openebsiov1alpha1.JivaVolumePolicySpec, defaultPolicy openebsiov1alpha1.JivaVolumePolicySpec) {
+func defaultTargetTolerations(policy *api.JivaVolumePolicySpec, defaultPolicy api.JivaVolumePolicySpec) {
 	policy.Target.Tolerations = append(defaultPolicy.Target.Tolerations, policy.Target.Tolerations...)
 }
 
-func defaultReplicaTolerations(policy *openebsiov1alpha1.JivaVolumePolicySpec, defaultPolicy openebsiov1alpha1.JivaVolumePolicySpec) {
+func defaultReplicaTolerations(policy *api.JivaVolumePolicySpec, defaultPolicy api.JivaVolumePolicySpec) {
 	policy.Replica.Tolerations = append(defaultPolicy.Replica.Tolerations, policy.Replica.Tolerations...)
 }
 
 // validatePolicySpec checks the policy provided by the user and sets the
 // defaults to the policy spec of jiva volume.
-func validatePolicySpec(policy *openebsiov1alpha1.JivaVolumePolicySpec) {
+func validatePolicySpec(policy *api.JivaVolumePolicySpec) {
 	defaultPolicy := getDefaultPolicySpec()
 	optFuncs := []policyOptFuncs{
 		defaultRF, defaultSC, defaultTargetRes, defaultReplicaRes,
@@ -1163,13 +1163,13 @@ func validatePolicySpec(policy *openebsiov1alpha1.JivaVolumePolicySpec) {
 	}
 }
 
-func populateJivaVolumePolicy(r *JivaVolumeReconciler, cr *openebsiov1alpha1.JivaVolume) error {
+func populateJivaVolumePolicy(r *JivaVolumeReconciler, cr *api.JivaVolume) error {
 	policyName := cr.Annotations["openebs.io/volume-policy"]
 	policySpec := getDefaultPolicySpec()
 	// if policy name is provided via annotation get and validate the
 	// policy spec else set the default policy spec.
 	if policyName != "" {
-		policy := openebsiov1alpha1.JivaVolumePolicy{}
+		policy := api.JivaVolumePolicy{}
 		err := r.Get(
 			context.TODO(),
 			types.NamespacedName{Name: policyName, Namespace: cr.Namespace},
@@ -1186,7 +1186,7 @@ func populateJivaVolumePolicy(r *JivaVolumeReconciler, cr *openebsiov1alpha1.Jiv
 	return nil
 }
 
-func createControllerService(r *JivaVolumeReconciler, cr *openebsiov1alpha1.JivaVolume) error {
+func createControllerService(r *JivaVolumeReconciler, cr *api.JivaVolume) error {
 
 	// By default type is clusterIP
 	svcObj, err := svc.NewBuilder().
@@ -1229,7 +1229,7 @@ func createControllerService(r *JivaVolumeReconciler, cr *openebsiov1alpha1.Jiva
 
 }
 
-func (r *JivaVolumeReconciler) updateJivaVolume(cr *openebsiov1alpha1.JivaVolume) error {
+func (r *JivaVolumeReconciler) updateJivaVolume(cr *api.JivaVolume) error {
 	if err := r.Update(context.TODO(), cr); err != nil {
 		return fmt.Errorf("failed to update JivaVolume, err: %v", err)
 	}
@@ -1240,8 +1240,8 @@ func (r *JivaVolumeReconciler) updateJivaVolume(cr *openebsiov1alpha1.JivaVolume
 	return nil
 }
 
-func (r *JivaVolumeReconciler) getJivaVolume(cr *openebsiov1alpha1.JivaVolume) error {
-	instance := &openebsiov1alpha1.JivaVolume{}
+func (r *JivaVolumeReconciler) getJivaVolume(cr *api.JivaVolume) error {
+	instance := &api.JivaVolume{}
 	if err := r.Get(context.TODO(),
 		types.NamespacedName{
 			Name:      cr.Name,
@@ -1256,14 +1256,14 @@ func (r *JivaVolumeReconciler) getJivaVolume(cr *openebsiov1alpha1.JivaVolume) e
 }
 
 // setdefaults set the default value
-func setdefaults(cr *openebsiov1alpha1.JivaVolume) {
-	cr.Status = openebsiov1alpha1.JivaVolumeStatus{
+func setdefaults(cr *api.JivaVolume) {
+	cr.Status = api.JivaVolumeStatus{
 		Status: "Unknown",
-		Phase:  openebsiov1alpha1.JivaVolumePhaseSyncing,
+		Phase:  api.JivaVolumePhaseSyncing,
 	}
 }
 
-func (r *JivaVolumeReconciler) updateStatus(err *error, cr *openebsiov1alpha1.JivaVolume) {
+func (r *JivaVolumeReconciler) updateStatus(err *error, cr *api.JivaVolume) {
 	if *err != nil {
 		setdefaults(cr)
 	}
@@ -1275,7 +1275,7 @@ func (r *JivaVolumeReconciler) updateStatus(err *error, cr *openebsiov1alpha1.Ji
 	}
 }
 
-func (r *JivaVolumeReconciler) getAndUpdateVolumeStatus(cr *openebsiov1alpha1.JivaVolume) error {
+func (r *JivaVolumeReconciler) getAndUpdateVolumeStatus(cr *api.JivaVolume) error {
 	var (
 		cli *jiva.ControllerClient
 		err error
@@ -1312,7 +1312,7 @@ func (r *JivaVolumeReconciler) getAndUpdateVolumeStatus(cr *openebsiov1alpha1.Ji
 
 	cr.Status.Status = stats.TargetStatus
 	cr.Status.ReplicaCount = len(stats.Replicas)
-	cr.Status.ReplicaStatuses = make([]openebsiov1alpha1.ReplicaStatus, len(stats.Replicas))
+	cr.Status.ReplicaStatuses = make([]api.ReplicaStatus, len(stats.Replicas))
 
 	for i, rep := range stats.Replicas {
 		cr.Status.ReplicaStatuses[i].Address = rep.Address
@@ -1320,17 +1320,17 @@ func (r *JivaVolumeReconciler) getAndUpdateVolumeStatus(cr *openebsiov1alpha1.Ji
 	}
 
 	if stats.TargetStatus == "RW" {
-		cr.Status.Phase = openebsiov1alpha1.JivaVolumePhaseReady
+		cr.Status.Phase = api.JivaVolumePhaseReady
 	} else if stats.TargetStatus == "RO" {
-		cr.Status.Phase = openebsiov1alpha1.JivaVolumePhaseSyncing
+		cr.Status.Phase = api.JivaVolumePhaseSyncing
 	} else {
-		cr.Status.Phase = openebsiov1alpha1.JivaVolumePhaseUnkown
+		cr.Status.Phase = api.JivaVolumePhaseUnkown
 	}
 
 	return nil
 }
 
-func (r *JivaVolumeReconciler) reconcileVersion(cr *openebsiov1alpha1.JivaVolume) error {
+func (r *JivaVolumeReconciler) reconcileVersion(cr *api.JivaVolume) error {
 	var err error
 	// the below code uses deep copy to have the state of object just before
 	// any update call is done so that on failure the last state object can be returned
@@ -1342,7 +1342,7 @@ func (r *JivaVolumeReconciler) reconcileVersion(cr *openebsiov1alpha1.JivaVolume
 			return fmt.Errorf("invalid desired version %s", cr.VersionDetails.Desired)
 		}
 		jObj := cr.DeepCopy()
-		if cr.VersionDetails.Status.State != openebsiov1alpha1.ReconcileInProgress {
+		if cr.VersionDetails.Status.State != api.ReconcileInProgress {
 			jObj.VersionDetails.Status.SetInProgressStatus()
 			err = r.updateJivaVolume(jObj)
 			if err != nil {
