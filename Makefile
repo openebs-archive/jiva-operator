@@ -206,7 +206,7 @@ operator:
 
 build.operator: deps
 	@echo "--> Build binary $(OPERATOR_NAME) ..."
-	GOOS=linux go build -a -ldflags '$(LDFLAGS)' -o ./build/bin/$(OPERATOR_NAME) ./cmd/manager/main.go
+	CGO_ENABLED=0 GOOS=linux go build -a -ldflags '$(LDFLAGS)' -o ./build/bin/$(OPERATOR_NAME) ./cmd/manager/main.go
 
 image.operator: build.operator 
 	@echo "--> Build image $(IMAGE_ORG)/$(OPERATOR_NAME):$(OPERATOR_TAG) ..."
@@ -230,7 +230,7 @@ push-tag.operator: tag.operator push.operator
 
 build.plugin: deps 
 	@echo "--> Build binary $(PLUGIN_NAME) ..."
-	GOOS=linux go build -a -ldflags '$(LDFLAGS)' -o ./build/bin/$(PLUGIN_NAME) ./cmd/csi/main.go
+	CGO_ENABLED=0 GOOS=linux go build -a -ldflags '$(LDFLAGS)' -o ./build/bin/$(PLUGIN_NAME) ./cmd/csi/main.go
 
 image.plugin: build.plugin
 	@echo "--> Build image $(IMAGE_ORG)/$(PLUGIN_NAME):$(PLUGIN_TAG) ..."
