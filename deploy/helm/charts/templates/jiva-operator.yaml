@@ -46,7 +46,7 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.serviceAccountName
-            - name: OPENEBS_IO_JIVA_CONTOLLER_IMAGE
+            - name: OPENEBS_IO_JIVA_CONTROLLER_IMAGE
               value: "{{ .Values.jivaOperator.controller.image.registry }}{{ .Values.jivaOperator.controller.image.repository }}:{{ .Values.jivaOperator.controller.image.tag }}"
             - name: OPENEBS_IO_JIVA_REPLICA_IMAGE
               value: "{{ .Values.jivaOperator.replica.image.registry }}{{ .Values.jivaOperator.replica.image.repository }}:{{ .Values.jivaOperator.replica.image.tag }}"
