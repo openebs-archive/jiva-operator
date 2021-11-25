@@ -60,6 +60,7 @@ csiController:
     name: jiva-csi-controller-critical
     value: 900000000
   componentName: "openebs-jiva-csi-controller"
+  logLevel: "5"
   attacher:
     name: "csi-attacher"
     image:
@@ -70,7 +71,6 @@ csiController:
       pullPolicy: IfNotPresent
       # Overrides the image tag whose default is the chart appVersion.
       tag: v3.1.0
-    logLevel: "5"
   livenessprobe:
     name: "liveness-probe"
     image:
@@ -91,7 +91,6 @@ csiController:
       pullPolicy: IfNotPresent
       # Overrides the image tag whose default is the chart appVersion.
       tag: v3.0.0
-    logLevel: "5"
   resizer:
     name: "csi-resizer"
     image:
@@ -102,7 +101,6 @@ csiController:
       pullPolicy: IfNotPresent
       # Overrides the image tag whose default is the chart appVersion.
       tag: v1.2.0
-    logLevel: "5"
   annotations: {}
   podAnnotations: {}
   podLabels: {}
@@ -129,6 +127,7 @@ csiNode:
     name: jiva-csi-node-critical
     value: 900001000
   componentName: "openebs-jiva-csi-node"
+  logLevel: "5"
   driverRegistrar:
     name: "csi-node-driver-registrar"
     image:
@@ -137,7 +136,6 @@ csiNode:
       pullPolicy: IfNotPresent
       # Overrides the image tag whose default is the chart appVersion.
       tag: v2.3.0
-    logLevel: "5"
   livenessprobe:
     name: "liveness-probe"
     image:
