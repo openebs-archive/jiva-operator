@@ -20,8 +20,8 @@ package fake
 
 import (
 	clientset "github.com/openebs/jiva-operator/pkg/client/clientset/versioned"
-	openebsv1alpha1 "github.com/openebs/jiva-operator/pkg/client/clientset/versioned/typed/openebs/v1alpha1"
-	fakeopenebsv1alpha1 "github.com/openebs/jiva-operator/pkg/client/clientset/versioned/typed/openebs/v1alpha1/fake"
+	openebsv1 "github.com/openebs/jiva-operator/pkg/client/clientset/versioned/typed/openebs/v1"
+	fakeopenebsv1 "github.com/openebs/jiva-operator/pkg/client/clientset/versioned/typed/openebs/v1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -76,7 +76,7 @@ func (c *Clientset) Tracker() testing.ObjectTracker {
 
 var _ clientset.Interface = &Clientset{}
 
-// OpenebsV1alpha1 retrieves the OpenebsV1alpha1Client
-func (c *Clientset) OpenebsV1alpha1() openebsv1alpha1.OpenebsV1alpha1Interface {
-	return &fakeopenebsv1alpha1.FakeOpenebsV1alpha1{Fake: &c.Fake}
+// OpenebsV1 retrieves the OpenebsV1Client
+func (c *Clientset) OpenebsV1() openebsv1.OpenebsV1Interface {
+	return &fakeopenebsv1.FakeOpenebsV1{Fake: &c.Fake}
 }

@@ -20,7 +20,7 @@ import (
 	"errors"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
-	jv "github.com/openebs/jiva-operator/pkg/apis/openebs/v1alpha1"
+	jv "github.com/openebs/jiva-operator/pkg/apis/openebs/v1"
 	"github.com/openebs/jiva-operator/version"
 )
 

@@ -29,7 +29,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	jv "github.com/openebs/jiva-operator/pkg/apis/openebs/v1alpha1"
+	jv "github.com/openebs/jiva-operator/pkg/apis/openebs/v1"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/errors"
 	utilexec "k8s.io/utils/exec"

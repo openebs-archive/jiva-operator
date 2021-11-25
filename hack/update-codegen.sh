@@ -52,14 +52,14 @@ module_name="github.com/openebs/jiva-operator"
 
 # Generate deepcopy functions for all internalapis and external APIs
 deepcopy_inputs=(
-  pkg/apis/openebs/v1alpha1 \
+  pkg/apis/openebs/v1 \
 )
 
 client_subpackage="pkg/client"
 client_package="${module_name}/${client_subpackage}"
 # Generate clientsets, listers and informers for user-facing API types
 client_inputs=(
-  pkg/apis/openebs/v1alpha1 \
+  pkg/apis/openebs/v1 \
 )
 
 gen-deepcopy() {

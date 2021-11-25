@@ -25,7 +25,7 @@ import (
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/kubernetes-csi/csi-lib-iscsi/iscsi"
-	jv "github.com/openebs/jiva-operator/pkg/apis/openebs/v1alpha1"
+	jv "github.com/openebs/jiva-operator/pkg/apis/openebs/v1"
 	"github.com/openebs/jiva-operator/pkg/kubernetes/client"
 	"github.com/openebs/jiva-operator/pkg/request"
 	"github.com/openebs/jiva-operator/pkg/utils"

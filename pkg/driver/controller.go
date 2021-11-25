@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
-	jv "github.com/openebs/jiva-operator/pkg/apis/openebs/v1alpha1"
+	jv "github.com/openebs/jiva-operator/pkg/apis/openebs/v1"
 	"github.com/openebs/jiva-operator/pkg/jiva"
 	"github.com/openebs/jiva-operator/pkg/kubernetes/client"
 	analytics "github.com/openebs/jiva-operator/pkg/usage"
