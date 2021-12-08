@@ -17,10 +17,10 @@ limitations under the License.
 package apis
 
 import (
-	api "github.com/openebs/jiva-operator/pkg/apis/openebs/v1"
+	jivaAPI "github.com/openebs/jiva-operator/pkg/apis/openebs/v1"
 )
 
 func init() {
 	// Register the types with the Scheme so the components can map objects to GroupVersionKinds and back
-	AddToSchemes = append(AddToSchemes, api.SchemeBuilder.AddToScheme)
+	AddToSchemes = append(AddToSchemes, jivaAPI.SchemeBuilder.AddToScheme)
 }

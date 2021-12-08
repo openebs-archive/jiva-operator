@@ -23,7 +23,7 @@ import (
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/openebs/jiva-operator/pkg/apis"
-	jv "github.com/openebs/jiva-operator/pkg/apis/openebs/v1"
+	jivaAPI "github.com/openebs/jiva-operator/pkg/apis/openebs/v1"
 	"github.com/openebs/jiva-operator/pkg/jivavolume"
 	analytics "github.com/openebs/jiva-operator/pkg/usage"
 	"github.com/openebs/jiva-operator/pkg/utils"
@@ -103,7 +103,7 @@ func (cl *Client) RegisterAPI(opts manager.Options) error {
 }
 
 // GetJivaVolume get the instance of JivaVolume CR.
-func (cl *Client) GetJivaVolume(name string) (*jv.JivaVolume, error) {
+func (cl *Client) GetJivaVolume(name string) (*jivaAPI.JivaVolume, error) {
 	instance, err := cl.ListJivaVolume(name)
 	if err != nil {
 		logrus.Errorf("Failed to get JivaVolume CR: %v, err: %v", name, err)
@@ -118,7 +118,7 @@ func (cl *Client) GetJivaVolume(name string) (*jv.JivaVolume, error) {
 }
 
 // UpdateJivaVolume update the JivaVolume CR
-func (cl *Client) UpdateJivaVolume(cr *jv.JivaVolume) (bool, error) {
+func (cl *Client) UpdateJivaVolume(cr *jivaAPI.JivaVolume) (bool, error) {
 	err := cl.client.Update(context.TODO(), cr)
 	if err != nil {
 		if k8serrors.IsConflict(err) {
@@ -198,7 +198,7 @@ func (cl *Client) CreateJivaVolume(req *csi.CreateVolumeRequest) (string, error)
 	}
 
 	obj := jiva.Instance()
-	objExists := &jv.JivaVolume{}
+	objExists := &jivaAPI.JivaVolume{}
 	err = cl.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: ns}, objExists)
 	if err != nil && k8serrors.IsNotFound(err) {
 		logrus.Infof("Creating a new JivaVolume CR {name: %v, namespace: %v}", name, ns)
@@ -220,9 +220,9 @@ func (cl *Client) CreateJivaVolume(req *csi.CreateVolumeRequest) (string, error)
 }
 
 // ListJivaVolume returns the list of JivaVolume resources
-func (cl *Client) ListJivaVolume(volumeID string) (*jv.JivaVolumeList, error) {
+func (cl *Client) ListJivaVolume(volumeID string) (*jivaAPI.JivaVolumeList, error) {
 	volumeID = utils.StripName(volumeID)
-	obj := &jv.JivaVolumeList{}
+	obj := &jivaAPI.JivaVolumeList{}
 	opts := []client.ListOption{
 		client.MatchingLabels(getDefaultLabels(volumeID, "")),
 	}
@@ -235,9 +235,9 @@ func (cl *Client) ListJivaVolume(volumeID string) (*jv.JivaVolumeList, error) {
 }
 
 // GetJivaVolume returns the list of JivaVolume resources
-func (cl *Client) GetJivaVolumeResource(volumeID string) (*jv.JivaVolume, error) {
+func (cl *Client) GetJivaVolumeResource(volumeID string) (*jivaAPI.JivaVolume, error) {
 	volumeID = utils.StripName(volumeID)
-	obj := &jv.JivaVolume{}
+	obj := &jivaAPI.JivaVolume{}
 
 	if err := cl.client.Get(context.TODO(), types.NamespacedName{Name: volumeID, Namespace: GetOpenEBSNamespace()}, obj); err != nil {
 		return nil, err
@@ -247,8 +247,8 @@ func (cl *Client) GetJivaVolumeResource(volumeID string) (*jv.JivaVolume, error)
 }
 
 // ListJivaVolumeWithOpts returns the list of JivaVolume resources
-func (cl *Client) ListJivaVolumeWithOpts(opts map[string]string) (*jv.JivaVolumeList, error) {
-	obj := &jv.JivaVolumeList{}
+func (cl *Client) ListJivaVolumeWithOpts(opts map[string]string) (*jivaAPI.JivaVolumeList, error) {
+	obj := &jivaAPI.JivaVolumeList{}
 	options := []client.ListOption{
 		client.MatchingLabels(opts),
 	}

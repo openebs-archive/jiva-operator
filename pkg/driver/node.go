@@ -25,7 +25,7 @@ import (
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/kubernetes-csi/csi-lib-iscsi/iscsi"
-	jv "github.com/openebs/jiva-operator/pkg/apis/openebs/v1"
+	jivaAPI "github.com/openebs/jiva-operator/pkg/apis/openebs/v1"
 	"github.com/openebs/jiva-operator/pkg/kubernetes/client"
 	"github.com/openebs/jiva-operator/pkg/request"
 	"github.com/openebs/jiva-operator/pkg/utils"
@@ -97,7 +97,7 @@ func NewNode(d *CSIDriver, cli *client.Client) *node {
 	}
 }
 
-func (ns *node) attachDisk(instance *jv.JivaVolume) (string, error) {
+func (ns *node) attachDisk(instance *jivaAPI.JivaVolume) (string, error) {
 	connector := iscsi.Connector{
 		VolumeName:    instance.Name,
 		TargetIqn:     instance.Spec.ISCSISpec.Iqn,
@@ -279,7 +279,7 @@ update:
 	return &csi.NodeStageVolumeResponse{}, nil
 }
 
-func (ns *node) doesVolumeExist(volID string) (*jv.JivaVolume, error) {
+func (ns *node) doesVolumeExist(volID string) (*jivaAPI.JivaVolume, error) {
 	volID = utils.StripName(volID)
 	if err := ns.client.Set(); err != nil {
 		return nil, status.Error(codes.Internal, err.Error())

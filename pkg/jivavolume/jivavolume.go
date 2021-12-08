@@ -20,25 +20,25 @@ import (
 	"errors"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
-	jv "github.com/openebs/jiva-operator/pkg/apis/openebs/v1"
+	jivaAPI "github.com/openebs/jiva-operator/pkg/apis/openebs/v1"
 	"github.com/openebs/jiva-operator/version"
 )
 
 // Jiva wraps the JivaVolume structure
 type Jiva struct {
-	jvObj *jv.JivaVolume
+	jvObj *jivaAPI.JivaVolume
 	Errs  []error
 }
 
 // New returns new instance of Jiva which is wrapper over JivaVolume
 func New() *Jiva {
 	return &Jiva{
-		jvObj: &jv.JivaVolume{},
+		jvObj: &jivaAPI.JivaVolume{},
 	}
 }
 
 // Instance returns the instance of JivaVolume
-func (j *Jiva) Instance() *jv.JivaVolume {
+func (j *Jiva) Instance() *jivaAPI.JivaVolume {
 	return j.jvObj
 }
 
