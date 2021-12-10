@@ -28,7 +28,7 @@ import (
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
-	api "github.com/openebs/jiva-operator/pkg/apis/openebs/v1"
+	jivaAPI "github.com/openebs/jiva-operator/pkg/apis/openebs/v1"
 	"github.com/openebs/jiva-operator/pkg/controllers"
 	"github.com/openebs/jiva-operator/version"
 	"github.com/sirupsen/logrus"
@@ -48,7 +48,7 @@ var (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
-	utilruntime.Must(api.AddToScheme(scheme))
+	utilruntime.Must(jivaAPI.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
 

@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
-	jv "github.com/openebs/jiva-operator/pkg/apis/openebs/v1"
+	jivaAPI "github.com/openebs/jiva-operator/pkg/apis/openebs/v1"
 	"github.com/openebs/jiva-operator/pkg/jiva"
 	"github.com/openebs/jiva-operator/pkg/kubernetes/client"
 	analytics "github.com/openebs/jiva-operator/pkg/usage"
@@ -218,9 +218,9 @@ func (cs *controller) ControllerGetCapabilities(
 	return resp, nil
 }
 
-func (cs *controller) isVolumeReady(volumeID string) (*jv.JivaVolume, error) {
+func (cs *controller) isVolumeReady(volumeID string) (*jivaAPI.JivaVolume, error) {
 	var interval time.Duration = 0
-	var instance *jv.JivaVolume
+	var instance *jivaAPI.JivaVolume
 	var i int
 	for i = 0; i <= MaxRetryCount; i++ {
 		if i == MaxRetryCount {

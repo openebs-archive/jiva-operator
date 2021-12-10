@@ -29,7 +29,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	jv "github.com/openebs/jiva-operator/pkg/apis/openebs/v1"
+	jivaAPI "github.com/openebs/jiva-operator/pkg/apis/openebs/v1"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/errors"
 	utilexec "k8s.io/utils/exec"
@@ -84,7 +84,7 @@ func (m *NodeMounter) GetDeviceName(mountPath string) (string, int, error) {
 	return mount.GetDeviceNameFromMount(m, mountPath)
 }
 
-func doesVolumeExist(volID string, cli *client.Client) (*jv.JivaVolume, error) {
+func doesVolumeExist(volID string, cli *client.Client) (*jivaAPI.JivaVolume, error) {
 	volID = utils.StripName(volID)
 	if err := cli.Set(); err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
@@ -105,7 +105,7 @@ func isVolumeReady(volID string, cli *client.Client) (bool, error) {
 		return false, err
 	}
 
-	if instance.Status.Phase == jv.JivaVolumePhaseReady && instance.Status.Status == "RW" {
+	if instance.Status.Phase == jivaAPI.JivaVolumePhaseReady && instance.Status.Status == "RW" {
 		return true, nil
 	}
 	return false, nil
@@ -123,7 +123,7 @@ func isVolumeReachable(targetPortal string) bool {
 	return false
 }
 
-func waitForVolumeToBeReady(volID string, cli *client.Client) (*jv.JivaVolume, error) {
+func waitForVolumeToBeReady(volID string, cli *client.Client) (*jivaAPI.JivaVolume, error) {
 	var retry int
 	var sleepInterval time.Duration = 0
 	for {
@@ -134,7 +134,7 @@ func waitForVolumeToBeReady(volID string, cli *client.Client) (*jv.JivaVolume, e
 		}
 
 		retry++
-		if instance.Status.Phase == jv.JivaVolumePhaseReady && instance.Status.Status == "RW" {
+		if instance.Status.Phase == jivaAPI.JivaVolumePhaseReady && instance.Status.Status == "RW" {
 			return instance, nil
 		} else if retry <= MaxRetryCount {
 			sleepInterval = 5
@@ -215,7 +215,7 @@ func (n *NodeMounter) MonitorMounts() {
 	logrus.Infof("Starting MonitorMounts goroutine")
 	var (
 		err        error
-		csivolList *jv.JivaVolumeList
+		csivolList *jivaAPI.JivaVolumeList
 		mountList  []mount.MountPoint
 	)
 	ticker := time.NewTicker(MonitorMountRetryTimeout * time.Second)
@@ -291,7 +291,7 @@ func verifyMountOpts(opts []string, desiredOpt string) bool {
 	return false
 }
 
-func (n *NodeMounter) remount(vol jv.JivaVolume, stagingPathExists, targetPathExists bool) {
+func (n *NodeMounter) remount(vol jivaAPI.JivaVolume, stagingPathExists, targetPathExists bool) {
 	defer func() {
 		request.TransitionVolListLock.Lock()
 		delete(request.TransitionVolList, vol.Name)
@@ -320,7 +320,7 @@ func (n *NodeMounter) remount(vol jv.JivaVolume, stagingPathExists, targetPathEx
 // the disk will be attached via iSCSI login and then it will be mounted
 func (n *NodeMounter) remountVolume(
 	stagingPathExists bool, targetPathExists bool,
-	vol *jv.JivaVolume,
+	vol *jivaAPI.JivaVolume,
 ) (err error) {
 	options := []string{"rw"}
 
