@@ -717,7 +717,7 @@ func defaultControllerMatchLabels(pv string, pvc string) map[string]string {
 func defaultAnnotations() map[string]string {
 	return map[string]string{"prometheus.io/path": "/metrics",
 		"prometheus.io/port":  "9500",
-		"prometheus.io/scrap": "true",
+		"prometheus.io/scrape": "true",
 	}
 }
 
