@@ -85,7 +85,7 @@
          register: status_fio_pod
          until: "status_fio_pod.stdout == 'Running' or status_fio_pod.stdout == 'Succeeded'"
          delay: 5
-         retries: 30
+         retries: 60
 
        - name: Check if fio write job is completed
          shell: >
@@ -128,8 +128,8 @@
            executable: /bin/bash
          register: app_status
          until: "'Running' in app_status.stdout"
-         delay: 2
-         retries: 30
+         delay: 5
+         retries: 60
          ignore_errors: true
 
        - name: Check if fio read job is completed
