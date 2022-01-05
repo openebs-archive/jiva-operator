@@ -1,3 +1,23 @@
+v3.1.0 / 2022-01-03
+========================
+* feat(api): adding v1 CRDs ([#167](https://github.com/openebs/jiva-operator/pull/167),[@shubham14bajpai](https://github.com/shubham14bajpai))
+* refactor(operator): use a common label (jivaapi) to reference jiva api ([#171](https://github.com/openebs/jiva-operator/pull/171),[@abhisheksinghbaghel](https://github.com/abhisheksinghbaghel))
+* fix(provisioning): corrected the prometheus scrape annotation syntax ([#174](https://github.com/openebs/jiva-operator/pull/174),[@shazadbrohi](https://github.com/shazadbrohi))
+* fix(helm): Make log verbosity configurable ([#161](https://github.com/openebs/jiva-operator/pull/161),[@ianroberts](https://github.com/ianroberts))
+
+
+v3.1.0-RC2 / 2021-12-29
+========================
+
+
+v3.1.0-RC1 / 2021-12-20
+========================
+* feat(api): adding v1 CRDs ([#167](https://github.com/openebs/jiva-operator/pull/167),[@shubham14bajpai](https://github.com/shubham14bajpai))
+* refactor(operator): use a common label (jivaapi) to reference jiva api ([#171](https://github.com/openebs/jiva-operator/pull/171),[@abhisheksinghbaghel](https://github.com/abhisheksinghbaghel))
+* fix(provisioning): corrected the prometheus scrape annotation syntax ([#174](https://github.com/openebs/jiva-operator/pull/174),[@shazadbrohi](https://github.com/shazadbrohi))
+* fix(helm): Make log verbosity configurable ([#161](https://github.com/openebs/jiva-operator/pull/161),[@ianroberts](https://github.com/ianroberts))
+
+
 v3.0.0 / 2021-09-17
 ========================
 * chore(analytic): send install event on jiva-csi controller start ([#153](https://github.com/openebs/jiva-operator/pull/153),[@mittachaitu](https://github.com/mittachaitu))
