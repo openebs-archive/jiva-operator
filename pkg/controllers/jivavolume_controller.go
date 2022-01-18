@@ -1195,6 +1195,7 @@ func createControllerService(r *JivaVolumeReconciler, cr *jivaAPI.JivaVolume) er
 		WithNamespace(cr.Namespace).
 		WithSelectorsNew(map[string]string{
 			"openebs.io/cas-type":          "jiva",
+			"openebs.io/component":         "jiva-controller",
 			"openebs.io/persistent-volume": cr.Spec.PV,
 		}).
 		WithPorts(defaultControllerSVCPorts()).
