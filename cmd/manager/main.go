@@ -19,9 +19,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"os"
 	env "runtime"
-	"strings"
 	"time"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -41,8 +39,7 @@ import (
 )
 
 var (
-	scheme   = runtime.NewScheme()
-	setupLog = ctrl.Log.WithName("setup")
+	scheme = runtime.NewScheme()
 )
 
 func init() {
@@ -81,8 +78,7 @@ func main() {
 		SyncPeriod:             &duration,
 	})
 	if err != nil {
-		setupLog.Error(err, "unable to start manager")
-		os.Exit(1)
+		logrus.Fatal("failed to create manager:", err)
 	}
 
 	if err = (&controllers.JivaVolumeReconciler{
@@ -90,37 +86,22 @@ func main() {
 		Scheme:   mgr.GetScheme(),
 		Recorder: mgr.GetEventRecorderFor("jivavolume-controller"),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "JivaVolume")
-		os.Exit(1)
+		logrus.Fatal("failed to create controller JivaVolume:", err)
 	}
 	// +kubebuilder:scaffold:builder
 	printVersion()
 
 	if err := mgr.AddHealthzCheck("health", healthz.Ping); err != nil {
-		setupLog.Error(err, "unable to set up health check")
-		os.Exit(1)
+		logrus.Fatal("failed to set up health check:", err)
 	}
 
 	if err := mgr.AddReadyzCheck("check", healthz.Ping); err != nil {
-		setupLog.Error(err, "unable to set up ready check")
-		os.Exit(1)
+		logrus.Fatal("failed to set up ready check:", err)
 	}
 
-	setupLog.Info("starting manager")
+	logrus.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-		setupLog.Error(err, "problem running manager")
-		os.Exit(1)
+		logrus.Fatal("problem running manager:", err)
 	}
 
-}
-
-// getOpenebsNamespace gets the namespace OPENEBS_NAMESPACE env value which is
-// set by the downward API where admission server has been deployed
-func getOpenebsNamespace() (string, error) {
-
-	ns, found := os.LookupEnv("OPENEBS_NAMESPACE")
-	if !found {
-		return "", fmt.Errorf("OPENEBS_NAMESPACE must be set")
-	}
-	return strings.TrimSpace(ns), nil
 }
