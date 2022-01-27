@@ -5,7 +5,6 @@ go 1.17
 require (
 	github.com/container-storage-interface/spec v1.2.0
 	github.com/docker/go-units v0.4.0
-	github.com/go-openapi/spec v0.19.4
 	github.com/google/uuid v1.1.2
 	github.com/jpillora/go-ogle-analytics v0.0.0-20161213085824-14b04e0594ef
 	github.com/kubernetes-csi/csi-lib-iscsi v0.0.0-20191120152119-1430b53a1741
@@ -25,7 +24,6 @@ require (
 	k8s.io/cloud-provider v0.23.3
 	k8s.io/code-generator v0.23.3
 	k8s.io/klog v1.0.0
-	k8s.io/kube-openapi v0.0.0-20211115234752-e816edb12b65
 	k8s.io/utils v0.0.0-20211116205334-6203023598ed
 	sigs.k8s.io/controller-runtime v0.11.0
 )
@@ -91,6 +89,7 @@ require (
 	k8s.io/component-base v0.23.3 // indirect
 	k8s.io/gengo v0.0.0-20210813121822-485abfe95c7c // indirect
 	k8s.io/klog/v2 v2.30.0 // indirect
+	k8s.io/kube-openapi v0.0.0-20211115234752-e816edb12b65 // indirect
 	sigs.k8s.io/json v0.0.0-20211020170558-c049b76a60c6 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.1 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect

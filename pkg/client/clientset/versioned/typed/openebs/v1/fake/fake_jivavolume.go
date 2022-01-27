@@ -117,7 +117,7 @@ func (c *FakeJivaVolumes) UpdateStatus(ctx context.Context, jivaVolume *openebsv
 // Delete takes name of the jivaVolume and deletes it. Returns an error if one occurs.
 func (c *FakeJivaVolumes) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(jivavolumesResource, c.ns, name), &openebsv1.JivaVolume{})
+		Invokes(testing.NewDeleteActionWithOptions(jivavolumesResource, c.ns, name, opts), &openebsv1.JivaVolume{})
 
 	return err
 }
