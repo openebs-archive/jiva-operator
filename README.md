@@ -35,6 +35,7 @@ We are always happy to list users who run Jiva in production, check out our exis
 | ------------| ---------------- | ------------- 
 | 1.18+       | 2.6.0+           | Beta  
 | 1.20+       | 2.12.0+          | Beta  
+| 1.21+       | 3.2.0+           | Stable  
 
 ## Usage
 

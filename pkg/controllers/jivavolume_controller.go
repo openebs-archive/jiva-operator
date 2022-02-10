@@ -39,7 +39,7 @@ import (
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	policyv1beta1 "k8s.io/api/policy/v1beta1"
+	policyv1 "k8s.io/api/policy/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -78,7 +78,7 @@ var (
 )
 
 const (
-	pdbAPIVersion            = "policyv1beta1"
+	pdbAPIVersion            = "policyv1"
 	defaultStorageClass      = "openebs-hostpath"
 	replicaAntiAffinityKey   = "openebs.io/replica-anti-affinity"
 	defaultReplicationFactor = 3
@@ -482,7 +482,7 @@ func (r *JivaVolumeReconciler) bootstrapJiva(cr *jivaAPI.JivaVolume) (err error)
 // TODO: add logic to create disruption budget for replicas
 func createReplicaPodDisruptionBudget(r *JivaVolumeReconciler, cr *jivaAPI.JivaVolume) error {
 	min := cr.Spec.Policy.Target.ReplicationFactor
-	pdbObj := &policyv1beta1.PodDisruptionBudget{
+	pdbObj := &policyv1.PodDisruptionBudget{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "PodDisruptionBudget",
 			APIVersion: pdbAPIVersion,
@@ -491,7 +491,7 @@ func createReplicaPodDisruptionBudget(r *JivaVolumeReconciler, cr *jivaAPI.JivaV
 			Name:      cr.Name + "-pdb",
 			Namespace: cr.Namespace,
 		},
-		Spec: policyv1beta1.PodDisruptionBudgetSpec{
+		Spec: policyv1.PodDisruptionBudgetSpec{
 			Selector: &metav1.LabelSelector{
 				MatchLabels: defaultReplicaMatchLabels(cr.Spec.PV),
 			},
@@ -502,7 +502,7 @@ func createReplicaPodDisruptionBudget(r *JivaVolumeReconciler, cr *jivaAPI.JivaV
 		},
 	}
 
-	instance := &policyv1beta1.PodDisruptionBudget{}
+	instance := &policyv1.PodDisruptionBudget{}
 	err := r.Get(context.TODO(), types.NamespacedName{Name: pdbObj.Name, Namespace: pdbObj.Namespace}, instance)
 	if err != nil && errors.IsNotFound(err) {
 		// Set JivaVolume instance as the owner and controller
@@ -715,8 +715,9 @@ func defaultControllerMatchLabels(pv string, pvc string) map[string]string {
 }
 
 func defaultAnnotations() map[string]string {
-	return map[string]string{"prometheus.io/path": "/metrics",
-		"prometheus.io/port":  "9500",
+	return map[string]string{
+		"prometheus.io/path":   "/metrics",
+		"prometheus.io/port":   "9500",
 		"prometheus.io/scrape": "true",
 	}
 }

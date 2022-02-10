@@ -117,7 +117,7 @@ func (c *FakeJivaVolumePolicies) UpdateStatus(ctx context.Context, jivaVolumePol
 // Delete takes name of the jivaVolumePolicy and deletes it. Returns an error if one occurs.
 func (c *FakeJivaVolumePolicies) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(jivavolumepoliciesResource, c.ns, name), &openebsv1.JivaVolumePolicy{})
+		Invokes(testing.NewDeleteActionWithOptions(jivavolumepoliciesResource, c.ns, name, opts), &openebsv1.JivaVolumePolicy{})
 
 	return err
 }
