@@ -1,3 +1,7 @@
+v3.2.0 / 2022-04-19
+===================
+* rename 'defaultClass' helm chart template values object to 'storageClass' ([#184](https://github.com/openebs/jiva-operator/pull/184)), [@niladrih](https://github.com/niladrih))
+
 v3.1.0 / 2022-01-03
 ========================
 * feat(api): adding v1 CRDs ([#167](https://github.com/openebs/jiva-operator/pull/167),[@shubham14bajpai](https://github.com/shubham14bajpai))

@@ -177,12 +177,21 @@ helm upgrade openebs-jiva openebs-jiva/jiva -n openebs \
 | storageClass.isDefaultClass | bool | `false` | Make jiva csi StorageClass as the default StorageClass |
 | jivaOperator.annotations | object | `{}` | Jiva operator annotations |
 | jivaOperator.componentName | string | `"jiva-operator"` | Jiva operator component name |
+| jivaOperator.controller.image.registry | `nil` | Jiva volume controller container image registry |
+| jivaOperator.controller.image.repository | `openebs/jiva` | Jiva volume controller container image repository |
+| jivaOperator.controller.image.tag | `"3.2.0"` | Jiva volume controller container image tag |
+| jivaOperator.exporter.image.registry | `nil` | Jiva volume metrics exporter container image registry |
+| jivaOperator.exporter.image.repository | `openebs/m-exporter` | Jiva volume metrics exporter container image repository |
+| jivaOperator.exporter.image.tag | `"3.2.0"` | Jiva volume metrics exporter container image tag |
 | jivaOperator.image.pullPolicy | string | `"IfNotPresent"` | Jiva operator image pull policy |
 | jivaOperator.image.registry | string | `nil` | Jiva operator image registry |
 | jivaOperator.image.repository | string | `"openebs/jiva-operator"` | Jiva operator image repository |
 | jivaOperator.image.tag | string | `"3.2.0"` |  Jiva operator image tag |
 | jivaOperator.nodeSelector | object | `{}` |  Jiva operator pod nodeSelector|
 | jivaOperator.podAnnotations | object | `{}` | Jiva operator pod annotations |
+| jivaOperator.replica.image.registry | `nil` | Jiva volume replica container image registry |
+| jivaOperator.replica.image.repository | `openebs/jiva` | Jiva volume replica container image repository |
+| jivaOperator.replica.image.tag | `"3.2.0"` | Jiva volume replica container image tag |
 | jivaOperator.resources | object | `{}` | Jiva operator pod resources |
 | jivaOperator.securityContext | object | `{}` | Jiva operator security context |
 | jivaOperator.tolerations | list | `[]` | Jiva operator pod tolerations |
