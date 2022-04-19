@@ -1,0 +1,1 @@
+rename 'defaultClass' helm chart template values object to 'storageClass'

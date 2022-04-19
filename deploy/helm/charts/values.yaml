@@ -3,7 +3,7 @@
 # Declare variables to be passed into your templates.
 
 release:
-  version: "3.1.0"
+  version: "3.2.0"
 
 
 # If false, openebs localpv sub-chart will not be installed
@@ -25,17 +25,17 @@ jivaOperator:
     image:
       registry:
       repository: openebs/jiva
-      tag: 3.1.0
+      tag: 3.2.0
   replica:
     image:
       registry:
       repository: openebs/jiva
-      tag: 3.1.0
+      tag: 3.2.0
   exporter:
     image:
       registry:
       repository: openebs/m-exporter
-      tag: 3.1.0
+      tag: 3.2.0
   image:
     # Make sure that registry name end with a '/'.
     # For example : quay.io/ is a correct value here and quay.io is incorrect
@@ -43,7 +43,7 @@ jivaOperator:
     repository: openebs/jiva-operator
     pullPolicy: IfNotPresent
     # Overrides the image tag whose default is the chart appVersion.
-    tag: 3.1.0
+    tag: 3.2.0
   annotations: {}
   resyncInterval: "30"
   podAnnotations: {}
@@ -118,7 +118,7 @@ jivaCSIPlugin:
     repository: openebs/jiva-csi
     pullPolicy: IfNotPresent
     # Overrides the image tag whose default is the chart appVersion.
-    tag: 3.1.0
+    tag: 3.2.0
   remount: "true"
 
 csiNode:
@@ -187,14 +187,15 @@ serviceAccount:
     create: true
     name: openebs-jiva-csi-node-sa
 
-defaultClass:
-  # Name of the default default StorageClass
+storageClass:
+  # Name of the default StorageClass
   name: openebs-jiva-csi-default
   # If true, enables creation of the openebs-jiva-csi-default StorageClass
   enabled: true
   # Available reclaim policies: Delete/Retain, defaults: Delete.
   reclaimPolicy: Delete
-  # If true, sets the openebs-jiva-csi-default StorageClass as the default StorageClass
+  # If true, sets the openebs-jiva-csi-default StorageClass as the
+  # default kubernetes StorageClass for the cluster
   isDefaultClass: false
   # If true, allows resize of the volumes
   allowVolumeExpansion: true
