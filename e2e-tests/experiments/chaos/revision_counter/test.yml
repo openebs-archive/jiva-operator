@@ -87,6 +87,12 @@
         - include_tasks: ./delete_jiva_csi_replica.yml
           loop: "{{ range(0, 10 | int, 1)|list }}"
 
+        - name: Sleep for some time to finish the dumping of test-data.
+          shell: >
+            sleep 720
+          args:
+            executable: /bin/bash
+
         - name: Wait until the dumping process is finished and pid was destroyed
           wait_for:
             path: /proc/{{ p_id.stdout }}/status
