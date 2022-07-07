@@ -36,7 +36,7 @@ spec:
 
             # Block Size to dump the data using dd 
           - name: BLOCK_SIZE
-            value: '3000000'
+            value: '2000000'
 
             # Block Count to dump the data using dd
           - name: BLOCK_COUNT
