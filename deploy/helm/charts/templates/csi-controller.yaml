@@ -118,7 +118,7 @@ spec:
           emptyDir: {}
 {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
-{{ toYaml .Values.imagePullSecrets | indent 2 }}
+{{ toYaml .Values.imagePullSecrets | nindent 8 }}
 {{- end }}
 {{- if .Values.csiController.nodeSelector }}
       nodeSelector:
