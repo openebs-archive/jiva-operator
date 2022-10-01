@@ -207,8 +207,8 @@ func verifyIncreasedSizeInAppPod(deployName string) {
 		if err != nil {
 			return fmt.Errorf("failed to convert volume size string. stdout: %s, err: %v", stdout, err)
 		}
-		if volSize != 10255636 {
-			return fmt.Errorf("failed to match volume size. actual: %d, expected: %d", volSize, 10255636)
+		if volSize != 10232668 {
+			return fmt.Errorf("failed to match volume size. actual: %d, expected: %d", volSize, 10232668)
 		}
 		return nil
 	}, timeout).Should(Succeed())
