@@ -81,11 +81,10 @@ export DBUILD_ARGS=--build-arg DBUILD_DATE=${DBUILD_DATE} --build-arg DBUILD_REP
 
 # Tools required for different make targets or for development purposes
 EXTERNAL_TOOLS=\
-	golang.org/x/tools/cmd/cover \
-	github.com/axw/gocov/gocov \
-	github.com/ugorji/go/codec/codecgen \
-	github.com/onsi/ginkgo/ginkgo \
-	github.com/onsi/gomega/...
+	golang.org/x/tools/cmd/cover@latest \
+	github.com/axw/gocov/gocov@latest \
+	github.com/ugorji/go/codec/codecgen@latest \
+	github.com/onsi/ginkgo/ginkgo@latest
 
 # Lint our code. Reference: https://golang.org/cmd/vet/
 VETARGS?=-asmdecl -atomic -bool -buildtags -copylocks -methods \
@@ -169,8 +168,9 @@ print-variables:
 bootstrap:
 	@for tool in  $(EXTERNAL_TOOLS) ; do \
 		echo "+ Installing $$tool" ; \
-		cd && GO111MODULE=on go get $$tool; \
+		cd && GO111MODULE=on go install $$tool; \
 	done
+	go get github.com/onsi/gomega/...
 
 .get:
 	rm -rf ./build/bin/
