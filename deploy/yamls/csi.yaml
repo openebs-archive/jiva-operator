@@ -124,10 +124,10 @@ spec:
         openebs.io/version: dev
     spec:
       priorityClassName: openebs-jiva-csi-controller-critical
-      serviceAccount: openebs-jiva-csi-controller-sa
+      serviceAccountName: openebs-jiva-csi-controller-sa
       containers:
         - name: csi-provisioner
-          image: k8s.gcr.io/sig-storage/csi-provisioner:v3.0.0
+          image: registry.k8s.io/sig-storage/csi-provisioner:v3.5.0
           args:
             - "--csi-address=$(ADDRESS)"
             - "--v=5"
@@ -147,7 +147,7 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: csi-attacher
-          image: k8s.gcr.io/sig-storage/csi-attacher:v3.1.0
+          image: registry.k8s.io/sig-storage/csi-attacher:v4.3.0
           args:
             - "--v=5"
             - "--csi-address=$(ADDRESS)"
@@ -190,7 +190,7 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: csi-resizer
-          image: k8s.gcr.io/sig-storage/csi-resizer:v1.2.0
+          image: registry.k8s.io/sig-storage/csi-resizer:v1.8.0
           args:
             - "--v=5"
             - "--csi-address=$(ADDRESS)"
@@ -205,7 +205,7 @@ spec:
           volumeMounts:
           - mountPath: /csi
             name: socket-dir
-          image: k8s.gcr.io/sig-storage/livenessprobe:v2.3.0
+          image: registry.k8s.io/sig-storage/livenessprobe:v2.3.0
           args:
           - "--csi-address=/csi/csi.sock"
       volumes:
@@ -350,11 +350,11 @@ spec:
         openebs.io/version: dev
     spec:
       priorityClassName: openebs-jiva-csi-node-critical
-      serviceAccount: openebs-jiva-csi-node-sa
+      serviceAccountName: openebs-jiva-csi-node-sa
       hostNetwork: true
       containers:
         - name: csi-node-driver-registrar
-          image: k8s.gcr.io/sig-storage/csi-node-driver-registrar:v2.3.0
+          image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.8.0
           args:
             - "--v=5"
             - "--csi-address=$(ADDRESS)"
@@ -435,7 +435,7 @@ spec:
               mountPath: /sbin/iscsiadm
               subPath: iscsiadm
         - name: liveness-probe
-          image: 	k8s.gcr.io/sig-storage/livenessprobe:v2.3.0
+          image: registry.k8s.io/sig-storage/livenessprobe:v2.10.0
           args:
           - "--csi-address=/plugin/csi.sock"
           volumeMounts:
