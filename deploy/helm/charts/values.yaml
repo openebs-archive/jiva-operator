@@ -66,7 +66,7 @@ csiController:
     image:
       # Make sure that registry name end with a '/'.
       # For example : quay.io/ is a correct value here and quay.io is incorrect
-      registry: k8s.gcr.io/
+      registry: registry.k8s.io/
       repository: sig-storage/csi-attacher
       pullPolicy: IfNotPresent
       # Overrides the image tag whose default is the chart appVersion.
@@ -76,7 +76,7 @@ csiController:
     image:
       # Make sure that registry name end with a '/'.
       # For example : quay.io/ is a correct value here and quay.io is incorrect
-      registry: k8s.gcr.io/
+      registry: registry.k8s.io/
       repository: sig-storage/livenessprobe
       pullPolicy: IfNotPresent
       # Overrides the image tag whose default is the chart appVersion.
@@ -86,7 +86,7 @@ csiController:
     image:
       # Make sure that registry name end with a '/'.
       # For example : quay.io/ is a correct value here and quay.io is incorrect
-      registry: k8s.gcr.io/
+      registry: registry.k8s.io/
       repository: sig-storage/csi-provisioner
       pullPolicy: IfNotPresent
       # Overrides the image tag whose default is the chart appVersion.
@@ -96,7 +96,7 @@ csiController:
     image:
       # Make sure that registry name end with a '/'.
       # For example : quay.io/ is a correct value here and quay.io is incorrect
-      registry: k8s.gcr.io/
+      registry: registry.k8s.io/
       repository: sig-storage/csi-resizer
       pullPolicy: IfNotPresent
       # Overrides the image tag whose default is the chart appVersion.
@@ -131,7 +131,7 @@ csiNode:
   driverRegistrar:
     name: "csi-node-driver-registrar"
     image:
-      registry: k8s.gcr.io/
+      registry: registry.k8s.io/
       repository: sig-storage/csi-node-driver-registrar
       pullPolicy: IfNotPresent
       # Overrides the image tag whose default is the chart appVersion.
@@ -141,7 +141,7 @@ csiNode:
     image:
       # Make sure that registry name end with a '/'.
       # For example : quay.io/ is a correct value here and quay.io is incorrect
-      registry: k8s.gcr.io/
+      registry: registry.k8s.io/
       repository: sig-storage/livenessprobe
       pullPolicy: IfNotPresent
       # Overrides the image tag whose default is the chart appVersion.
