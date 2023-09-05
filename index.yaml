@@ -3,6 +3,37 @@ entries:
   jiva:
   - apiVersion: v2
     appVersion: 3.5.0
+    created: "2023-09-05T07:30:07.309997679Z"
+    dependencies:
+    - condition: openebsLocalpv.enabled
+      name: localpv-provisioner
+      repository: https://openebs.github.io/dynamic-localpv-provisioner
+      version: 3.4.1
+    description: Helm chart for OpenEBS Jiva Operator. Jiva provides highly available replication block volumes to Kubernetes stateful workloads using the local storage available on the Kubernetes nodes.
+    digest: a20728e1c30030c47584155cc2f1b08448ac6b9e8c3b571622018dc83a48080f
+    home: http://www.openebs.io/
+    icon: https://raw.githubusercontent.com/cncf/artwork/master/projects/openebs/icon/color/openebs-icon-color.png
+    keywords:
+    - cloud-native-storage
+    - block-storage
+    - iSCSI
+    - storage
+    - jiva
+    - jiva-operator
+    maintainers:
+    - email: prateek.pandey@mayadata.io
+      name: prateekpandey14
+    - email: shubham.bajpai@mayadata.io
+      name: shubham14bajpai
+    name: jiva
+    sources:
+    - https://github.com/openebs/jiva-operator
+    type: application
+    urls:
+    - https://github.com/openebs/jiva-operator/releases/download/jiva-3.5.1/jiva-3.5.1.tgz
+    version: 3.5.1
+  - apiVersion: v2
+    appVersion: 3.5.0
     created: "2023-07-26T08:17:21.94088792Z"
     dependencies:
     - condition: openebsLocalpv.enabled
