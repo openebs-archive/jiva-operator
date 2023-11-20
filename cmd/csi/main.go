@@ -29,7 +29,7 @@ import (
 	"github.com/openebs/jiva-operator/version"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	k8scfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )

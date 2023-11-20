@@ -23,10 +23,10 @@ import (
 	"time"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
+	analytics "github.com/openebs/google-analytics-4/usage"
 	jivaAPI "github.com/openebs/jiva-operator/pkg/apis/openebs/v1"
 	"github.com/openebs/jiva-operator/pkg/jiva"
 	"github.com/openebs/jiva-operator/pkg/kubernetes/client"
-	analytics "github.com/openebs/jiva-operator/pkg/usage"
 	"github.com/openebs/jiva-operator/pkg/utils"
 	"github.com/openebs/jiva-operator/pkg/volume"
 	"github.com/sirupsen/logrus"

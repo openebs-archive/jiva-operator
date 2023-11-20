@@ -750,7 +750,7 @@ func (ns *node) NodeGetCapabilities(
 // TODO
 // Verify if this needs to be implemented
 //
-// NodeExpandVolume resizes the filesystem if required
+// # NodeExpandVolume resizes the filesystem if required
 //
 // If ControllerExpandVolumeResponse returns true in
 // node_expansion_required then FileSystemResizePending

@@ -84,7 +84,8 @@ EXTERNAL_TOOLS=\
 	golang.org/x/tools/cmd/cover@latest \
 	github.com/axw/gocov/gocov@latest \
 	github.com/ugorji/go/codec/codecgen@latest \
-	github.com/onsi/ginkgo/ginkgo@latest
+	github.com/onsi/ginkgo/ginkgo@latest \
+	sigs.k8s.io/controller-tools/cmd/controller-gen@latest
 
 # Lint our code. Reference: https://golang.org/cmd/vet/
 VETARGS?=-asmdecl -atomic -bool -buildtags -copylocks -methods \
