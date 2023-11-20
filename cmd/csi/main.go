@@ -31,6 +31,8 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/klog/v2"
 	k8scfg "sigs.k8s.io/controller-runtime/pkg/client/config"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
@@ -145,6 +147,9 @@ func run(config *config.Config) {
 	if err != nil {
 		logrus.Fatalf("error getting config: %v", err)
 	}
+
+	// Controller Runtime Logger Init
+	logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
 
 	// generate a new client object
 	cli, err := client.New(cfg)

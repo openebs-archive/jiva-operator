@@ -84,8 +84,7 @@ EXTERNAL_TOOLS=\
 	golang.org/x/tools/cmd/cover@latest \
 	github.com/axw/gocov/gocov@latest \
 	github.com/ugorji/go/codec/codecgen@latest \
-	github.com/onsi/ginkgo/ginkgo@latest \
-	sigs.k8s.io/controller-tools/cmd/controller-gen@latest
+	github.com/onsi/ginkgo/ginkgo@latest
 
 # Lint our code. Reference: https://golang.org/cmd/vet/
 VETARGS?=-asmdecl -atomic -bool -buildtags -copylocks -methods \
@@ -291,8 +290,8 @@ crds:
 
 # find or download controller-gen
 controller-gen:
-ifneq ($(shell controller-gen --version 2> /dev/null), Version: v0.4.1)
-	@(cd /tmp; GO111MODULE=on go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.4.1)
+ifneq ($(shell controller-gen --version 2> /dev/null), Version: v0.12.1)
+	@(cd /tmp; GO111MODULE=on go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.12.1)
 CONTROLLER_GEN=$(GOBIN)/controller-gen
 else
 CONTROLLER_GEN=$(shell which controller-gen)
