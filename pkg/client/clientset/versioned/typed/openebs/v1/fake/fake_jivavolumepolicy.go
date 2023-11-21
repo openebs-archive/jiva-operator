@@ -21,10 +21,9 @@ package fake
 import (
 	"context"
 
-	openebsv1 "github.com/openebs/jiva-operator/pkg/apis/openebs/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "github.com/openebs/jiva-operator/pkg/apis/openebs/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
-	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	testing "k8s.io/client-go/testing"
@@ -36,25 +35,25 @@ type FakeJivaVolumePolicies struct {
 	ns   string
 }
 
-var jivavolumepoliciesResource = schema.GroupVersionResource{Group: "openebs.io", Version: "v1", Resource: "jivavolumepolicies"}
+var jivavolumepoliciesResource = v1.SchemeGroupVersion.WithResource("jivavolumepolicies")
 
-var jivavolumepoliciesKind = schema.GroupVersionKind{Group: "openebs.io", Version: "v1", Kind: "JivaVolumePolicy"}
+var jivavolumepoliciesKind = v1.SchemeGroupVersion.WithKind("JivaVolumePolicy")
 
 // Get takes name of the jivaVolumePolicy, and returns the corresponding jivaVolumePolicy object, and an error if there is any.
-func (c *FakeJivaVolumePolicies) Get(ctx context.Context, name string, options v1.GetOptions) (result *openebsv1.JivaVolumePolicy, err error) {
+func (c *FakeJivaVolumePolicies) Get(ctx context.Context, name string, options metav1.GetOptions) (result *v1.JivaVolumePolicy, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewGetAction(jivavolumepoliciesResource, c.ns, name), &openebsv1.JivaVolumePolicy{})
+		Invokes(testing.NewGetAction(jivavolumepoliciesResource, c.ns, name), &v1.JivaVolumePolicy{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*openebsv1.JivaVolumePolicy), err
+	return obj.(*v1.JivaVolumePolicy), err
 }
 
 // List takes label and field selectors, and returns the list of JivaVolumePolicies that match those selectors.
-func (c *FakeJivaVolumePolicies) List(ctx context.Context, opts v1.ListOptions) (result *openebsv1.JivaVolumePolicyList, err error) {
+func (c *FakeJivaVolumePolicies) List(ctx context.Context, opts metav1.ListOptions) (result *v1.JivaVolumePolicyList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewListAction(jivavolumepoliciesResource, jivavolumepoliciesKind, c.ns, opts), &openebsv1.JivaVolumePolicyList{})
+		Invokes(testing.NewListAction(jivavolumepoliciesResource, jivavolumepoliciesKind, c.ns, opts), &v1.JivaVolumePolicyList{})
 
 	if obj == nil {
 		return nil, err
@@ -64,8 +63,8 @@ func (c *FakeJivaVolumePolicies) List(ctx context.Context, opts v1.ListOptions) 
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &openebsv1.JivaVolumePolicyList{ListMeta: obj.(*openebsv1.JivaVolumePolicyList).ListMeta}
-	for _, item := range obj.(*openebsv1.JivaVolumePolicyList).Items {
+	list := &v1.JivaVolumePolicyList{ListMeta: obj.(*v1.JivaVolumePolicyList).ListMeta}
+	for _, item := range obj.(*v1.JivaVolumePolicyList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)
 		}
@@ -74,69 +73,69 @@ func (c *FakeJivaVolumePolicies) List(ctx context.Context, opts v1.ListOptions) 
 }
 
 // Watch returns a watch.Interface that watches the requested jivaVolumePolicies.
-func (c *FakeJivaVolumePolicies) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeJivaVolumePolicies) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(jivavolumepoliciesResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a jivaVolumePolicy and creates it.  Returns the server's representation of the jivaVolumePolicy, and an error, if there is any.
-func (c *FakeJivaVolumePolicies) Create(ctx context.Context, jivaVolumePolicy *openebsv1.JivaVolumePolicy, opts v1.CreateOptions) (result *openebsv1.JivaVolumePolicy, err error) {
+func (c *FakeJivaVolumePolicies) Create(ctx context.Context, jivaVolumePolicy *v1.JivaVolumePolicy, opts metav1.CreateOptions) (result *v1.JivaVolumePolicy, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewCreateAction(jivavolumepoliciesResource, c.ns, jivaVolumePolicy), &openebsv1.JivaVolumePolicy{})
+		Invokes(testing.NewCreateAction(jivavolumepoliciesResource, c.ns, jivaVolumePolicy), &v1.JivaVolumePolicy{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*openebsv1.JivaVolumePolicy), err
+	return obj.(*v1.JivaVolumePolicy), err
 }
 
 // Update takes the representation of a jivaVolumePolicy and updates it. Returns the server's representation of the jivaVolumePolicy, and an error, if there is any.
-func (c *FakeJivaVolumePolicies) Update(ctx context.Context, jivaVolumePolicy *openebsv1.JivaVolumePolicy, opts v1.UpdateOptions) (result *openebsv1.JivaVolumePolicy, err error) {
+func (c *FakeJivaVolumePolicies) Update(ctx context.Context, jivaVolumePolicy *v1.JivaVolumePolicy, opts metav1.UpdateOptions) (result *v1.JivaVolumePolicy, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateAction(jivavolumepoliciesResource, c.ns, jivaVolumePolicy), &openebsv1.JivaVolumePolicy{})
+		Invokes(testing.NewUpdateAction(jivavolumepoliciesResource, c.ns, jivaVolumePolicy), &v1.JivaVolumePolicy{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*openebsv1.JivaVolumePolicy), err
+	return obj.(*v1.JivaVolumePolicy), err
 }
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeJivaVolumePolicies) UpdateStatus(ctx context.Context, jivaVolumePolicy *openebsv1.JivaVolumePolicy, opts v1.UpdateOptions) (*openebsv1.JivaVolumePolicy, error) {
+func (c *FakeJivaVolumePolicies) UpdateStatus(ctx context.Context, jivaVolumePolicy *v1.JivaVolumePolicy, opts metav1.UpdateOptions) (*v1.JivaVolumePolicy, error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateSubresourceAction(jivavolumepoliciesResource, "status", c.ns, jivaVolumePolicy), &openebsv1.JivaVolumePolicy{})
+		Invokes(testing.NewUpdateSubresourceAction(jivavolumepoliciesResource, "status", c.ns, jivaVolumePolicy), &v1.JivaVolumePolicy{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*openebsv1.JivaVolumePolicy), err
+	return obj.(*v1.JivaVolumePolicy), err
 }
 
 // Delete takes name of the jivaVolumePolicy and deletes it. Returns an error if one occurs.
-func (c *FakeJivaVolumePolicies) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
+func (c *FakeJivaVolumePolicies) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteActionWithOptions(jivavolumepoliciesResource, c.ns, name, opts), &openebsv1.JivaVolumePolicy{})
+		Invokes(testing.NewDeleteActionWithOptions(jivavolumepoliciesResource, c.ns, name, opts), &v1.JivaVolumePolicy{})
 
 	return err
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeJivaVolumePolicies) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+func (c *FakeJivaVolumePolicies) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
 	action := testing.NewDeleteCollectionAction(jivavolumepoliciesResource, c.ns, listOpts)
 
-	_, err := c.Fake.Invokes(action, &openebsv1.JivaVolumePolicyList{})
+	_, err := c.Fake.Invokes(action, &v1.JivaVolumePolicyList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched jivaVolumePolicy.
-func (c *FakeJivaVolumePolicies) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *openebsv1.JivaVolumePolicy, err error) {
+func (c *FakeJivaVolumePolicies) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.JivaVolumePolicy, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceAction(jivavolumepoliciesResource, c.ns, name, pt, data, subresources...), &openebsv1.JivaVolumePolicy{})
+		Invokes(testing.NewPatchSubresourceAction(jivavolumepoliciesResource, c.ns, name, pt, data, subresources...), &v1.JivaVolumePolicy{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*openebsv1.JivaVolumePolicy), err
+	return obj.(*v1.JivaVolumePolicy), err
 }

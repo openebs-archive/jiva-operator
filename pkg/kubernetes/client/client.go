@@ -22,10 +22,10 @@ import (
 	"os"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
+	analytics "github.com/openebs/google-analytics-4/usage"
 	"github.com/openebs/jiva-operator/pkg/apis"
 	jivaAPI "github.com/openebs/jiva-operator/pkg/apis/openebs/v1"
 	"github.com/openebs/jiva-operator/pkg/jivavolume"
-	analytics "github.com/openebs/jiva-operator/pkg/usage"
 	"github.com/openebs/jiva-operator/pkg/utils"
 	env "github.com/openebs/lib-csi/pkg/common/env"
 	"github.com/sirupsen/logrus"
@@ -51,6 +51,21 @@ const (
 	// OpenEBSNamespace is the environment variable to get openebs namespace
 	// This environment variable is set via kubernetes downward API
 	OpenEBSNamespace = "OPENEBS_NAMESPACE"
+
+	// Ping for Jiva
+	Ping string = "ping"
+
+	// Replica Event replication
+	Replica string = "replica:"
+	// DefaultReplicaCount holds the replica count string
+	DefaultReplicaCount string = "replica:3"
+
+	// DefaultCASType Event application name constant for volume event
+	DefaultCASType string = "jiva"
+
+	// OpenEBSEnableAnalytics is the environment variable to get user's consent to
+	// send usage data to OpenEBS core-developers using the Google Analytics platform
+	OpenEBSEnableAnalytics string = "OPENEBS_IO_ENABLE_ANALYTICS"
 )
 
 var (
@@ -302,14 +317,36 @@ func GetOpenEBSNamespace() string {
 
 // sendEventOrIgnore sends anonymous jiva provision/delete events
 func SendEventOrIgnore(pvcName, pvName, capacity, replicaCount, stgType, method string) {
-	if env.Truthy(analytics.OpenEBSEnableAnalytics) {
-		analytics.New().Build().ApplicationBuilder().
-			SetVolumeType(stgType, method).
-			SetDocumentTitle(pvName).
-			SetCampaignName(pvcName).
+	if env.Truthy(OpenEBSEnableAnalytics) {
+		analytics.New().CommonBuild(GetEngineName(stgType, method)).ApplicationBuilder().
+			SetVolumeName(pvName).
+			SetVolumeClaimName(pvcName).
 			SetLabel(analytics.EventLabelCapacity).
-			SetReplicaCount(replicaCount, method).
+			SetValue(GetReplicaCount(replicaCount, method)).
 			SetCategory(method).
 			SetVolumeCapacity(capacity).Send()
+	}
+}
+
+// GetEngineName Wrapper for setting the default storage-engine for volume-provision event
+func GetEngineName(volType, method string) string {
+	if method == analytics.VolumeProvision && volType == "" {
+		// Set the default storage engine, if not specified in the request
+		return DefaultCASType
+	} else {
+		return volType
+	}
+}
+
+// GetReplicaCount Wrapper for setting replica count for volume events
+func GetReplicaCount(count, method string) string {
+	if method == analytics.VolumeProvision && count == "" {
+		// Case: When volume-provision the replica count isn't specified
+		// it is set to three by default by the cstor-operators
+		return DefaultReplicaCount
+	} else {
+		// Catch all case for volume-deprovision event and
+		// volume-provision event with an overridden replica-count
+		return Replica + count
 	}
 }

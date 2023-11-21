@@ -20,9 +20,10 @@ import (
 	"os"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
+	analytics "github.com/openebs/google-analytics-4/usage"
 	config "github.com/openebs/jiva-operator/pkg/config"
 	"github.com/openebs/jiva-operator/pkg/kubernetes/client"
-	analytics "github.com/openebs/jiva-operator/pkg/usage"
+	"github.com/openebs/jiva-operator/version"
 	"github.com/openebs/lib-csi/pkg/common/env"
 	"github.com/sirupsen/logrus"
 )
@@ -100,9 +101,10 @@ func (d *CSIDriver) Run() error {
 
 	// Send Event only after starting controller.
 	// ControllerServer(cs) will be non-empty only if driver is running as controller service
-	if d.cs != nil && env.Truthy(analytics.OpenEBSEnableAnalytics) {
-		analytics.New().Build().InstallBuilder(true).Send()
-		go analytics.PingCheck()
+	if d.cs != nil && env.Truthy(client.OpenEBSEnableAnalytics) {
+		analytics.RegisterVersionGetter(version.GetVersionDetails)
+		analytics.New().CommonBuild(client.DefaultCASType).InstallBuilder(true).Send()
+		go analytics.PingCheck(client.DefaultCASType, client.Ping)
 	}
 
 	s.Wait()

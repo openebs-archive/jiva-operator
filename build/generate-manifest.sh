@@ -27,7 +27,7 @@ then
   exit 1;
 fi
 
-$CONTROLLER_GEN crd:trivialVersions=true,preserveUnknownFields=false paths="./pkg/apis/..." output:crd:artifacts:config=deploy/crds
+$CONTROLLER_GEN crd paths="./pkg/apis/..." output:crd:artifacts:config=deploy/crds
 
 # Add namespace creation to the Operator yaml
 cat deploy/yamls/namespace.yaml > deploy/jiva-operator.yaml
