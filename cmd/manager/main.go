@@ -19,6 +19,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
 	env "runtime"
 	"time"
 
@@ -35,6 +36,8 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -67,6 +70,9 @@ func main() {
 	flag.Parse()
 
 	duration := 30 * time.Second
+
+	// Controller Runtime Logger Init
+	logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
