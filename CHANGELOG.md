@@ -1,6 +1,10 @@
+v3.6.0 / 2023-12-12
+===================
+* feat(event): update ua to ga4 analytics ([#215](https://github.com/openebs/jiva-operator/pull/215)),[@Abhinandan-Purkait](https://github.com/Abhinandan-Purkait))
+
 v3.2.0 / 2022-04-19
 ===================
-* rename 'defaultClass' helm chart template values object to 'storageClass' ([#184](https://github.com/openebs/jiva-operator/pull/184)), [@niladrih](https://github.com/niladrih))
+* rename 'defaultClass' helm chart template values object to 'storageClass' ([#184](https://github.com/openebs/jiva-operator/pull/184)),[@niladrih](https://github.com/niladrih))
 
 v3.1.0 / 2022-01-03
 ========================
