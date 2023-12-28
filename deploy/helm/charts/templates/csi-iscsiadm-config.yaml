@@ -4,6 +4,9 @@ metadata:
   name: openebs-jiva-csi-iscsiadm
 data:
   iscsiadm: |
+  {{- if .Values.csiNode.customIscsiadmConfig }}
+    {{- .Values.csiNode.customIscsiadmConfig | nindent 4 }}
+  {{- else }}
     #!/bin/sh
     if [ -x /host/sbin/iscsiadm ]; then
       chroot /host /sbin/iscsiadm "$@"
@@ -16,3 +19,4 @@ data:
     else
       chroot /host iscsiadm "$@"
     fi
+  {{- end }}
