@@ -22,6 +22,7 @@ spec:
       priorityClassName: {{ template "jiva.csiNode.priorityClassName" . }}
       serviceAccountName: {{ .Values.serviceAccount.csiNode.name }}
       hostNetwork: true
+      hostPID: {{ .Values.csiNode.hostPID }}
       containers:
         - name: {{ .Values.csiNode.driverRegistrar.name }}
           image: "{{ .Values.csiNode.driverRegistrar.image.registry }}{{ .Values.csiNode.driverRegistrar.image.repository }}:{{ .Values.csiNode.driverRegistrar.image.tag }}"

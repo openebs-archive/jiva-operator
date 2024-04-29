@@ -127,6 +127,12 @@ csiNode:
     name: jiva-csi-node-critical
     value: 900001000
   componentName: "openebs-jiva-csi-node"
+  hostPID: false
+  # customIscsiadmConfig is used to override the default iscsiadm config
+  # customIscsiadmConfig: |
+  #   #!/bin/sh
+  #   iscsid_pid=$(pgrep iscsid)
+  #   nsenter --mount="/proc/${iscsid_pid}/ns/mnt" --net="/proc/${iscsid_pid}/ns/net" -- /usr/local/sbin/iscsiadm "$@"
   logLevel: "5"
   driverRegistrar:
     name: "csi-node-driver-registrar"
