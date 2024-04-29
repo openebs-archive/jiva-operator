@@ -8,7 +8,7 @@ Please refer to Helm's [documentation](https://helm.sh/docs/) to get started.
 Once Helm is set up properly, add OpenEBS Jiva repository to Helm repos:
 
 ```bash
-helm repo add openebs-jiva https://openebs.github.io/jiva-operator
+helm repo add openebs-jiva https://openebs-archive.github.io/jiva-operator
 ```
 
 You can then run `helm search repo openebs-jiva` to see the charts.
@@ -49,7 +49,7 @@ By default this chart installs additional, dependent charts:
 
 | Repository | Name | Version |
 |------------|------|---------|
-| https://openebs.github.io/dynamic-localpv-provisioner | localpv-provisioner | 2.6.0 |
+| https://openebs.github.io/dynamic-localpv-provisioner | localpv-provisioner | 3.5.0 |
 
 
 To disable the dependency during installation, set `openebsLocalpv.enabled` to `false`.
