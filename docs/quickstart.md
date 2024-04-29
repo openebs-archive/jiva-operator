@@ -59,7 +59,7 @@ Install Jiva components using [jiva helm charts](https://github.com/openebs/jiva
 Install the [latest release](https://github.com/openebs/jiva-operator/releases) using Jiva Operator yamls.
 
 ```
-kubectl apply -f https://openebs.github.io/charts/jiva-operator.yaml
+kubectl apply -f https://openebs-archive.github.io/charts/jiva-operator.yaml
 ```
 Once installed using any of the above methods, verify that Jiva Operator and jiva csi pods are running. 
 
